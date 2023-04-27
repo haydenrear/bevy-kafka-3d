@@ -7,7 +7,8 @@ use crate::camera::{camera_control, setup_camera, ZoomableDraggableCamera};
 use crate::component_interaction::highlight_nodes;
 use crate::initialize_test_plugin::add_node_entities;
 use crate::metrics::{MetricsMetadataSubscription, MetricState, MetricsSubscription};
-use crate::network::draw_layers;
+use draw_network::draw_network;
+use crate::draw_network::draw_node_connections;
 
 mod config;
 mod metrics;
@@ -16,6 +17,7 @@ mod network_state;
 mod initialize_test_plugin;
 mod camera;
 mod component_interaction;
+mod draw_network;
 mod test;
 
 fn main() {
@@ -29,8 +31,9 @@ fn main() {
         .add_plugin(ShapePlugin)
         .add_startup_system(setup_camera)
         .add_startup_system(add_node_entities)
-        .add_system(draw_layers)
+        .add_system(draw_network)
         .add_system(camera_control)
         .add_system(highlight_nodes)
+        .add_system(draw_node_connections)
         .run();
 }

@@ -1,7 +1,9 @@
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::{MouseButtonInput, MouseMotion, MouseWheel};
 use bevy::prelude::*;
+use bevy::prelude::shape::Quad;
 use bevy::render::camera::Viewport;
+use bevy::sprite::MaterialMesh2dBundle;
 use bevy::window::{CursorGrabMode, WindowRef};
 use bevy_mod_picking::PickingCameraBundle;
 
@@ -19,6 +21,12 @@ pub(crate) fn setup_camera(
     mut materials: ResMut<Assets<ColorMaterial>>,
 ) {
     commands.spawn((Camera2dBundle::default(), PickingCameraBundle::default()));
+    commands.spawn(MaterialMesh2dBundle {
+            mesh: meshes.add(Mesh::from(Quad::new(Vec2::new(10000.0, 10000.0)))).into(),
+            transform: Transform::default(),
+            material: materials.add(ColorMaterial::from(Color::BEIGE)),
+            ..default()
+        });
 }
 
 pub(crate) fn camera_control(
