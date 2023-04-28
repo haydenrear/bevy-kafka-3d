@@ -48,12 +48,6 @@ pub(crate) fn draw_network(
     }
 }
 
-pub fn this(
-
-) {
-
-}
-
 pub fn draw_node_connections(
     mut commands: Commands,
     mut app_state: ResMut<MetricState>,
@@ -62,12 +56,12 @@ pub fn draw_node_connections(
     mut layer_query: Query<(Entity, &Parent, &mut Transform, &mut Node)>,
     global_transform_query: Query<&GlobalTransform>
 ) {
-    // for layer in layer_query.iter_mut() {
-    //     info!("parent found!");
-    //     let parent_transform = global_transform_query.get(layer.1.get())
-    //         .unwrap();
-    //     info!("parent transform {}", parent_transform.translation().x);
-    // }
+    for layer in layer_query.iter_mut() {
+        info!("parent found!");
+        let parent_transform = global_transform_query.get(layer.1.get())
+            .unwrap();
+        info!("parent transform {}", parent_transform.translation().x);
+    }
 }
 
 fn draw_fc_layer<'a>(

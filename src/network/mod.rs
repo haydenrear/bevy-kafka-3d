@@ -15,7 +15,7 @@ pub struct Node {
     pub(crate) entity: Option<Entity>,
     layer_type: LayerType,
     layer_num: usize,
-    connections: Vec<Entity>
+    pub(crate) connections: Vec<Entity>
 }
 
 #[derive(Default, Component)]
