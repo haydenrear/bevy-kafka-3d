@@ -12,7 +12,10 @@ use crate::metrics::{LayerMetrics, Metric, MetricState};
 #[derive(Default, Component, Clone)]
 pub struct Node {
     metrics: Metric,
-    pub(crate) entity: Option<Entity>
+    pub(crate) entity: Option<Entity>,
+    layer_type: LayerType,
+    layer_num: usize,
+    connections: Vec<Entity>
 }
 
 #[derive(Default, Component)]
@@ -24,7 +27,7 @@ pub struct Layer {
     pub(crate) sub_layers: Vec<Layer>
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub enum LayerType {
     #[default]
     TFormer,

@@ -8,7 +8,7 @@ edition = "2021"
 [dependencies]
 bevy = { version = "0.10.0"}
 bevy_prototype_lyon = "0.8.0"
-bevy_mod_picking = "0.12.0"
+bevy_mod_picking = {path = "../../../bevy_mod_picking"}
 
 
 # Enable a small amount of optimization in debug mode

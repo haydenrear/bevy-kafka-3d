@@ -4,7 +4,7 @@ use bevy::prelude::*;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use crate::camera::{camera_control, setup_camera, ZoomableDraggableCamera};
-use crate::component_interaction::highlight_nodes;
+use crate::component_interaction::{pick_node};
 use crate::initialize_test_plugin::add_node_entities;
 use crate::metrics::{MetricsMetadataSubscription, MetricState, MetricsSubscription};
 use draw_network::draw_network;
@@ -33,7 +33,7 @@ fn main() {
         .add_startup_system(add_node_entities)
         .add_system(draw_network)
         .add_system(camera_control)
-        .add_system(highlight_nodes)
+        .add_system(pick_node)
         .add_system(draw_node_connections)
         .run();
 }
