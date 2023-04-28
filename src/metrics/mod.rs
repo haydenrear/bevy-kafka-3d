@@ -1,6 +1,8 @@
 use std::default::{default, Default};
-use bevy::prelude::{Component, Entity, Resource};
+use bevy::prelude::{BuildChildren, Children, Commands, Component, Entity, info, Query, Res, ResMut, Resource};
 use bevy::utils::HashMap;
+use bevy_prototype_lyon::prelude::tess::geom::Transform;
+use crate::network::Node;
 
 
 #[derive(Component, Clone)]
@@ -53,30 +55,62 @@ impl HistoricalData {
     }
 }
 
-
-pub struct LayerMetrics {
-    pub(crate) dirty: bool,
+/// Each metric can be associated with a group of nodes. So the metric can be the parent, and the children
+/// of the network will then be the nodes for which it is associated, or the layer. This allows for drawing
+/// the metric relative to the nodes, highlighting multiple associated nodes in accordance with the metrics
+#[derive(Default, Resource)]
+pub struct MetricState {
     pub(crate) metrics: HashMap<Entity, Metric>
 }
 
-impl LayerMetrics {
-    pub(crate) fn new(metrics: HashMap<Entity, Metric>) -> Self {
-        Self {
-            dirty: true, metrics
-        }
-    }
-}
-
-#[derive(Default, Resource)]
-pub struct MetricState {
-    pub(crate) metrics: HashMap<Entity, LayerMetrics>
-}
-
-#[derive(Default, Resource)]
+#[derive(Resource)]
 pub struct MetricsSubscription {
+    did_update: bool
+}
+
+impl Default for MetricsSubscription {
+    fn default() -> Self {
+       Self {
+           did_update: false
+       }
+    }
 }
 
 #[derive(Default, Resource)]
 pub struct MetricsMetadataSubscription {
 }
 
+#[derive(Default, Component)]
+pub struct MetricChildNodes {
+    nodes: Vec<Entity>
+}
+
+pub(crate) fn update_metrics(
+    mut commands: Commands,
+    mut metrics_resource: ResMut<MetricsSubscription>,
+    nodes: Query<(Entity, &mut Node)>,
+) {
+    for node in nodes.iter() {
+        if !metrics_resource.did_update {
+            for i in 0..10 {
+                commands.spawn(Metric::default())
+                    .insert(MetricChildNodes {
+                        nodes: vec![node.0],
+                    });
+            }
+        }
+        metrics_resource.did_update = true;
+    }
+}
+
+/// Each metric has it's children
+pub(crate) fn publish_metrics(
+    metrics: Query<(&Metric, &MetricChildNodes)>,
+    child_nodes: Query<&Node>
+) {
+    for metric in metrics.iter() {
+        if child_nodes.get(metric.1.nodes.get(0).unwrap().clone()).is_ok() {
+            // info!("Successfully added MetricChildNodes.");
+        }
+    }
+}
