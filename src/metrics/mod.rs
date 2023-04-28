@@ -13,6 +13,11 @@ pub struct Metric {
     pub(crate) dirty: bool
 }
 
+pub enum MetricType {
+    WeightVariance,
+    Concavity
+}
+
 impl Default for Metric {
     fn default() -> Self {
         Self {

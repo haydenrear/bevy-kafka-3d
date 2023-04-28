@@ -1,12 +1,14 @@
 #![feature(default_free_fn)]
 
 use bevy::prelude::*;
+use bevy::ui::UiPlugin;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_prototype_lyon::plugin::ShapePlugin;
 use crate::camera::{camera_control, setup_camera, ZoomableDraggableCamera};
 use crate::initialize_test_plugin::add_node_entities;
 use crate::metrics::{MetricsMetadataSubscription, MetricState, MetricsSubscription, update_metrics, publish_metrics};
 use crate::draw_network::{create_network, draw_network_initial, draw_node_connections, update_network};
+use crate::visualization::DropdownPlugin;
 
 mod config;
 mod metrics;
@@ -15,6 +17,8 @@ mod network_state;
 mod initialize_test_plugin;
 mod camera;
 mod draw_network;
+mod visualization;
+mod menu;
 mod test;
 
 fn main() {
@@ -26,6 +30,7 @@ fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(DefaultPickingPlugins)
         .add_plugin(ShapePlugin)
+        .add_plugin(DropdownPlugin)
         .add_startup_system(setup_camera)
         .add_startup_system(add_node_entities)
         .add_system(update_network)
