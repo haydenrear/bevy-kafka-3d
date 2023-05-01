@@ -9,25 +9,10 @@ use crate::network::{Layer, Network, Node};
 
 pub(crate) mod menu_event;
 pub(crate) mod menu_resource;
-pub(crate) mod interaction_ui_event_writer_system;
-pub(crate) mod interaction_ui_event_reader;
-pub(crate) mod interaction_config_event_writer_system;
-pub(crate) mod interaction_config_event_reader_system;
 
 pub struct MenuData {
     pub(crate) sub_menus: Vec<SubMenu>,
     pub(crate) selectables: Vec<MenuInputType>
-}
-
-macro_rules! menu_data {
-    ($($menu_input_ty:ty, $menu_input_ident:ident),*, $($submenu_ty:ty, $submenu_ident:ident),*) => {
-        pub struct MenuData {
-            $(
-                $menu_input_ident: $menu_input_ty,
-                $submenu_ident: $submenu_ty
-            )*
-        }
-    }
 }
 
 pub struct SubMenu {

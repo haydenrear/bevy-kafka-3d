@@ -9,21 +9,26 @@ use bevy::log::info;
 use bevy::ui::{Size, ui_focus_system, Val};
 use bevy::utils::HashMap;
 use bevy_mod_picking::Hover;
-use crate::menu::{CollapsableMenu, ConfigurationOption, Dropdown, DropdownOption, interaction_ui_event_reader, interaction_ui_event_writer_system};
+use crate::menu::{CollapsableMenu, ConfigurationOption, Dropdown, DropdownOption};
 use change_style::ChangeStyleTypes;
 use crate::menu::menu_event::HoverStateChange::ColoredHover;
 use crate::visualization;
 use crate::visualization::{create_dropdown, UiIdentifiableComponent};
 
+pub(crate) mod interaction_ui_event_writer;
+pub(crate) mod interaction_ui_event_reader;
+pub(crate) mod interaction_config_event_writer;
+pub(crate) mod interaction_config_event_reader;
 pub(crate) mod change_style;
 pub(crate) mod change_options;
+pub(crate) mod network_component_event_reader;
 
 pub struct UiEventPlugin;
 
 impl Plugin for UiEventPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_system(interaction_ui_event_writer_system::write_ui_events)
+            .add_system(interaction_ui_event_writer::write_ui_events)
             .add_system(interaction_ui_event_reader::read_menu_ui_event)
             .add_system(hover_event)
             .add_startup_system(create_dropdown)
@@ -359,6 +364,37 @@ pub struct StateChangeActionType<T: Component + Send + Sync + 'static> {
     pub(crate) clicked: StateChange<T>,
 }
 
+pub trait EventData: Send + Sync {}
+
+pub struct EventDescriptor<T: EventData, C: Component> {
+    component: C,
+    description: T
+}
+
+pub trait UiComponentStateFactory<U: UpdateStateInPlace<Self>, T: EventData>: Sized + Component {
+    fn current_state(current: EventDescriptor<T, Self>) -> NextState<Self, U>;
+}
+
+pub trait UpdateStateInPlace<T: Component> {
+    fn update_state(value: &mut T);
+}
+
+pub enum NextState<T: Component, U: UpdateStateInPlace<T>> {
+    Replace(T, PhantomData<U>),
+    Update(U)
+}
+
+
+
+
+/// If each UIComponent contained a state and implemented a next_action trait, which passed
+/// in some state of enum, and then generated the next state, then a high level of modularity
+/// could be achieved. Actions would be passed in, which would contain the state of the other
+/// components and entities required to perform the state change, and then the new state for that
+/// component would be created by that component, and the state of that component would be updated,
+/// or the old component would be replaced by the new component.
+///
+/// k
 #[derive(Component, Debug, Clone)]
 pub enum UiComponent {
     Dropdown(Dropdown, Vec<StateChangeActionType<UiIdentifiableComponent>>),

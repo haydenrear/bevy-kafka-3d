@@ -8,6 +8,17 @@ use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::GeometryBuilder;
 use bevy_prototype_lyon::shapes;
 use crate::draw_network::{LAYER_SPACING, NODE_RADIUS, NODE_SPACING};
+use crate::metrics::Metric;
+
+pub trait HasMetrics: Send + Sync {
+    fn get_metrics(&self) -> Metric;
+}
+
+impl HasMetrics for Node {
+    fn get_metrics(&self) -> Metric {
+        todo!()
+    }
+}
 
 #[derive(Default, Component, Clone, Debug)]
 pub struct Node {
