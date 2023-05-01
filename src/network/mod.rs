@@ -86,7 +86,7 @@ impl LayerType {
     }
 }
 
-#[derive(Default, Component)]
+#[derive(Default, Component, Clone)]
 pub struct Network {
     pub(crate) layers: Vec<Entity>,
     pub(crate) network_id: NetworkId

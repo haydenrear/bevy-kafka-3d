@@ -1,4 +1,5 @@
 use std::fmt::{Debug, Formatter, Pointer, Write};
+use std::hash::Hash;
 use std::marker::PhantomData;
 use bevy::prelude::{BackgroundColor, Button, Changed, Children, Color, Commands, Component, Condition, Display, Entity, EventReader, EventWriter, Interaction, ParamSet, Parent, Query, Style, With, Without, World};
 use bevy::app::{App, Plugin};
@@ -8,20 +9,24 @@ use bevy::log::info;
 use bevy::ui::{Size, ui_focus_system, Val};
 use bevy::utils::HashMap;
 use bevy_mod_picking::Hover;
-use crate::menu::{CollapsableMenu, Dropdown, DropdownOption};
+use crate::menu::{CollapsableMenu, ConfigurationOption, Dropdown, DropdownOption, interaction_ui_event_reader, interaction_ui_event_writer_system};
+use change_style::ChangeStyleTypes;
 use crate::menu::menu_event::HoverStateChange::ColoredHover;
 use crate::visualization;
-use crate::visualization::UpdateableComponent;
+use crate::visualization::{create_dropdown, UiIdentifiableComponent};
+
+pub(crate) mod change_style;
+pub(crate) mod change_options;
 
 pub struct UiEventPlugin;
 
 impl Plugin for UiEventPlugin {
     fn build(&self, app: &mut App) {
         app
-            .add_system(interaction_event_system)
-            .add_system(event_read_event)
+            .add_system(interaction_ui_event_writer_system::write_ui_events)
+            .add_system(interaction_ui_event_reader::read_menu_ui_event)
             .add_system(hover_event)
-            .add_startup_system(visualization::create_dropdown)
+            .add_startup_system(create_dropdown)
             .add_event::<UiEvent>();
     }
 }
@@ -31,118 +36,281 @@ pub enum UiEvent {
     Event(ClickStateChangeState)
 }
 
+#[derive(Component, Default)]
+pub enum NodeConfigurationOption {
+    #[default]
+    Option
+}
+
+
+#[derive(Debug, Clone)]
+pub enum ConfigurationOptionEvent<T: Component + Send + Sync + 'static> {
+    Event(ConfigurationOption<T>)
+}
+
 #[derive(Clone, Debug)]
 pub enum HoverStateChange {
     ColoredHover {
         color: Color
-    }, None
+    },
+    None,
 }
 
 #[derive(Clone, Debug)]
-pub enum ClickStateChange {
-    ChangeColorStateChange(Color, Vec<StyleChangeType>),
-    ChangeDisplay(ChangeStyle, Vec<StyleChangeType>),
-    None
+pub enum StateChange<T: Component + Send + Sync + 'static> {
+    ChangeComponentColor(Color, ChangePropagation),
+    ChangeComponentStyle(ChangeStyleTypes, ChangePropagation),
+    ChangeConfigurationOption(ConfigurationOptionEvent<T>),
+    None,
 }
 
+/// Determines where to get the starting state from, which determines the next state. For instance,
+/// if a child is swapping from visible to invisible, and the parent is swapping, then in order so
+/// that they won't swap out of sync, you use starting state of one to determine next state of both.
 #[derive(Clone, Debug)]
-pub enum StyleChangeType {
-    Parent,
+pub enum StartingState {
     Child,
-    SelfChange,
-    FilterDriven {
-        exclude: Option<Vec<f32>>,
-        include: Option<Vec<f32>>
+    Parent,
+    SelfState,
+    Other(f32)
+}
+
+#[derive(Clone, Debug)]
+pub enum ChangePropagation {
+    // Include self as parent and any children of parent
+    ParentToChild(StartingState),
+    // Include self as child and parent of self
+    ChildToParent(StartingState),
+    // Include self only
+    SelfChange(StartingState),
+    // Include children only
+    Children(StartingState),
+    // Include parent only
+    Parent(StartingState),
+    // Propagate event to specific Id's
+    CustomPropagation {
+        to: Vec<f32>,
+        // starting state
+        from: StartingState
     }
 }
 
-impl ClickStateChange {
-    pub fn get_ui_event(&self, args: &HashMap<Entity, Node>) -> Option<UiEvent> {
-        if let ClickStateChange::ChangeDisplay(change_style, _) = self {
-            return change_style.get_ui_event(args);
+impl ChangePropagation {
+    fn get_starting_state(&self) -> StartingState {
+        match self {
+            ChangePropagation::ParentToChild(starting) => {
+                starting.clone()
+            }
+            ChangePropagation::ChildToParent(starting) => {
+                starting.clone()
+            }
+            ChangePropagation::SelfChange(starting) => {
+                starting.clone()
+            }
+            ChangePropagation::Children(starting) => {
+                starting.clone()
+            }
+            ChangePropagation::Parent(starting) => {
+                starting.clone()
+            }
+            ChangePropagation::CustomPropagation { to , from} => {
+                from.clone()
+            }
+        }
+    }
+}
+
+impl ChangePropagation {
+    pub(crate) fn includes_parent(&self) -> bool {
+        match self {
+            ChangePropagation::ParentToChild(_) => {
+                true
+            }
+            ChangePropagation::ChildToParent(_) => {
+                true
+            }
+            ChangePropagation::SelfChange(_) => {
+                false
+            }
+            ChangePropagation::Children(_) => {
+                false
+            }
+            ChangePropagation::Parent(_) => {
+                true
+            }
+            ChangePropagation::CustomPropagation { .. } => {
+                false
+            }
+        }
+    }
+
+    pub(crate) fn includes_self(&self) -> bool {
+        match self {
+            ChangePropagation::ParentToChild(_) => {
+                true
+            }
+            ChangePropagation::ChildToParent(_) => {
+                true
+            }
+            ChangePropagation::SelfChange(_) => {
+                true
+            }
+            ChangePropagation::Children(_) => {
+                false
+            }
+            ChangePropagation::Parent(_) => {
+                false
+            }
+            ChangePropagation::CustomPropagation { .. } => {
+                false
+            }
+        }
+    }
+
+    pub(crate) fn includes_children(&self) -> bool {
+        match self {
+            ChangePropagation::ParentToChild(_) => {
+                true
+            }
+            ChangePropagation::ChildToParent(_) => {
+                false
+            }
+            ChangePropagation::SelfChange(_) => {
+                false
+            }
+            ChangePropagation::Children(_) => {
+                true
+            }
+            ChangePropagation::Parent(_) => {
+                false
+            }
+            ChangePropagation::CustomPropagation { .. } => {
+                false
+            }
+        }
+    }
+}
+
+
+impl StateChange<UiIdentifiableComponent> {
+    /// Here we have all of the nodes that
+    pub fn get_ui_event(&self, args: HashMap<Entity, StyleNode>) -> Option<UiEvent> {
+        if let StateChange::ChangeComponentStyle(change_style, propagation) = self {
+            // here we translate to the UiComponentFilters, from the change_style, and then
+            // pass the UiComponentFilter to a method that executes
+            return change_style.get_current_state(&args, propagation)
+                .map(|style| {
+                    let filtered = change_style.filter_entities(args);
+                    if filtered.is_empty() {
+                        info!("Filtered entities were none.");
+                    } else {
+                        info!("Doing state change with {:?}", filtered);
+                    }
+                    change_style.do_change(&style, filtered)
+                })
+                .flatten()
+                .or_else(|| {
+                    info!("Could not get current state.");
+                    None
+                });
         }
         None
     }
 
-    pub fn style_change_types(&self) -> Option<&Vec<StyleChangeType>> {
+    pub fn propagation(&self) -> Option<&ChangePropagation> {
         match self {
-            ClickStateChange::ChangeColorStateChange(_, change_type) => {
-                Some(&change_type)
+            StateChange::ChangeComponentColor(_, change_type) => {
+                Some(change_type)
             }
-            ClickStateChange::ChangeDisplay(_, change_type) => {
-                Some(&change_type)
+            StateChange::ChangeComponentStyle(_, change_type) => {
+                Some(change_type)
             }
-            ClickStateChange::None => {
+            StateChange::None => {
+                None
+            }
+            StateChange::ChangeConfigurationOption(_) => {
                 None
             }
         }
     }
 }
 
-pub trait StyleChange {
-    fn get_ui_event(&self, style: &HashMap<Entity, Node>) -> Option<UiEvent>;
-}
-
 /// May consider adding a flag to signify that the state of that node should be the one to determine
 /// the state of the others. For instance, if switching from visible to invisible, which node determines?
 /// So you can use a flag here.
-pub enum Node {
+#[derive(Clone)]
+pub enum StyleNode {
     Child(Style, f32),
     SelfNode(Style, f32),
-    Parent(Style, f32)
+    Parent(Style, f32),
+    Other(Style, f32)
 }
 
-impl ChangeStyle {
-    fn do_change_size(width_1: &f32, width_2: &f32, height_1: &f32, height_2: &f32, style: &HashMap<Entity, Node>) -> Option<UiEvent> {
-        let mut current_display = HashMap::new();
-        let mut update_display = HashMap::new();
-        style.iter().filter(|n| matches!(n.1, Node::SelfNode(_,_)))
-            .for_each(|(entity, node)| {
-                if let Node::SelfNode(style, _) = node {
-                    let current_height = &style.size.height;
-                    if let Val::Percent(value) = current_height {
-                        if height_1 == value {
-                            update_display.insert(entity.clone(), Size::new(Val::Percent(*width_2), Val::Percent(*height_2)));
-                        } else {
-                            update_display.insert(entity.clone(), Size::new(Val::Percent(*width_1), Val::Percent(*height_1)));
-                        }
-                    }
-                    current_display.insert(entity.clone(), style.size);
-                }
-            });
-        return Some(UiEvent::Event(ClickStateChangeState::ChangeSize {
-            current_display,
-            update_display
-        }));
+impl Debug for StyleNode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Node enum: ");
+        match self {
+            StyleNode::Child(_, _) => {
+                f.write_str(" Child ");
+            }
+            StyleNode::SelfNode(_, _) => {
+                f.write_str(" Self ");
+            }
+            StyleNode::Parent(_, _) => {
+                f.write_str(" Parent ");
+            }
+            StyleNode::Other(_, _) => {
+                f.write_str(" Other ");
+            }
+        }
+        f.write_str(self.id().to_string().as_str())
     }
 }
 
-impl StyleChange for ChangeStyle {
-    /// Takes in the hashmap that describes the entity and the current style that it has, and then
-    /// returns a UiEvent containing entities with current state and the calculated next state.
-    ///
-    /// The nodes are passed in as Node, which associates style with node type, so that the style
-    /// of the child node can be set based on the state of the parent node. For instance, if both
-    /// should be set according to the parent node, the state of the parent node can be checked in
-    /// order to determine how to set the state of the child node.
-    fn get_ui_event(&self, style: &HashMap<Entity, Node>) -> Option<UiEvent> {
-        if let ChangeStyle::ChangeSize { width_1, width_2, height_1, height_2} = self {
-            return Self::do_change_size(width_1, width_2, height_1, height_2, style);
-        } else if let ChangeStyle::ChangeVisible(values) = self {
-
+impl StyleNode {
+    fn id(&self) -> f32 {
+        match self {
+            StyleNode::Child(_, id) => {
+                *id
+            }
+            StyleNode::SelfNode(_, id) => {
+                *id
+            }
+            StyleNode::Parent(_, id) => {
+                *id
+            }
+            StyleNode::Other(_, id) => {
+                *id
+            }
         }
-        None
+    }
+
+    pub(crate) fn get_style(&self) -> Style {
+        match self {
+            StyleNode::Child(style, _) => {
+                style.clone()
+            }
+            StyleNode::SelfNode(style, id) => {
+                style.clone()
+            }
+            StyleNode::Parent(style, id) => {
+                style.clone()
+            }
+            StyleNode::Other(style, _) => {
+                style.clone()
+            }
+        }
     }
 }
 
 /// Contains the state data needed in order to generate the UIEvents from the state change required.
 #[derive(Clone, Debug)]
 pub enum ClickStateChangeState {
-    ChangeColor{
+    ChangeColor {
         current_display: HashMap<Entity, Color>,
         update_display: HashMap<Entity, Color>,
     },
-    ChangeDisplay{
+    ChangeDisplay {
         current_display: HashMap<Entity, Display>,
         update_display: HashMap<Entity, Display>,
     },
@@ -150,7 +318,8 @@ pub enum ClickStateChangeState {
         current_display: HashMap<Entity, Size>,
         update_display: HashMap<Entity, Size>,
     },
-    None
+
+    None,
 }
 
 #[derive(Clone, Debug)]
@@ -158,8 +327,8 @@ pub enum ColorChange {
     ChangeColor(Color),
     SwapColor {
         color_1: Color,
-        color_2: Color
-    }
+        color_2: Color,
+    },
 }
 
 impl ColorChange {
@@ -168,7 +337,7 @@ impl ColorChange {
             ColorChange::ChangeColor(color) => {
                 display.0 = color.clone();
             }
-            ColorChange::SwapColor{ color_1, color_2 } => {
+            ColorChange::SwapColor { color_1, color_2 } => {
                 if &display.0 == color_1 {
                     display.0 = color_2.clone();
                 } else {
@@ -180,89 +349,26 @@ impl ColorChange {
 }
 
 #[derive(Clone, Debug)]
-pub enum ChangeStyle {
-    RemoveVisible(Option<UiComponentFilters>),
-    AddVisible(Option<UiComponentFilters>),
-    ChangeVisible(Option<UiComponentFilters>),
-    ChangeSize {
-        height_1: f32,
-        height_2: f32,
-        width_1: f32,
-        width_2: f32
-    }
-}
-
-#[derive(Clone, Debug)]
 pub struct UiComponentFilters {
     pub(crate) exclude: Option<Vec<f32>>,
-    pub(crate) include: Option<Vec<f32>>
-}
-
-impl ClickStateChangeState {
-
-    fn change_display(&self, mut style: &mut Style, entity: Entity) {
-        match self {
-            ClickStateChangeState::ChangeDisplay { update_display, .. } => {
-                update_display.get(&entity)
-                    .map(|found_entity| style.display = found_entity.clone());
-            }
-            ClickStateChangeState::None => {}
-            _ => {}
-        };
-    }
-
-    fn change_background_color(&self, mut background_color: &mut BackgroundColor, entity: Entity) {
-        match self {
-            ClickStateChangeState::ChangeColor { update_display, .. } => {
-                update_display.get(&entity)
-                    .map(|found_entity| background_color.0 = found_entity.clone());
-            }
-            ClickStateChangeState::None => {
-            }
-            _ => {
-            }
-        };
-    }
-
-    fn change_visible(style: &mut &mut Style) {
-        match &style.display {
-            Display::Flex => {
-                style.display = Display::None;
-            }
-            Display::None => {
-                style.display = Display::Flex;
-            }
-        }
-    }
-
-    fn is_included(component_id: f32, include: &Option<Vec<f32>>) -> bool {
-        include.is_some() && include.as_ref().unwrap().iter().any(|i| *i == component_id)
-    }
-
-    fn is_excluded(component_id: f32, exclude: &Option<Vec<f32>>) -> bool {
-        if exclude.is_some() && exclude.as_ref().unwrap().iter().any(|e| *e == component_id) {
-            info!("Was excluded");
-            return true;
-        }
-        false
-    }
 }
 
 #[derive(Clone, Debug)]
-pub struct StateChangeActionType {
+pub struct StateChangeActionType<T: Component + Send + Sync + 'static> {
     pub(crate) hover: HoverStateChange,
-    pub(crate) clicked: ClickStateChange
+    pub(crate) clicked: StateChange<T>,
 }
 
 #[derive(Component, Debug, Clone)]
 pub enum UiComponent {
-    Dropdown(Dropdown, Vec<StateChangeActionType>),
-    DropdownOption(DropdownOption, Vec<StateChangeActionType>),
-    CollapsableMenuComponent(CollapsableMenu, Vec<StateChangeActionType>)
+    Dropdown(Dropdown, Vec<StateChangeActionType<UiIdentifiableComponent>>),
+    DropdownOption(DropdownOption, Vec<StateChangeActionType<UiIdentifiableComponent>>),
+    CollapsableMenuComponent(CollapsableMenu, Vec<StateChangeActionType<UiIdentifiableComponent>>),
+    Node(Vec<StateChangeActionType<UiIdentifiableComponent>>),
 }
 
 impl UiComponent {
-    pub fn get_state_change_types(&self) -> &Vec<StateChangeActionType> {
+    pub fn get_state_change_types(&self) -> &Vec<StateChangeActionType<UiIdentifiableComponent>> {
         match self {
             UiComponent::Dropdown(_, events) => {
                 events
@@ -273,136 +379,15 @@ impl UiComponent {
             UiComponent::CollapsableMenuComponent(_, events) => {
                 events
             }
+            UiComponent::Node(events) => {
+                events
+            }
         }
     }
 }
 
-/// Some events can affect multiple UiComponents. Therefore, when an Interaction happens, that Interaction
-/// needs to be translated into a bunch of UiEvents. The UiEvents that are created will be based on
-/// the state of the component and it's children, and so all of these components needs to be available
-/// to query, to determine what UiEvent to propagate.
-/// So the state event translator will take in the components and the state associated with those components
-/// and the event that happened, and output a number of UiEvents.
-///
-/// First, there needs to be a translation from the Interaction and the UiComponent into which components
-/// are affected by the UiComponent when that event happens. The UiComponent is built with information
-/// about what happens to it's parents and children, and itself, and so there first is a metadata-translator
-/// that takes that information about the UiComponent, queries to get the correct components, and then
-/// passes them.
-///
-/// So then once those components are retrieved, the components for which the event happened, then
-/// they are passed to the UiEventFactory, which will generate the UiEvents based on the type of UiEvent
-/// that happened, and the state of the components that were involved in the event.
-///
-/// Every component state change that happens contains multiple events that need to be created, and
-/// those events affect different components.
-fn interaction_event_system(
-    mut commands: Commands,
-    mut event_write: EventWriter<UiEvent>,
-    entity_query: Query<(Entity, &UiComponent, &Style, &UpdateableComponent), (With<UiComponent>)>,
-    child_query: Query<(Entity, &UiComponent, &Children, &UpdateableComponent), (With<Button>, With<UiComponent>, With<Children>)>,
-    parent_query: Query<(Entity, &UiComponent, &Parent, &UpdateableComponent), (With<Button>, With<UiComponent>, With<Parent>)>,
-    interaction_query: Query<(Entity, &Interaction), (With<Button>, Changed<Interaction>, With<UiComponent>)>,
-) {
-    let _ = interaction_query
-        .iter()
-        .flat_map(|(entity, interaction)|
-            entity_query.get(entity)
-                .map(|(entity, ui_component, style, updateable)|
-                    (entity, ui_component, style, updateable, interaction)
-                )
-        )
-        .map(|(entity, ui_component, style, updateable, interaction)| {
-
-            if let Interaction::Clicked = interaction {
-
-                let state_change_action = ui_component.get_state_change_types();
-
-                for state_change_action in state_change_action.iter() {
-                    let clicked = state_change_action.clicked.clone();
-
-                    let style_change_types = clicked.style_change_types();
-                    let mut entities = HashMap::new();
-
-                    if style_change_types
-                        .iter()
-                        .flat_map(|v| v.iter())
-                        .any(|any| matches!(any, StyleChangeType::Parent)) {
-
-                        let parent = parent_query.get(entity.clone())
-                            .map(|(_, _, parent, updateable)| parent.get())
-                            .ok();
-
-                        parent.map(|parent| {
-                            entity_query.get(parent.clone())
-                                .map(|(_, _, style, update)| {
-                                    let node_style = Node::Parent(style.clone(), update.0);
-                                    entities.insert(parent, node_style);
-                                })
-                                .or_else(|_| {
-                                    info!("Failed to fetch parent when parent was included in fetch.");
-                                    Ok::<(), QueryEntityError>(())
-                                })
-                                .unwrap()
-                        })
-                            .or_else(|| {
-                                info!("Failed to fetch parent when parent was included in fetch.");
-                                None
-                            });
-                    }
-
-                    if style_change_types.iter()
-                        .flat_map(|v| v.iter())
-                        .any(|any| matches!(any, StyleChangeType::SelfChange)) {
-
-                        let node_style = Node::SelfNode(style.clone().clone(), updateable.0);
-                        entities.insert(entity.clone(), node_style);
-
-                    }
-
-                    if style_change_types.iter()
-                        .flat_map(|v| v.iter())
-                        .any(|any| matches!(any, StyleChangeType::Child)) {
-
-                        let child_entities = child_query.get(entity.clone())
-                            .map(|(_, _, child, update)| child.iter()
-                                .map(|child| child.clone()).collect::<Vec<Entity>>()
-                            )
-                            .ok()
-                            .or(Some(vec![]))
-                            .unwrap();
-
-                        child_entities.iter().for_each(|child| {
-                            let _ = entity_query.get(child.clone())
-                                .map(|entity| {
-                                    let node_style = Node::Child(entity.2.clone(), entity.3.0);
-                                    entities.insert(entity.0.clone(), node_style);
-                                })
-                                .or_else(|_| {
-                                    info!("Error fetching query for child.");
-                                    Ok::<(), QueryEntityError>(())
-                                });
-                        })
-                    }
-
-                    return clicked.get_ui_event(&entities);
-                }
-            }
-            None
-        })
-        .map(|ui_event| {
-            if ui_event.is_none() {
-                info!("Failed to fetch ui event.");
-                return;
-            }
-            event_write.send(ui_event.unwrap());
-        });
-
-}
-
 fn hover_event(
     mut query: Query<(&mut Style, &mut BackgroundColor, &Interaction), (With<UiComponent>, With<Button>, Changed<Interaction>)>,
-
 ) {
     for (_, mut color, interaction) in query.iter_mut() {
         match *interaction {
@@ -419,52 +404,3 @@ fn hover_event(
     }
 }
 
-fn event_read_event(
-    mut commands: Commands,
-    mut event_write: EventReader<UiEvent>,
-    mut query: ParamSet<(
-        Query<(Entity, &UiComponent, &mut Style, &UpdateableComponent), (With<UiComponent>)>,
-        Query<(Entity, &UiComponent, &mut BackgroundColor, &UpdateableComponent), (With<UiComponent>)>
-    )>
-) {
-    for event in event_write.iter() {
-        if let UiEvent::Event(ClickStateChangeState::ChangeColor{ current_display, update_display}) = event {
-            update_display.iter().for_each(|(entity, color)| {
-                let _ = query.p1()
-                    .get_mut(entity.clone())
-                    .map(|(_, _, mut color_update, _)| {
-                        color_update.0 = color.clone();
-                    })
-                    .or_else(|_| {
-                        info!("Failed to update color.");
-                        Ok::<(), QueryEntityError>(())
-                    });
-            });
-        } else if let UiEvent::Event(ClickStateChangeState::ChangeSize{ current_display, update_display}) = event {
-            update_display.iter().for_each(|(entity, size)| {
-                let _ = query.p0()
-                    .get_mut(entity.clone())
-                    .map(|(_, _, mut style, _)| {
-                        style.size = size.clone();
-                    })
-                    .or_else(|_| {
-                        info!("Failed to update color.");
-                        Ok::<(), QueryEntityError>(())
-                    });
-            });
-        } else if let UiEvent::Event(ClickStateChangeState::ChangeDisplay {current_display, update_display}) = event {
-            update_display.iter().for_each(|(entity, display)| {
-                let _ = query.p0()
-                    .get_mut(entity.clone())
-                    .map(|(_, _, mut style, _)| {
-                        style.display = display.clone();
-                    })
-                    .or_else(|_| {
-                        info!("Failed to update color.");
-                        Ok::<(), QueryEntityError>(())
-                    });
-            });
-
-        }
-    }
-}

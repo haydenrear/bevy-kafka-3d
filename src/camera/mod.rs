@@ -30,13 +30,18 @@ pub(crate) fn setup_camera(
 }
 
 pub(crate) fn camera_control(
+    mut commands: Commands,
     mouse_button_input: Res<Input<MouseButton>>,
     mut windows: Query<&mut Window>,
     mut camera_drag_data: ResMut<ZoomableDraggableCamera>,
     mut camera_query: Query<(&Camera, &mut Transform)>,
     mut cursor_moved: EventReader<CursorMoved>,
-    mut mouse_wheel: EventReader<MouseWheel>
+    mut mouse_wheel: EventReader<MouseWheel>,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut asset_server: Res<AssetServer>,
 ) {
+
 
     let cursor_position = if let Some(event) = cursor_moved.iter().next() {
         event.position
@@ -67,12 +72,16 @@ pub(crate) fn camera_control(
             let y_val = mouse_wheel_event.y;
 
             let val = 0.1;
+            if transform.scale.z + val < 0.0 || transform.scale.z - val < 0.0 {
+                return;
+            }
             if y_val > 0.0 {
                 transform.scale += Vec3::new(val, val, val);
             } else if y_val < 0.0 {
-                transform.scale += Vec3::new(-val, -val, -val);
+                transform.scale -= Vec3::new(val, val, val);
             }
         }
     }
+
 }
 
