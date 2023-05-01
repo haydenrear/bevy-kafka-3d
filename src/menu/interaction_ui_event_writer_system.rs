@@ -123,6 +123,7 @@ fn parent_entities(with_children_query: &Query<(Entity, &UiComponent, &Children,
 }
 
 fn child_entities(entity_query: &Query<(Entity, &UiComponent, &Style, &UiIdentifiableComponent), (With<UiComponent>, With<Style>)>, with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>, entity: Entity, mut entities: &mut HashMap<Entity, StyleNode>) {
+
     info!("Including children.");
 
     let child_entities = with_children_query.get(entity.clone())
@@ -144,8 +145,11 @@ fn child_entities(entity_query: &Query<(Entity, &UiComponent, &Style, &UiIdentif
                 info!("Error fetching query for child.");
                 Ok::<(), QueryEntityError>(())
             });
-    })
+    });
+
+    info!("{:?} are the entities after adding child.", entities);
 }
+
 
 fn custom_propagation_entities(
     entity_query: &Query<(Entity, &UiComponent, &Style, &UiIdentifiableComponent), (With<UiComponent>, With<Style>)>,

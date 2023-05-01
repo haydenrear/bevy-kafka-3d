@@ -9,7 +9,7 @@ use bevy_prototype_lyon::prelude::GeometryBuilder;
 use bevy_prototype_lyon::shapes;
 use crate::draw_network::{LAYER_SPACING, NODE_RADIUS, NODE_SPACING};
 
-#[derive(Default, Component, Clone)]
+#[derive(Default, Component, Clone, Debug)]
 pub struct Node {
     pub(crate) entity: Option<Entity>,
     pub(crate) connections: Vec<Entity>,
@@ -18,7 +18,7 @@ pub struct Node {
     pub(crate) node_pos: u8
 }
 
-#[derive(Default, Component, Clone)]
+#[derive(Default, Component, Clone, Debug)]
 pub struct Layer {
     pub(crate) nodes: Vec<Node>,
     pub(crate) name: &'static str,
@@ -41,7 +41,7 @@ impl NetworkId {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Debug)]
 pub enum LayerType {
     TFormer,
     #[default]
@@ -86,7 +86,7 @@ impl LayerType {
     }
 }
 
-#[derive(Default, Component, Clone)]
+#[derive(Default, Component, Clone, Debug)]
 pub struct Network {
     pub(crate) layers: Vec<Entity>,
     pub(crate) network_id: NetworkId

@@ -15,8 +15,8 @@ pub(crate) mod interaction_config_event_writer_system;
 pub(crate) mod interaction_config_event_reader_system;
 
 pub struct MenuData {
-    sub_menus: Vec<SubMenu>,
-    selectables: Vec<MenuInputs>
+    pub(crate) sub_menus: Vec<SubMenu>,
+    pub(crate) selectables: Vec<MenuInputType>
 }
 
 macro_rules! menu_data {
@@ -31,19 +31,20 @@ macro_rules! menu_data {
 }
 
 pub struct SubMenu {
-    selectables: Vec<MenuInputs>
+    pub(crate) selectables: Vec<MenuInputType>
 }
 
 #[derive(Default, Clone, Debug)]
 pub struct MenuItemMetadata {
-    icon: String,
-    font: MenuItemFont,
-    name: String,
-    icon_pos: Position,
-    height: u32,
-    width: u32,
-    color: Color,
-    description: String
+    pub(crate) icon: String,
+    pub(crate) font: MenuItemFont,
+    pub(crate) name: String,
+    pub(crate) icon_pos: Position,
+    pub(crate) height: u32,
+    pub(crate) width: u32,
+    pub(crate) color: Color,
+    pub(crate) description: String,
+    pub(crate) id: f32
 }
 
 #[derive(Clone, Debug)]
@@ -67,8 +68,12 @@ pub enum Position {
     Right
 }
 
-pub enum MenuInputs {
+
+#[derive(Clone, Debug)]
+pub enum MenuInputType {
     Dropdown {
+        /// Maybe want to make this a tuple to add type information, because may not be able
+        /// to know which Component type the Interaction will be with.
         options: Vec<MenuOption>,
         metadata: MenuItemMetadata,
         option: ConfigurationOptionEnum
@@ -135,11 +140,14 @@ impl AcceptConfigurationOption<Vec<Node>> for MetricChildNodes {
     }
 }
 
+#[derive(Clone, Debug)]
 pub struct MenuOption {
-    data_type: MenuOptionType,
-    metadata: MenuItemMetadata
+    pub(crate) data_type: MenuOptionType,
+    pub(crate) index: usize,
+    pub(crate) metadata: MenuItemMetadata
 }
 
+#[derive(Clone, Debug)]
 pub enum ConfigurationOptionEnum {
     Metrics(ConfigurationOption<Metric>),
     NetworkMetrics(ConfigurationOption<Network>),
@@ -153,18 +161,15 @@ pub enum ConfigurationOptionEnum {
     NodeConcavity(ConfigurationOption<Node>)
 }
 
+
+#[derive(Clone, Debug)]
 pub enum MenuOptionType {
-    Primitive(ConfigurationOptionEnum, DataType),
+    Primitive(ConfigurationOptionEnum),
     SubMenu {
-        sub_menu: MenuInputs,
+        sub_menu: MenuInputType,
         parent: MenuItemMetadata,
         config_option: ConfigurationOptionEnum
     },
-    MenuRef {
-        sub_menu: MenuInputs,
-        parent: MenuItemMetadata,
-        config_option: ConfigurationOptionEnum
-    }
 }
 
 /// Contains the default value.

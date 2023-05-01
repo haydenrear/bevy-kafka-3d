@@ -2,15 +2,14 @@ use std::marker::PhantomData;
 use bevy::ecs::component::TableStorage;
 use bevy::prelude::{Component, Resource};
 use bevy::utils::default;
-use crate::menu::{ConfigurationOption, DataType, MenuData, MenuOption, MenuInputs, MenuItemMetadata, MenuOptionType, Position, ConfigurationOptionEnum};
+use crate::menu::{ConfigurationOption, DataType, MenuData, MenuOption, MenuInputType, MenuItemMetadata, MenuOptionType, Position, ConfigurationOptionEnum};
 use crate::metrics::Metric;
 use crate::network::{Layer, Network, Node};
 
 #[derive(Resource)]
 pub struct MenuResource {
-    menu_data: MenuData,
+    pub(crate) menu_data: MenuData,
 }
-
 
 
 impl Default for MenuResource {
@@ -29,22 +28,34 @@ impl Default for MenuResource {
             menu_data: MenuData {
                 sub_menus: vec![],
                 selectables: vec![
-                    MenuInputs::Dropdown {
+                    MenuInputType::Dropdown {
                         options: vec![
 
                             // network
                             MenuOption {
                                 data_type: MenuOptionType::SubMenu {
-                                    sub_menu: MenuInputs::Dropdown {
+                                    sub_menu: MenuInputType::Dropdown {
                                         options: vec![
                                             // concavity
                                             MenuOption {
                                                 data_type: MenuOptionType::Primitive(
-                                                    ConfigurationOptionEnum::NetworkConcavity(ConfigurationOption::Concavity(
+                                                    ConfigurationOptionEnum::NetworkConcavity(
+                                                        ConfigurationOption::Concavity(
                                                         PhantomData::<Network>::default(),
                                                         DataType::Selected
-                                                    )), DataType::Selected),
-                                                metadata: Default::default(),
+                                                    ))),
+                                                index: 0,
+                                                metadata: MenuItemMetadata {
+                                                    icon: "".to_string(),
+                                                    font: Default::default(),
+                                                    name: "Network Concavity".to_string(),
+                                                    icon_pos: Default::default(),
+                                                    height: 0,
+                                                    width: 0,
+                                                    color: Default::default(),
+                                                    description: "".to_string(),
+                                                    id: 9.0,
+                                                },
                                             },
                                             // variance
                                             MenuOption {
@@ -52,14 +63,26 @@ impl Default for MenuResource {
                                                     ConfigurationOptionEnum::NetworkVariance(ConfigurationOption::Variance(
                                                         PhantomData::<Network>::default(),
                                                         DataType::Selected
-                                                    )), DataType::Selected),
-                                                metadata: Default::default(),
+                                                    ))),
+                                                index: 1,
+                                                metadata: MenuItemMetadata {
+                                                    icon: "".to_string(),
+                                                    font: Default::default(),
+                                                    name: "Network Variance".to_string(),
+                                                    icon_pos: Default::default(),
+                                                    height: 0,
+                                                    width: 0,
+                                                    color: Default::default(),
+                                                    description: "".to_string(),
+                                                    id: 10.0,
+                                                },
                                             },
                                         ],
                                         metadata: MenuItemMetadata {
                                             name: "Network Metric Options".to_string(),
                                             icon_pos: Position::Left,
                                             height: 0,
+                                            id: 6.0,
                                             width: 0,
                                             color: Default::default(),
                                             description: "Show metrics for whole network ".to_string(),
@@ -73,18 +96,22 @@ impl Default for MenuResource {
                                     parent: MenuItemMetadata {
                                         icon: "".to_string(),
                                         name: "".to_string(),
+                                        id: 3.0,
                                         icon_pos: Position::Left,
                                         height: 0,
                                         width: 0,
                                         color: Default::default(),
                                         ..default()
                                     },
-                                    config_option: ConfigurationOptionEnum::NetworkMetrics(ConfigurationOption::Metrics(
+                                    config_option: ConfigurationOptionEnum::NetworkMetrics(
+                                        ConfigurationOption::Metrics(
                                         PhantomData::<Network>::default(),
                                         DataType::Selected
                                     )),
                                 },
+                                index: 0,
                                 metadata: MenuItemMetadata {
+                                    id: 2.0,
                                     icon: "".to_string(),
                                     name: "Layer Metrics".to_string(),
                                     icon_pos: Position::Left,
@@ -99,7 +126,7 @@ impl Default for MenuResource {
                             // layer
                             MenuOption {
                                 data_type: MenuOptionType::SubMenu {
-                                    sub_menu: MenuInputs::Dropdown {
+                                    sub_menu: MenuInputType::Dropdown {
                                         options: vec![
                                             // concavity
                                             MenuOption {
@@ -107,8 +134,19 @@ impl Default for MenuResource {
                                                     ConfigurationOptionEnum::LayerConcavity(ConfigurationOption::Concavity(
                                                         PhantomData::<Layer>::default(),
                                                         DataType::Selected
-                                                    )), DataType::Selected),
-                                                metadata: Default::default(),
+                                                    ))),
+                                                index: 0,
+                                                metadata: MenuItemMetadata {
+                                                    icon: "".to_string(),
+                                                    font: Default::default(),
+                                                    name: "Layer Concavity".to_string(),
+                                                    icon_pos: Default::default(),
+                                                    height: 0,
+                                                    width: 0,
+                                                    color: Default::default(),
+                                                    description: "".to_string(),
+                                                    id: 11.0,
+                                                },
                                             },
                                             // variance
                                             MenuOption {
@@ -116,14 +154,26 @@ impl Default for MenuResource {
                                                     ConfigurationOptionEnum::LayerVariance(ConfigurationOption::Variance(
                                                         PhantomData::<Layer>::default(),
                                                         DataType::Selected
-                                                    )), DataType::Selected),
-                                                metadata: Default::default(),
+                                                    ))),
+                                                index: 1,
+                                                metadata: MenuItemMetadata {
+                                                    icon: "".to_string(),
+                                                    font: Default::default(),
+                                                    name: "Layer Variance".to_string(),
+                                                    icon_pos: Default::default(),
+                                                    height: 0,
+                                                    width: 0,
+                                                    color: Default::default(),
+                                                    description: "".to_string(),
+                                                    id: 12.0,
+                                                },
                                             },
                                         ],
                                         metadata: MenuItemMetadata {
-                                            name: "".to_string(),
+                                            name: "Layer Metrics".to_string(),
                                             icon_pos: Position::Left,
                                             height: 0,
+                                            id: 7.0,
                                             width: 0,
                                             color: Default::default(),
                                             description: "Show metrics for whole network ".to_string(),
@@ -136,6 +186,7 @@ impl Default for MenuResource {
                                     },
                                     parent: MenuItemMetadata {
                                         icon: "".to_string(),
+                                        id: 4.0,
                                         name: "".to_string(),
                                         icon_pos: Position::Left,
                                         height: 0,
@@ -148,10 +199,12 @@ impl Default for MenuResource {
                                         DataType::Selected
                                     )),
                                 },
+                                index: 0,
                                 metadata: MenuItemMetadata {
                                     icon: "".to_string(),
                                     name: "Layer Metrics".to_string(),
                                     icon_pos: Position::Left,
+                                    id: 3.0,
                                     height: 100,
                                     width: 100,
                                     color: Default::default(),
@@ -163,7 +216,7 @@ impl Default for MenuResource {
                             // node
                             MenuOption {
                                 data_type: MenuOptionType::SubMenu {
-                                    sub_menu: MenuInputs::Dropdown {
+                                    sub_menu: MenuInputType::Dropdown {
                                         options: vec![
                                             // concavity
                                             MenuOption {
@@ -171,8 +224,19 @@ impl Default for MenuResource {
                                                     ConfigurationOptionEnum::NodeConcavity(ConfigurationOption::Concavity(
                                                         PhantomData::<Node>::default(),
                                                         DataType::Selected
-                                                    )), DataType::Selected),
-                                                metadata: Default::default(),
+                                                    ))),
+                                                index: 0,
+                                                metadata: MenuItemMetadata {
+                                                    icon: "".to_string(),
+                                                    font: Default::default(),
+                                                    name: "Node Concavity".to_string(),
+                                                    icon_pos: Default::default(),
+                                                    height: 0,
+                                                    width: 0,
+                                                    color: Default::default(),
+                                                    description: "".to_string(),
+                                                    id: 13.0,
+                                                },
                                             },
                                             // variance
                                             MenuOption {
@@ -180,15 +244,27 @@ impl Default for MenuResource {
                                                     ConfigurationOptionEnum::NodeVariance(ConfigurationOption::Variance(
                                                         PhantomData::<Node>::default(),
                                                         DataType::Selected
-                                                    )), DataType::Selected),
-                                                metadata: Default::default(),
+                                                    ))),
+                                                index: 1,
+                                                metadata: MenuItemMetadata {
+                                                    icon: "".to_string(),
+                                                    font: Default::default(),
+                                                    name: "Node Variance".to_string(),
+                                                    icon_pos: Default::default(),
+                                                    height: 0,
+                                                    width: 0,
+                                                    color: Default::default(),
+                                                    description: "".to_string(),
+                                                    id: 14.0,
+                                                },
                                             },
                                         ],
                                         metadata: MenuItemMetadata {
-                                            name: "".to_string(),
+                                            name: "Node Metrics".to_string(),
                                             icon_pos: Position::Left,
                                             height: 0,
                                             width: 0,
+                                            id: 8.0,
                                             color: Default::default(),
                                             description: "Show metrics for whole network ".to_string(),
                                             ..default()
@@ -200,9 +276,10 @@ impl Default for MenuResource {
                                     },
                                     parent: MenuItemMetadata {
                                         icon: "".to_string(),
-                                        name: "".to_string(),
+                                        name: "Node Metrics".to_string(),
                                         icon_pos: Position::Left,
                                         height: 0,
+                                        id: 5.0,
                                         width: 0,
                                         color: Default::default(),
                                         ..default()
@@ -212,10 +289,12 @@ impl Default for MenuResource {
                                         DataType::Selected
                                     )),
                                 },
+                                index: 0,
                                 metadata: MenuItemMetadata {
                                     icon: "".to_string(),
                                     name: "Layer Metrics".to_string(),
                                     icon_pos: Position::Left,
+                                    id: 4.0,
                                     height: 100,
                                     width: 100,
                                     color: Default::default(),
@@ -225,6 +304,7 @@ impl Default for MenuResource {
                             },
 
                         ],
+
                         metadata: MenuItemMetadata {
                             icon: "".to_string(),
                             name: "Network Metrics".to_string(),
@@ -233,12 +313,16 @@ impl Default for MenuResource {
                             width: 0,
                             color: Default::default(),
                             description: "Menu options for metrics.".to_string(),
+                            id: 2.0,
                             ..default()
                         },
-                        option: ConfigurationOptionEnum::Metrics(ConfigurationOption::Metrics(
-                            PhantomData::<Metric>::default(),
-                            DataType::Selected
-                        )),
+
+                        option: ConfigurationOptionEnum::Metrics(
+                            ConfigurationOption::Metrics(
+                                PhantomData::<Metric>::default(),
+                                DataType::Selected,
+                            )
+                        ),
                     },
                 ],
             }

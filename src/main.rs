@@ -9,6 +9,7 @@ use crate::initialize_test_plugin::add_node_entities;
 use crate::metrics::{MetricsMetadataSubscription, MetricState, MetricsSubscription, update_metrics, publish_metrics};
 use crate::draw_network::{create_network, draw_network_initial, draw_node_connections, update_network};
 use menu::menu_event::UiEventPlugin;
+use crate::menu::menu_resource::MenuResource;
 
 mod config;
 mod metrics;
@@ -27,6 +28,7 @@ fn main() {
         .insert_resource(MetricsSubscription::default())
         .insert_resource(MetricsMetadataSubscription::default())
         .insert_resource(ZoomableDraggableCamera::default())
+        .insert_resource(MenuResource::default())
         .add_plugins(DefaultPlugins)
         .add_plugins(DefaultPickingPlugins)
         .add_plugin(ShapePlugin)

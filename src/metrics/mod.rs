@@ -5,7 +5,7 @@ use bevy_prototype_lyon::prelude::tess::geom::Transform;
 use crate::network::Node;
 
 
-#[derive(Component, Clone)]
+#[derive(Component, Clone, Debug)]
 pub struct Metric {
     metric_name: &'static str,
     metric_value: f32,
@@ -29,7 +29,7 @@ impl Default for Metric {
     }
 }
 
-#[derive(Default, Component, Clone)]
+#[derive(Default, Component, Clone, Debug)]
 pub(crate) struct HistoricalData {
     data: Vec<f32>,
     write_index: usize,

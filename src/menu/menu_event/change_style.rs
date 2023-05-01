@@ -257,14 +257,10 @@ impl ChangeStyleTypes {
 
     fn get_child_style(entities: &HashMap<Entity, StyleNode>) -> Option<Style> {
         entities.iter()
-            .filter(|(entity, node)| {
-                if let StyleNode::Child(_, _) = node {
-                    return true
-                }
-                false
-            })
             .flat_map(|(entity, node)| {
+                info!("Checking style for {:?}.", node);
                 if let StyleNode::Child(style, _) = node {
+                    info!("Found child style.");
                     return vec![style.clone()]
                 }
                 vec![]
