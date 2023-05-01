@@ -84,26 +84,13 @@ fn collapsable_menu(
             style: Style {
                 display: Display::Flex,
                 flex_direction: FlexDirection::Column,
-                size: Size::new(Val::Percent(20.0), Val::Percent(100.0)),
+                size: Size::new(Val::Percent(4.0), Val::Percent(100.0)),
                 justify_content: JustifyContent::Start,
                 ..default()
             },
             background_color: BackgroundColor(Color::BLACK),
             ..default()
         }, CollapsableMenuComponent(CollapsableMenu::default(), vec![
-            StateChangeActionType {
-                hover: HoverStateChange::None,
-                clicked: ChangeComponentStyle(
-                    ChangeStyleTypes::ChangeSize {
-                        height_1: 100.0,
-                        height_2: 0.0,
-                        width_1: 10.0,
-                        width_2: 0.0,
-                        filters: None,
-                    },
-                    ChangePropagation::Children(StartingState::Child)
-                ),
-            },
             StateChangeActionType {
                 hover: HoverStateChange::None,
                 clicked: ChangeComponentStyle(
@@ -304,7 +291,7 @@ fn draw_dropdown_components(
     let mut draw_button = commands.spawn((
         ButtonBundle {
             style: Style {
-                display: Display::Flex,
+                display: Display::None,
                 flex_direction: FlexDirection::Column,
                 align_self: AlignSelf::Start,
                 size: Size::new(Val::Percent(100.0), Val::Px(40.0)),
