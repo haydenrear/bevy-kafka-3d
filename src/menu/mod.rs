@@ -1,7 +1,7 @@
 use std::marker::PhantomData;
 use bevy::ecs::component::TableStorage;
 use bevy::prelude::{Color, Component, Entity};
-use bevy::ui::Val;
+use bevy::ui::{Size, Val};
 use bevy::utils::petgraph::visit::Data;
 use bevy_mod_picking::Selection;
 use crate::metrics::{Metric, MetricChildNodes};
@@ -40,12 +40,12 @@ pub struct MenuItemMetadata {
     pub(crate) font: MenuItemFont,
     pub(crate) name: String,
     pub(crate) icon_pos: Position,
-    pub(crate) height: u32,
-    pub(crate) width: u32,
+    pub(crate) size: Option<Size>,
     pub(crate) color: Color,
     pub(crate) description: String,
     pub(crate) id: f32
 }
+
 
 #[derive(Clone, Debug)]
 pub struct MenuItemFont {
@@ -78,6 +78,11 @@ pub enum MenuInputType {
         metadata: MenuItemMetadata,
         option: ConfigurationOptionEnum
     },
+    CollapsableMenu {
+        options: Vec<MenuOption>,
+        metadata: MenuItemMetadata,
+        option: ConfigurationOptionEnum
+    },
     Radial{
        options: Vec<MenuOption>,
         metadata: MenuItemMetadata,
@@ -102,7 +107,8 @@ pub enum MenuInputType {
 pub enum ConfigurationOption<T: Component + Send + Sync + 'static> {
     Variance(PhantomData<T>, DataType),
     Concavity(PhantomData<T>, DataType),
-    Metrics(PhantomData<T>, DataType)
+    Metrics(PhantomData<T>, DataType),
+    Menu(PhantomData<T>, DataType)
 }
 
 
@@ -147,8 +153,12 @@ pub struct MenuOption {
     pub(crate) metadata: MenuItemMetadata
 }
 
+#[derive(Clone, Debug, Component)]
+pub struct Menu;
+
 #[derive(Clone, Debug)]
 pub enum ConfigurationOptionEnum {
+    Menu(ConfigurationOption<Menu>),
     Metrics(ConfigurationOption<Metric>),
     NetworkMetrics(ConfigurationOption<Network>),
     NetworkVariance(ConfigurationOption<Network>),

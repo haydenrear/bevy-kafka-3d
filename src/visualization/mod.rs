@@ -26,13 +26,6 @@ pub fn create_dropdown(
     mut asset_server: Res<AssetServer>,
     mut menu_resource: Res<MenuResource>
 ) {
-    // create_dropdown_from_opts(
-    //     commands,
-    //     vec!["WeightVariance".to_string(), "Concavity".to_string()],
-    //     meshes,
-    //     materials,
-    //     asset_server,
-    // );
     create_dropdown_from_resource(commands, meshes, materials, asset_server, menu_resource);
 }
 
@@ -43,6 +36,7 @@ fn create_dropdown_from_resource(
     mut asset_server: Res<AssetServer>,
     menu_resource: Res<MenuResource>
 ) {
+
     let root_node = root_collapsable_menu(&mut commands);
 
     for selectable in menu_resource.menu_data.selectables.iter() {
@@ -58,99 +52,144 @@ fn create_dropdown_from_resource(
                     option,
                     vec![],
                 );
-                commands.get_entity(root_node.1)
+                commands.get_entity(root_node)
                     .unwrap()
                     .add_child(dropdown);
             }
             MenuInputType::Radial { .. } => {}
             MenuInputType::FormInput { .. } => {}
             MenuInputType::ContinuousMovingButton { .. } => {}
+            MenuInputType::CollapsableMenu { options, metadata, option } => {
+                let collapsable = collapsable_menu(&mut commands, &mut meshes, &mut materials, &mut asset_server, option, metadata, options);
+                commands.get_entity(root_node)
+                    .unwrap()
+                    .add_child(collapsable);
+            }
         }
     }
 }
 
-fn root_collapsable_menu(mut commands: &mut Commands) -> (Entity, Entity) {
-    let mut other_entity = None;
-    let root_entity = commands
+fn collapsable_menu(
+    mut commands: &mut Commands,
+    mut meshes: &mut ResMut<Assets<Mesh>>,
+    mut materials: &mut ResMut<Assets<ColorMaterial>>,
+    asset_server: &mut Res<AssetServer>,
+    option: &ConfigurationOptionEnum,
+    metadata: &MenuItemMetadata,
+    options: &Vec<MenuOption>
+) -> Entity {
+
+    let mut button = commands.spawn((
+        ButtonBundle {
+            style: Style {
+                display: Display::Flex,
+                flex_direction: FlexDirection::Column,
+                size: Size::new(Val::Percent(20.0), Val::Percent(100.0)),
+                justify_content: JustifyContent::Start,
+                ..default()
+            },
+            background_color: BackgroundColor(Color::BLACK),
+            ..default()
+        }, CollapsableMenuComponent(CollapsableMenu::default(), vec![
+            StateChangeActionType {
+                hover: HoverStateChange::None,
+                clicked: ChangeComponentStyle(
+                    ChangeStyleTypes::ChangeSize {
+                        height_1: 100.0,
+                        height_2: 0.0,
+                        width_1: 10.0,
+                        width_2: 0.0,
+                        filters: None,
+                    },
+                    ChangePropagation::Children(StartingState::Child)
+                ),
+            },
+            StateChangeActionType {
+                hover: HoverStateChange::None,
+                clicked: ChangeComponentStyle(
+                    ChangeStyleTypes::ChangeVisible(None),
+                    ChangePropagation::Children(StartingState::Child),
+                ),
+            },
+            StateChangeActionType {
+                hover: HoverStateChange::None,
+                clicked: ChangeComponentStyle(
+                    ChangeStyleTypes::ChangeSize {
+                        height_1: 100.0,
+                        height_2: 100.0,
+                        width_1: 20.0,
+                        width_2: 4.0,
+                        filters: None
+                    },
+                    ChangePropagation::SelfChange(StartingState::SelfState)
+                ),
+            },
+        ]),
+        UiIdentifiableComponent(metadata.id),
+    ));
+
+    let entity_commands = button.with_children(|child_builder| {
+            child_builder.spawn(
+                TextBundle {
+                    style: Style {
+                        size: Size::new(Val::Percent(95.0), Val::Px(30.0)),
+                        ..default()
+                    },
+                    text: Text::from_section(metadata.name.to_string(), TextStyle {
+                        font_size: 16.0,
+                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                        color: Color::BLACK,
+                        ..default()
+                    }),
+                    ..default()
+                }
+            );
+        });
+
+    insert_config_option(option, entity_commands);
+
+    let entity = entity_commands.id().clone();
+
+    for menu_option in options.iter() {
+        match &menu_option.data_type {
+            MenuOptionType::Primitive(_) => {}
+            MenuOptionType::SubMenu { sub_menu, parent, config_option } => {
+                draw_menu_recurs(
+                    commands,
+                    meshes,
+                    materials,
+                    asset_server,
+                    sub_menu,
+                    metadata,
+                    vec![],
+                    entity
+                );
+            }
+        }
+    }
+
+    entity.clone()
+
+}
+
+fn root_collapsable_menu(mut commands: &mut Commands) -> Entity {
+    let mut node_bundle = commands
         .spawn((
             NodeBundle {
                 style: Style {
-                    size: Size::new(Val::Percent(20.0), Val::Percent(100.0)),
+                    size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
                     display: Display::Flex,
-                    flex_direction: FlexDirection::Row,
+                    flex_direction: FlexDirection::Column,
                     ..default()
                 },
-                background_color: BackgroundColor(Color::BLACK),
                 ..default()
             },
             UiIdentifiableComponent(0.0),
-        ))
-        .insert(UiComponent::Node(vec![]))
-        .with_children(|child_builder| {
-            other_entity = Some(child_builder.spawn((
-                ButtonBundle {
-                    style: Style {
-                        display: Display::Flex,
-                        flex_direction: FlexDirection::Column,
-                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                        justify_content: JustifyContent::End,
-                        ..default()
-                    },
-                    background_color: BackgroundColor(Color::BLACK),
-                    ..default()
-                }, CollapsableMenuComponent(CollapsableMenu::default(), vec![
-                    StateChangeActionType {
-                        hover: HoverStateChange::None,
-                        clicked: ChangeComponentStyle(
-                            ChangeStyleTypes::ChangeSize {
-                                height_1: 100.0,
-                                height_2: 0.0,
-                                width_1: 10.0,
-                                width_2: 0.0,
-                                filters: None,
-                            },
-                            ChangePropagation::Children(StartingState::Child)
-                        ),
-                    },
-                    StateChangeActionType {
-                        hover: HoverStateChange::None,
-                        clicked: ChangeComponentStyle(
-                            ChangeStyleTypes::ChangeVisible(None),
-                            ChangePropagation::Children(StartingState::Child),
-                        ),
-                    },
-                    StateChangeActionType {
-                        hover: HoverStateChange::None,
-                        clicked: ChangeComponentStyle(
-                            ChangeStyleTypes::ChangeSize {
-                                height_1: 100.0,
-                                height_2: 100.0,
-                                width_1: 100.0,
-                                width_2: 100.0,
-                                filters: None
-                            },
-                            ChangePropagation::SelfChange(StartingState::SelfState)
-                        ),
-                    },
-                    StateChangeActionType {
-                        hover: HoverStateChange::None,
-                        clicked: ChangeComponentStyle(
-                            ChangeStyleTypes::ChangeSize {
-                                height_1: 100.0,
-                                height_2: 100.0,
-                                width_1: 20.0,
-                                width_2: 3.0,
-                                filters: None
-                            },
-                            ChangePropagation::Parent(StartingState::Parent)
-                        ),
-                    }
-                ]),
-                UiIdentifiableComponent(1.0),
-            )).id());
-        }).id();
+        ));
+    let root_entity = node_bundle
+        .insert(UiComponent::Node(vec![]));
 
-    (root_entity, other_entity.unwrap())
+    root_entity.id()
 }
 
 fn draw_menu_recurs(
@@ -224,7 +263,7 @@ fn draw_dropdown(
         })
         .collect::<Vec<String>>();
 
-    let dropdown_entity = draw_dropdown_components(commands, asset_server, menu_metadata, options, config_option);
+    let dropdown_entity = draw_dropdown_components(commands, asset_server, menu_metadata, options, config_option, parent_menus.clone());
 
     menu_options
         .iter()
@@ -250,16 +289,26 @@ fn draw_dropdown_components(
     mut asset_server: &Res<AssetServer>,
     menu_metadata: &MenuItemMetadata,
     options: Vec<String>,
-    config_option: &ConfigurationOptionEnum
+    config_option: &ConfigurationOptionEnum,
+    parent_menus: Vec<MenuItemMetadata>
 ) -> Entity {
+
+    let mut pos;
+
+    if parent_menus.len() > 1 {
+        pos = UiRect::new(Val::Percent(100.0), Val::Percent(0.0), Val::Percent(0.0), Val::Percent(0.0))
+    } else {
+        pos = UiRect::default()
+    }
 
     let mut draw_button = commands.spawn((
         ButtonBundle {
             style: Style {
                 display: Display::Flex,
                 flex_direction: FlexDirection::Column,
-                align_self: AlignSelf::End,
-                size: Size::new(Val::Percent(100.0), Val::Percent(98.0)),
+                align_self: AlignSelf::Start,
+                size: Size::new(Val::Percent(100.0), Val::Px(40.0)),
+                position: pos,
                 ..default()
             },
             background_color: BackgroundColor(Color::BLUE),
@@ -290,7 +339,8 @@ fn draw_dropdown_components(
             button.spawn((
                 TextBundle {
                     style: Style {
-                        size: Size::new(Val::Percent(95.0), Val::Percent(10.0)),
+                        size: Size::new(Val::Percent(95.0), Val::Px(40.0)),
+                        padding: UiRect::top(Val::Px(10.0)),
                         ..default()
                     },
                     text: Text::from_section(menu_metadata.name.clone(), TextStyle {
@@ -331,7 +381,8 @@ fn draw_menu_option(
             ButtonBundle {
                 style: Style {
                     display: Display::None,
-                    size: Size::new(Val::Percent(100.0), Val::Percent(5.0)),
+                    size: Size::new(Val::Percent(100.0), Val::Px(30.0)),
+                    position: UiRect::new(Val::Percent(100.0), Val::Percent(0.0), Val::Percent(0.0), Val::Percent(0.0)),
                     ..default()
                 },
                 background_color: BackgroundColor(Color::GREEN),
@@ -372,6 +423,7 @@ fn draw_menu_option(
                 TextBundle {
                     style: Style {
                         display: Display::Flex,
+                        size: Size::new(Val::Percent(100.0), Val::Px(50.0)),
                         ..default()
                     },
                     text: Text::from_section(option.to_string(), TextStyle {
@@ -418,223 +470,7 @@ insert_config_option!(
         LayerConcavity,
         NodeMetrics,
         NodeVariance,
-        NodeConcavity
+        NodeConcavity,
+        Menu
 );
-
-fn create_dropdown_from_opts(
-    mut commands: Commands,
-    options: Vec<String>,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut asset_server: Res<AssetServer>,
-) -> Entity {
-    let mut dropdown: Option<Entity> = None;
-
-    let dropdown_entity = commands
-        .spawn((
-            NodeBundle {
-                style: Style {
-                    size: Size::new(Val::Percent(20.0), Val::Percent(100.0)),
-                    display: Display::Flex,
-                    flex_direction: FlexDirection::Row,
-                    ..default()
-                },
-                background_color: BackgroundColor(Color::BLACK),
-                ..default()
-            },
-            UiIdentifiableComponent(0.0),
-        ))
-        .insert(UiComponent::Node(vec![]))
-        .with_children(|node| {
-
-            node.spawn((
-                ButtonBundle {
-                    style: Style {
-                        display: Display::Flex,
-                        flex_direction: FlexDirection::Column,
-                        size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
-                        justify_content: JustifyContent::End,
-                        ..default()
-                    },
-                    background_color: BackgroundColor(Color::BLACK),
-                    ..default()
-                }, CollapsableMenuComponent(CollapsableMenu::default(), vec![
-                    StateChangeActionType {
-                        hover: HoverStateChange::None,
-                        clicked: ChangeComponentStyle(
-                            ChangeStyleTypes::ChangeSize {
-                                height_1: 100.0,
-                                height_2: 0.0,
-                                width_1: 10.0,
-                                width_2: 0.0,
-                                filters: None,
-                            },
-                            ChangePropagation::Children(StartingState::Child)
-                        ),
-                    },
-                    StateChangeActionType {
-                        hover: HoverStateChange::None,
-                        clicked: ChangeComponentStyle(
-                            ChangeStyleTypes::ChangeVisible(None),
-                            ChangePropagation::Children(StartingState::Child) ,
-                        ),
-                    },
-                    StateChangeActionType {
-                        hover: HoverStateChange::None,
-                        clicked: ChangeComponentStyle(
-                            ChangeStyleTypes::ChangeSize {
-                                height_1: 100.0,
-                                height_2: 100.0,
-                                width_1: 100.0,
-                                width_2: 100.0,
-                                filters: None
-                            },
-                            ChangePropagation::SelfChange(StartingState::SelfState)
-                        ),
-                    },
-                    StateChangeActionType {
-                        hover: HoverStateChange::None,
-                        clicked: ChangeComponentStyle(
-                            ChangeStyleTypes::ChangeSize {
-                                height_1: 100.0,
-                                height_2: 100.0,
-                                width_1: 20.0,
-                                width_2: 3.0,
-                                filters: None
-                            },
-                            ChangePropagation::Parent(StartingState::Parent)
-                        ),
-                    }
-                ]),
-                UiIdentifiableComponent(1.0),
-            ))
-                .with_children(|submenu| {
-                    dropdown = Some(submenu
-                        .spawn((
-                            ButtonBundle {
-                                style: Style {
-                                    display: Display::Flex,
-                                    flex_direction: FlexDirection::Column,
-                                    align_self: AlignSelf::End,
-                                    size: Size::new(Val::Percent(100.0), Val::Percent(98.0)),
-                                    ..default()
-                                },
-                                background_color: BackgroundColor(Color::BLUE),
-                                ..default()
-                            },
-                            UiIdentifiableComponent(2.0)
-                        ))
-                        .insert((
-                            UiComponent::Dropdown(
-                                Dropdown {
-                                    options: options.clone(),
-                                    selected_index: 0,
-                                }, vec![
-                                    StateChangeActionType {
-                                        hover: HoverStateChange::None,
-                                        clicked: ChangeComponentStyle(
-                                            ChangeStyleTypes::ChangeVisible(None),
-                                            ChangePropagation::Children(StartingState::Child)
-                                        )
-                                    }]
-                            )
-                        ))
-                        .with_children(|button| {
-                            button.spawn((
-                                TextBundle {
-                                    style: Style {
-                                        size: Size::new(Val::Percent(95.0), Val::Percent(10.0)),
-                                        ..default()
-                                    },
-                                    text: Text::from_section("Configuration Options".to_string(), TextStyle {
-                                        font_size: 16.0,
-                                        font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                        color: Color::BLACK,
-                                        ..default()
-                                    }),
-                                    ..default()
-                                },
-                                Label,
-                                UiIdentifiableComponent(3.0)
-                            ));
-                        })
-                        .id());
-                });
-
-
-
-
-        })
-        .id();
-
-    let mut component_id = 4.0;
-
-    options
-        .iter()
-        .enumerate()
-        .for_each(|(index, option)| {
-            let _ = commands
-                .spawn((
-                    ButtonBundle {
-                        style: Style {
-                            display: Display::None,
-                            size: Size::new(Val::Percent(100.0), Val::Percent(5.0)),
-                            ..default()
-                        },
-                        background_color: BackgroundColor(Color::GREEN),
-                        ..default()
-                    },
-                    UiIdentifiableComponent(component_id as f32)
-                ))
-                .insert((
-                    UiComponent::DropdownOption(
-                        DropdownOption {
-                            index,
-                            option_name: option.clone(),
-                        }, vec![StateChangeActionType {
-                            hover: HoverStateChange::None,
-                            clicked: StateChange::None,
-                        }]
-                    )
-                ))
-                .with_children(|child_builder| {
-                    child_builder.spawn((
-                        NodeBundle {
-                            style: Style {
-                                display: Display::Flex,
-                                size: Size::all(Val::Percent(10.0)),
-                                ..default()
-                            },
-                            background_color: BackgroundColor(Color::BLUE),
-                            ..default()
-                        },
-                        Label,
-                        UiIdentifiableComponent(component_id + 1.0)
-                    ));
-                    child_builder.spawn((
-                        TextBundle {
-                            style: Style {
-                                display: Display::Flex,
-                                ..default()
-                            },
-                            text: Text::from_section(option.to_string(), TextStyle {
-                                font_size: 16.0,
-                                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                                color: Color::BLACK,
-                                ..default()
-                            }),
-                            ..default()
-                        },
-                        Label,
-                        UiIdentifiableComponent(component_id + 1.0)
-                    ));
-                })
-                .set_parent(dropdown.unwrap())
-                .id();
-            component_id = component_id + 2.0 as f32;
-        });
-
-
-    dropdown_entity
-}
 
