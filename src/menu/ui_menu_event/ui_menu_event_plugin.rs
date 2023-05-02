@@ -1,4 +1,4 @@
-use bevy::prelude::{BackgroundColor, Color, Component, Display, Entity, Resource, Size, Style, With};
+use bevy::prelude::{BackgroundColor, Color, Commands, Component, Display, Entity, Resource, Size, Style, With};
 use bevy::app::{App, Plugin};
 use bevy::hierarchy::{Children, Parent};
 use std::fmt::{Debug, Formatter};
@@ -29,7 +29,7 @@ impl Plugin for UiEventPlugin {
                 (With<UiComponent>, With<Children>, With<Style>), ()
             >)
             .add_system(<StateChangeEventReader as EventReaderT<
-                StateChangeActionType, UiEventArgs, Style,
+                StateChangeActionType, UiEventArgs, Style, Style,
                 StateChangeActionComponentStateFactory,
                 NextUiState,
                 (With<UiComponent>)
@@ -43,7 +43,7 @@ impl Plugin for UiEventPlugin {
 #[derive(Resource, Default, Clone)]
 pub struct StateChangeActionComponentStateFactory;
 
-impl StateChangeFactory<StateChangeActionType, UiEventArgs, Style, NextUiState>
+impl StateChangeFactory<StateChangeActionType, UiEventArgs, Style, Style, NextUiState>
 for StateChangeActionComponentStateFactory {
     fn current_state(current: &EventDescriptor<StateChangeActionType, UiEventArgs, Style>) -> Vec<NextStateChange<NextUiState, Style>> {
         if let UiEventArgs::Event(UiClickStateChange::ChangeSize { update_display}) = &current.event_args {
@@ -77,11 +77,11 @@ pub enum NextUiState {
 }
 
 impl UpdateStateInPlace<Style> for NextUiState {
-    fn update_state(&self, value: &mut Style) {
+    fn update_state(&self, commands: &mut Commands,  value: &mut Style) {
         if let NextUiState::ReplaceSize(update) = &self {
-            update.update_state(&mut value.size);
+            update.update_state(commands, &mut value.size);
         } else if let NextUiState::ReplaceDisplay(display) = &self {
-            display.update_state(&mut value.display);
+            display.update_state(commands, &mut value.display);
         }
     }
 }
@@ -111,7 +111,7 @@ pub struct ChangeComponentColorUpdate {
 }
 
 impl UpdateStateInPlace<BackgroundColor> for ChangeComponentColorUpdate {
-    fn update_state(&self, value: &mut BackgroundColor) {
+    fn update_state(&self, commands: &mut Commands, value: &mut BackgroundColor) {
         value.0 = self.new_color;
     }
 }

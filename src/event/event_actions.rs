@@ -2,7 +2,7 @@ use bevy::ecs::query::{QueryEntityError, ReadOnlyWorldQuery, WorldQuery};
 use bevy::prelude::{Commands, Component, Entity, EventReader, EventWriter, Interaction, Query, Res, ResMut, Resource};
 use bevy::log::info;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
-use crate::event::event_state::{StateChangeFactory, UpdateStateInPlace};
+use crate::event::event_state::{StateChangeFactory, Update, UpdateStateInPlace};
 
 pub fn write_events<
     State,
@@ -59,39 +59,41 @@ pub fn write_events<
         });
 }
 
-pub trait EventReaderT<T, A, C, StateChangeFactoryI, StateUpdateI, QF: ReadOnlyWorldQuery = ()>
+pub trait EventReaderT<T, A, StateComponent, UpdateComponent, StateChangeFactoryI, StateUpdateI, QF: ReadOnlyWorldQuery = ()>
     where
         T: EventData + 'static,
         A: EventArgs + 'static,
-        C: Component + Send + Sync + 'static,
-        StateChangeFactoryI: StateChangeFactory<T, A, C, StateUpdateI>,
-        StateUpdateI: UpdateStateInPlace<C>
+        StateComponent: Component + Send + Sync + 'static,
+        UpdateComponent: Component + Send + Sync + 'static,
+        StateChangeFactoryI: StateChangeFactory<T, A, StateComponent, UpdateComponent, StateUpdateI>,
+        StateUpdateI: UpdateStateInPlace<UpdateComponent>
 {
     fn read_events(
         commands: Commands,
-        update_stae: Res<StateChangeFactoryI>,
-        read_events: EventReader<EventDescriptor<T, A, C>>,
-        query: Query<(Entity, &mut C), QF>
+        update_state: Res<StateChangeFactoryI>,
+        read_events: EventReader<EventDescriptor<T, A, StateComponent>>,
+        query: Query<(Entity, &mut UpdateComponent), QF>
     );
 }
 
 pub struct StateChangeEventReader;
 
-impl <T, A, C, StateChangeFactoryI, StateUpdateI, QF: ReadOnlyWorldQuery>
-EventReaderT<T, A, C, StateChangeFactoryI, StateUpdateI, QF>
+impl <T, A, StateComponent, UpdateComponent, StateChangeFactoryI, StateUpdateI, QF: ReadOnlyWorldQuery>
+EventReaderT<T, A, StateComponent, UpdateComponent, StateChangeFactoryI, StateUpdateI, QF>
 for StateChangeEventReader
     where
         T: EventData + 'static,
         A: EventArgs + 'static,
-        C: Component + Send + Sync + 'static,
-        StateChangeFactoryI: StateChangeFactory<T, A, C, StateUpdateI>,
-        StateUpdateI: UpdateStateInPlace<C>
+        StateComponent: Component + Send + Sync + 'static,
+        UpdateComponent: Component + Send + Sync + 'static,
+        StateChangeFactoryI: StateChangeFactory<T, A, StateComponent, UpdateComponent, StateUpdateI>,
+        StateUpdateI: UpdateStateInPlace<UpdateComponent>
 {
     fn read_events(
-       mut commands: Commands,
-       update_state: Res<StateChangeFactoryI>,
-       mut read_events: EventReader<EventDescriptor<T, A, C>>,
-       mut query: Query<(Entity, &mut C), QF>
+        mut commands: Commands,
+        update_state: Res<StateChangeFactoryI>,
+        mut read_events: EventReader<EventDescriptor<T, A, StateComponent>>,
+        mut query: Query<(Entity, &mut UpdateComponent), QF>
     ) {
         for event in read_events.iter() {
             StateChangeFactoryI::current_state(event)
@@ -99,7 +101,7 @@ for StateChangeEventReader
                 .for_each(|state| {
                     let _ = query.get_mut(state.entity)
                         .map(|(entity, mut component)| {
-                            state.update_state(&mut component);
+                            state.update_state(&mut commands, &mut component);
                         })
                         .or_else(|f| {
                             info!("Failed to fetch query: {:?}.", f);

@@ -29,9 +29,18 @@ for StateChangeActionTypeStateRetriever
     fn retrieve_state(
         mut commands: &mut Commands,
         entity: Entity,
-        entity_query: &Query<(Entity, &UiComponent, &Style, &UiIdentifiableComponent), (With<UiComponent>, With<Style>)>,
-        with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
-        with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>
+        entity_query: &Query<
+            (Entity, &UiComponent, &Style, &UiIdentifiableComponent),
+            (With<UiComponent>, With<Style>)
+        >,
+        with_parent_query: &Query<
+            (Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style),
+            (With<UiComponent>, With<Parent>, With<Style>)
+        >,
+        with_children_query: &Query<
+            (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
+            (With<UiComponent>, With<Children>, With<Style>)
+        >
     ) -> Option<EventDescriptor<StateChangeActionType, UiEventArgs, Style>> {
 
         entity_query.get(entity.clone())

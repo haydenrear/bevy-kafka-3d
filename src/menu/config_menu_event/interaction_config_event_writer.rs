@@ -1,18 +1,42 @@
 use std::fmt::Debug;
 use bevy::prelude::*;
-use crate::menu::ConfigurationOptionComponent;
+use crate::event::event_actions::RetrieveState;
+use crate::event::event_descriptor::EventDescriptor;
+use crate::menu::{ConfigurationOption, ConfigurationOptionComponent, ConfigurationOptionEnum, DataType};
 use crate::menu::config_menu_event::config_event::ConfigurationOptionEvent;
 use crate::network::Node;
 
-/// When an interaction happens with a ConfigurationOptionComponent, then the following happens
-/// 1.
-pub fn write_config_events<T: Component + Clone + Default + Debug>(
-    mut commands: Commands,
-    mut event_write: EventWriter<ConfigurationOptionEvent<T>>,
-    entity_query: Query<(Entity, &Style), (With<ConfigurationOptionComponent<Node>>)>,
-    with_children_query: Query<(Entity, &ConfigurationOptionComponent<T>, &Children), (With<ConfigurationOptionComponent<T>>, With<Children>)>,
-    with_parent_query: Query<(Entity, &ConfigurationOptionComponent<T>, &Parent), (With<ConfigurationOptionComponent<T>>, With<Parent>)>,
-    interaction_query: Query<(Entity, &Interaction), (Changed<Interaction>)>,
-) {
+#[derive(Default, Resource, Debug)]
+pub struct ConfigOptionActionStateRetriever;
 
+impl <T: Component + Send + Sync + Default + Clone + Debug + 'static> RetrieveState<
+    ConfigurationOptionEvent<T>, DataType, ConfigurationOption<T>,
+    (Entity, &ConfigurationOption<T>),
+    (Entity, &Parent, &ConfigurationOption<T>),
+    (Entity, &Children, &ConfigurationOption<T>),
+    (With<ConfigurationOption<T>>),
+    (With<Parent>, With<ConfigurationOption<T>>),
+    (With<Children>, With<ConfigurationOption<T>>),
+>
+for ConfigOptionActionStateRetriever
+{
+    fn retrieve_state(
+        commands: &mut Commands,
+        entity: Entity,
+        self_query: &Query<(Entity, &ConfigurationOption<T>), (With<ConfigurationOption<T>>)>,
+        with_parent_query: &Query<
+            (Entity, &Parent, &ConfigurationOption<T>),
+            (With<Parent>, With<ConfigurationOption<T>>)
+        >,
+        with_child_query: &Query<
+            (Entity, &Children, &ConfigurationOption<T>),
+            (With<Children>, With<ConfigurationOption<T>>)
+        >
+    ) -> Option<EventDescriptor<DataType, ConfigurationOptionEvent<T>, ConfigurationOption<T>>> {
+        // self_query.get(entity)
+        //     .map(|entity_option| {
+        //
+        //     })
+        None
+    }
 }

@@ -1,8 +1,10 @@
 use std::marker::PhantomData;
-use bevy::prelude::Entity;
+use bevy::ecs::system::CommandQueue;
+use bevy::prelude::{Commands, Entity, World};
 use bevy::ui::{Display, Style};
 use crate::event::event_state::{Update, UpdateStateInPlace};
 use crate::menu::{ConfigurationOption, DataType};
+use crate::menu::menu_resource::{CONCAVITY, METRICS};
 use crate::menu::ui_menu_event::ui_menu_event_plugin::NextUiState;
 use crate::metrics::HistoricalData;
 use crate::network::Node;
@@ -43,17 +45,17 @@ fn test_update_state() {
     let mut display = Display::Flex;
     let mut style = Style::default();
     style.display = display;
-    next_state.update_state(&mut style);
+    next_state.update_state(&mut Commands::new(&mut CommandQueue::default(), &World::default()), &mut style);
 
     assert_eq!(style.display, Display::None);
 }
 
 #[test]
 fn test_update_state_config() {
-    let config_option = ConfigurationOption::Concavity(PhantomData::<Node>::default(), DataType::Number(Some(20.0)));
-    let x = &mut ConfigurationOption::Metrics(PhantomData::<Node>::default(), DataType::Number(Some(0.0)));
-    config_option.update_state(x);
-    if let ConfigurationOption::Concavity(_, DataType::Number(Some(n))) = x {
+    let config_option = ConfigurationOption::Concavity(PhantomData::<Node>::default(), DataType::Number(Some(20.0)), CONCAVITY);
+    let x = &mut ConfigurationOption::Metrics(PhantomData::<Node>::default(), DataType::Number(Some(0.0)), METRICS);
+    config_option.update_state(&mut Commands::new(&mut CommandQueue::default(), &World::default()),x);
+    if let ConfigurationOption::Concavity(_, DataType::Number(Some(n)), id) = x {
         assert_eq!(*n, 20.0);
     } else {
         assert!(false);

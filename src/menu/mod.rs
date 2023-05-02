@@ -1,10 +1,12 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use bevy::ecs::component::TableStorage;
-use bevy::prelude::{Color, Component, Entity};
+use bevy::prelude::{Color, Commands, Component, Entity};
 use bevy::ui::{Size, Val};
 use bevy::utils::petgraph::visit::Data;
 use bevy_mod_picking::Selection;
+use crate::event::event_state::UpdateStateInPlace;
+use crate::menu::menu_resource::{MENU, VARIANCE};
 use crate::metrics::{Metric, MetricChildNodes};
 use crate::network::{Layer, Network, Node};
 
@@ -92,11 +94,48 @@ pub enum MenuInputType {
 /// the configuration option
 #[derive(Component, Debug, Clone)]
 pub enum ConfigurationOption<T: Component + Send + Sync + Clone + Debug + Default + 'static> {
-    Variance(PhantomData<T>, DataType),
-    Concavity(PhantomData<T>, DataType),
-    Metrics(PhantomData<T>, DataType),
-    Menu(PhantomData<T>, DataType)
+    Variance(PhantomData<T>, DataType, &'static str),
+    Concavity(PhantomData<T>, DataType, &'static str),
+    Metrics(PhantomData<T>, DataType, &'static str),
+    Menu(PhantomData<T>, DataType, &'static str)
 }
+
+impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> UpdateStateInPlace<ConfigurationOption<T>> for ConfigurationOption<T> {
+    fn update_state(&self,commands: &mut Commands, value: &mut ConfigurationOption<T>) {
+        *value = self.clone()
+    }
+}
+
+impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> ConfigurationOption<T> {
+    pub(crate) fn get_data(&self) -> &DataType {
+        match self {
+            ConfigurationOption::Variance(_, data, _) => { data }
+            ConfigurationOption::Concavity(_, data, _) => { data }
+            ConfigurationOption::Metrics(_, data, _) => { data }
+            ConfigurationOption::Menu(_, data, _) => { data }
+        }
+    }
+}
+
+impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> ConfigurationOption<T> {
+    pub(crate) fn get_id(&self) -> &'static str{
+        match self {
+            ConfigurationOption::Variance(_, _, id) => {
+                id
+            }
+            ConfigurationOption::Concavity(_, _, id) => {
+                id
+            }
+            ConfigurationOption::Metrics(_, _, id) => {
+                id
+            }
+            ConfigurationOption::Menu(_, _, id) => {
+                id
+            }
+        }
+    }
+}
+
 
 /// When you select an option, there are a few things to keep in mind:
 /// 1. When you select an option it may deselect other options. Or it may not.
@@ -111,7 +150,7 @@ pub struct ConfigurationOptionComponent<T: Component + Send + Sync + Clone + Deb
 
 impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> Default for ConfigurationOption<T> {
     fn default() -> Self {
-        ConfigurationOption::Variance(PhantomData::default(), DataType::Number(Some(0.0)))
+        ConfigurationOption::Variance(PhantomData::default(), DataType::Number(Some(0.0)), VARIANCE)
     }
 }
 
@@ -157,9 +196,30 @@ pub enum ConfigurationOptionEnum {
     NodeConcavity(ConfigurationOption<Node>)
 }
 
+impl ConfigurationOptionEnum {
+    pub(crate) fn update_data(&mut self, data: DataType) {
+        match self {
+            ConfigurationOptionEnum::Menu(ConfigurationOption::Menu(_, a, _)) => {
+                *a = data;
+            }
+            ConfigurationOptionEnum::Metrics(_) => {}
+            ConfigurationOptionEnum::NetworkMetrics(_) => {}
+            ConfigurationOptionEnum::NetworkVariance(_) => {}
+            ConfigurationOptionEnum::NetworkConcavity(_) => {}
+            ConfigurationOptionEnum::LayerMetrics(_) => {}
+            ConfigurationOptionEnum::LayerVariance(_) => {}
+            ConfigurationOptionEnum::LayerConcavity(_) => {}
+            ConfigurationOptionEnum::NodeMetrics(_) => {}
+            ConfigurationOptionEnum::NodeVariance(_) => {}
+            ConfigurationOptionEnum::NodeConcavity(_) => {}
+            _ => {}
+        };
+    }
+}
+
 impl Default for ConfigurationOptionEnum {
     fn default() -> Self {
-        ConfigurationOptionEnum::Menu(ConfigurationOption::Menu(PhantomData::default(), DataType::Selected))
+        ConfigurationOptionEnum::Menu(ConfigurationOption::Menu(PhantomData::default(), DataType::Selected, MENU))
     }
 }
 
