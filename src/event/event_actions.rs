@@ -1,46 +1,37 @@
+use std::marker::PhantomData;
 use bevy::ecs::query::{QueryEntityError, ReadOnlyWorldQuery, WorldQuery};
 use bevy::prelude::{Commands, Component, Entity, EventReader, EventWriter, Interaction, Query, Res, ResMut, Resource};
 use bevy::log::info;
+use bevy::time::Time;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_state::{StateChangeFactory, Update, UpdateStateInPlace};
 
 pub fn write_events<
-    State,
-    ClickState,
-    EArgs: EventArgs + 'static,
-    EvD: EventData + 'static,
-    C: Component + Send + Sync + 'static,
+    RetrieveStateT,
+    EventArgsT: EventArgs + 'static,
+    EventDataT: EventData + 'static,
+    ComponentT: Component + Send + Sync + 'static,
     SelfQuery: WorldQuery,
-    ParentQuery: WorldQuery,
-    ChildQuery: WorldQuery,
     SelfFilterQuery: ReadOnlyWorldQuery,
+    ParentQuery: WorldQuery,
     ParentFilterQuery: ReadOnlyWorldQuery,
+    ChildQuery: WorldQuery,
     ChildFilterQuery: ReadOnlyWorldQuery,
     InteractionFilterQuery: ReadOnlyWorldQuery,
 >(
     mut commands: Commands,
-    retrieve: ResMut<ClickState>,
-    mut event_write: EventWriter<EventDescriptor<EvD, EArgs, C>>,
+    retrieve: ResMut<RetrieveStateT>,
+    mut event_write: EventWriter<EventDescriptor<EventDataT, EventArgsT, ComponentT>>,
     self_query: Query<SelfQuery, SelfFilterQuery>,
     with_parent_query: Query<ParentQuery, ParentFilterQuery>,
     with_child_query: Query<ChildQuery, ChildFilterQuery>,
     interaction_query: Query<(Entity, &Interaction), InteractionFilterQuery>,
 )
     where
-        ClickState: RetrieveState<
-            EArgs, EvD, C, SelfQuery, ParentQuery, ChildQuery, SelfFilterQuery,
+        RetrieveStateT: RetrieveState<
+            EventArgsT, EventDataT, ComponentT, SelfQuery,
+            ParentQuery, ChildQuery, SelfFilterQuery,
             ParentFilterQuery, ChildFilterQuery
-        >,
-        State: RetrieveState<
-            EArgs,
-            EvD,
-            C,
-            SelfQuery,
-            ParentQuery,
-            ChildQuery,
-            SelfFilterQuery,
-            ParentFilterQuery,
-            ChildFilterQuery
         >
 {
 
@@ -48,18 +39,19 @@ pub fn write_events<
         .iter()
         .for_each(|(entity, interaction)| {
             if let Interaction::Clicked = interaction {
-                ClickState::retrieve_state(
+                RetrieveStateT::create_event(
                         &mut commands,
                         entity, &self_query,
                         &with_parent_query,
                         &with_child_query
                     )
-                    .map(|event| event_write.send(event));
+                    .into_iter()
+                    .for_each(|event| event_write.send(event));
             }
         });
 }
 
-pub trait EventReaderT<T, A, StateComponent, UpdateComponent, StateChangeFactoryI, StateUpdateI, QF: ReadOnlyWorldQuery = ()>
+pub trait InteractionEventReader<T, A, StateComponent, UpdateComponent, StateChangeFactoryI, StateUpdateI, QF: ReadOnlyWorldQuery = ()>
     where
         T: EventData + 'static,
         A: EventArgs + 'static,
@@ -70,7 +62,7 @@ pub trait EventReaderT<T, A, StateComponent, UpdateComponent, StateChangeFactory
 {
     fn read_events(
         commands: Commands,
-        update_state: Res<StateChangeFactoryI>,
+        update_state: PhantomData<StateChangeFactoryI>,
         read_events: EventReader<EventDescriptor<T, A, StateComponent>>,
         query: Query<(Entity, &mut UpdateComponent), QF>
     );
@@ -78,29 +70,31 @@ pub trait EventReaderT<T, A, StateComponent, UpdateComponent, StateChangeFactory
 
 pub struct StateChangeEventReader;
 
-impl <T, A, StateComponent, UpdateComponent, StateChangeFactoryI, StateUpdateI, QF: ReadOnlyWorldQuery>
-EventReaderT<T, A, StateComponent, UpdateComponent, StateChangeFactoryI, StateUpdateI, QF>
+impl <EventDataT, EventArgsT, StateComponent, UpdateComponent, StateChangeFactoryT, StateUpdateI, QF: ReadOnlyWorldQuery>
+InteractionEventReader<EventDataT, EventArgsT, StateComponent, UpdateComponent, StateChangeFactoryT, StateUpdateI, QF>
 for StateChangeEventReader
     where
-        T: EventData + 'static,
-        A: EventArgs + 'static,
+        EventDataT: EventData + 'static,
+        EventArgsT: EventArgs + 'static,
         StateComponent: Component + Send + Sync + 'static,
         UpdateComponent: Component + Send + Sync + 'static,
-        StateChangeFactoryI: StateChangeFactory<T, A, StateComponent, UpdateComponent, StateUpdateI>,
+        StateChangeFactoryT: StateChangeFactory<EventDataT, EventArgsT, StateComponent, UpdateComponent, StateUpdateI>,
         StateUpdateI: UpdateStateInPlace<UpdateComponent>
 {
     fn read_events(
         mut commands: Commands,
-        update_state: Res<StateChangeFactoryI>,
-        mut read_events: EventReader<EventDescriptor<T, A, StateComponent>>,
+        update_state: PhantomData<StateChangeFactoryT>,
+        mut read_events: EventReader<EventDescriptor<EventDataT, EventArgsT, StateComponent>>,
         mut query: Query<(Entity, &mut UpdateComponent), QF>
     ) {
         for event in read_events.iter() {
-            StateChangeFactoryI::current_state(event)
+            StateChangeFactoryT::current_state(event)
                 .iter()
                 .for_each(|state| {
                     let _ = query.get_mut(state.entity)
+                        // fetches a different component on the same entity for updating.
                         .map(|(entity, mut component)| {
+                            // get the event to update
                             state.update_state(&mut commands, &mut component);
                         })
                         .or_else(|f| {
@@ -116,9 +110,9 @@ for StateChangeEventReader
 /// Fetch the information about the event, such as the child and parent values, to be included
 /// in the event.
 pub trait RetrieveState<
-    A,
-    D,
-    C,
+    EventArgsT,
+    EventDataT,
+    ComponentT,
     SelfQuery,
     ParentQuery,
     ChildQuery,
@@ -127,18 +121,18 @@ pub trait RetrieveState<
     ChildFilterQuery: ReadOnlyWorldQuery = (),
 >: Resource
     where
-        A: EventArgs,
-        D: EventData,
-        C: Component + Send + Sync + 'static,
+        EventArgsT: EventArgs,
+        EventDataT: EventData,
+        ComponentT: Component + Send + Sync + 'static,
         SelfQuery: WorldQuery,
         ParentQuery: WorldQuery,
         ChildQuery: WorldQuery
 {
-    fn retrieve_state(
+    fn create_event(
         commands: &mut Commands,
         entity: Entity,
         self_query: &Query<SelfQuery, SelfFilterQuery>,
         with_parent_query: &Query<ParentQuery, ParentFilterQuery>,
         with_child_query: &Query<ChildQuery, ChildFilterQuery>
-    ) ->  Option<EventDescriptor<D, A, C>>;
+    ) ->  Vec<EventDescriptor<EventDataT, EventArgsT, ComponentT>>;
 }

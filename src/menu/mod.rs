@@ -93,43 +93,46 @@ pub enum MenuInputType {
 /// Query by the T in ConfigurationOption, and then query by the T component in order to apply
 /// the configuration option
 #[derive(Component, Debug, Clone)]
-pub enum ConfigurationOption<T: Component + Send + Sync + Clone + Debug + Default + 'static> {
+pub enum MetricsConfigurationOption<T: Component + Send + Sync + Clone + Debug + Default + 'static> {
     Variance(PhantomData<T>, DataType, &'static str),
     Concavity(PhantomData<T>, DataType, &'static str),
     Metrics(PhantomData<T>, DataType, &'static str),
     Menu(PhantomData<T>, DataType, &'static str)
 }
 
-impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> UpdateStateInPlace<ConfigurationOption<T>> for ConfigurationOption<T> {
-    fn update_state(&self,commands: &mut Commands, value: &mut ConfigurationOption<T>) {
+impl <T> UpdateStateInPlace<MetricsConfigurationOption<T>>
+for MetricsConfigurationOption<T>
+where T: Component + Send + Sync + Clone + Debug + Default + 'static
+{
+    fn update_state(&self,commands: &mut Commands, value: &mut MetricsConfigurationOption<T>) {
         *value = self.clone()
     }
 }
 
-impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> ConfigurationOption<T> {
+impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> MetricsConfigurationOption<T> {
     pub(crate) fn get_data(&self) -> &DataType {
         match self {
-            ConfigurationOption::Variance(_, data, _) => { data }
-            ConfigurationOption::Concavity(_, data, _) => { data }
-            ConfigurationOption::Metrics(_, data, _) => { data }
-            ConfigurationOption::Menu(_, data, _) => { data }
+            MetricsConfigurationOption::Variance(_, data, _) => { data }
+            MetricsConfigurationOption::Concavity(_, data, _) => { data }
+            MetricsConfigurationOption::Metrics(_, data, _) => { data }
+            MetricsConfigurationOption::Menu(_, data, _) => { data }
         }
     }
 }
 
-impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> ConfigurationOption<T> {
+impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> MetricsConfigurationOption<T> {
     pub(crate) fn get_id(&self) -> &'static str{
         match self {
-            ConfigurationOption::Variance(_, _, id) => {
+            MetricsConfigurationOption::Variance(_, _, id) => {
                 id
             }
-            ConfigurationOption::Concavity(_, _, id) => {
+            MetricsConfigurationOption::Concavity(_, _, id) => {
                 id
             }
-            ConfigurationOption::Metrics(_, _, id) => {
+            MetricsConfigurationOption::Metrics(_, _, id) => {
                 id
             }
-            ConfigurationOption::Menu(_, _, id) => {
+            MetricsConfigurationOption::Menu(_, _, id) => {
                 id
             }
         }
@@ -144,29 +147,30 @@ impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> Configurat
 #[derive(Component, Clone, Debug)]
 pub struct ConfigurationOptionComponent<T: Component + Send + Sync + Clone + Debug + Default + 'static> {
     phantom: PhantomData<T>,
-    configuration_option: ConfigurationOption<T>,
+    configuration_option: MetricsConfigurationOption<T>,
     value: DataType,
 }
 
-impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> Default for ConfigurationOption<T> {
+impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> Default
+for MetricsConfigurationOption<T> {
     fn default() -> Self {
-        ConfigurationOption::Variance(PhantomData::default(), DataType::Number(Some(0.0)), VARIANCE)
+        MetricsConfigurationOption::Variance(PhantomData::default(), DataType::Number(Some(0.0)), VARIANCE)
     }
 }
 
 pub trait AcceptConfigurationOption<T> where Self: Component + Clone + Default + Debug {
-    fn accept_configuration_option(value: ConfigurationOption<Self>, args: T)
+    fn accept_configuration_option(value: MetricsConfigurationOption<Self>, args: T)
     where Self: Sized;
 }
 
 impl AcceptConfigurationOption<()> for Node {
-    fn accept_configuration_option(value: ConfigurationOption<Node>, args: ()) {
+    fn accept_configuration_option(value: MetricsConfigurationOption<Node>, args: ()) {
         todo!()
     }
 }
 
 impl AcceptConfigurationOption<Vec<Node>> for MetricChildNodes {
-    fn accept_configuration_option(value: ConfigurationOption<MetricChildNodes>, nodes: Vec<Node>) {
+    fn accept_configuration_option(value: MetricsConfigurationOption<MetricChildNodes>, nodes: Vec<Node>) {
         todo!()
     }
 }
@@ -183,23 +187,23 @@ pub struct Menu;
 
 #[derive(Clone, Debug, Component)]
 pub enum ConfigurationOptionEnum {
-    Menu(ConfigurationOption<Menu>),
-    Metrics(ConfigurationOption<Metric>),
-    NetworkMetrics(ConfigurationOption<Network>),
-    NetworkVariance(ConfigurationOption<Network>),
-    NetworkConcavity(ConfigurationOption<Network>),
-    LayerMetrics(ConfigurationOption<Layer>),
-    LayerVariance(ConfigurationOption<Layer>),
-    LayerConcavity(ConfigurationOption<Layer>),
-    NodeMetrics(ConfigurationOption<Node>),
-    NodeVariance(ConfigurationOption<Node>),
-    NodeConcavity(ConfigurationOption<Node>)
+    Menu(MetricsConfigurationOption<Menu>),
+    Metrics(MetricsConfigurationOption<Metric>),
+    NetworkMetrics(MetricsConfigurationOption<Network>),
+    NetworkVariance(MetricsConfigurationOption<Network>),
+    NetworkConcavity(MetricsConfigurationOption<Network>),
+    LayerMetrics(MetricsConfigurationOption<Layer>),
+    LayerVariance(MetricsConfigurationOption<Layer>),
+    LayerConcavity(MetricsConfigurationOption<Layer>),
+    NodeMetrics(MetricsConfigurationOption<Node>),
+    NodeVariance(MetricsConfigurationOption<Node>),
+    NodeConcavity(MetricsConfigurationOption<Node>)
 }
 
 impl ConfigurationOptionEnum {
     pub(crate) fn update_data(&mut self, data: DataType) {
         match self {
-            ConfigurationOptionEnum::Menu(ConfigurationOption::Menu(_, a, _)) => {
+            ConfigurationOptionEnum::Menu(MetricsConfigurationOption::Menu(_, a, _)) => {
                 *a = data;
             }
             ConfigurationOptionEnum::Metrics(_) => {}
@@ -219,7 +223,7 @@ impl ConfigurationOptionEnum {
 
 impl Default for ConfigurationOptionEnum {
     fn default() -> Self {
-        ConfigurationOptionEnum::Menu(ConfigurationOption::Menu(PhantomData::default(), DataType::Selected, MENU))
+        ConfigurationOptionEnum::Menu(MetricsConfigurationOption::Menu(PhantomData::default(), DataType::Selected, MENU))
     }
 }
 
@@ -239,7 +243,8 @@ pub enum MenuOptionType {
 pub enum DataType {
     Number(Option<f32>),
     String(Option<String>),
-    Selected
+    Selected,
+    Deselect
 }
 
 impl Default for DataType {

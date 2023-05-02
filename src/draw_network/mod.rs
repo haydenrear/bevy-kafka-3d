@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use bevy::prelude::{BuildChildren, Changed, Children, Color, ColorMaterial, Commands, default, Entity, GlobalTransform, Mesh, Parent, Query, ResMut, shape, SpriteBundle, Transform, Without};
 use bevy::asset::Assets;
 use bevy::utils::{HashMap, Uuid};
@@ -10,6 +11,8 @@ use bevy::math::Vec2;
 use bevy::prelude::shape::Quad;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::draw::{Fill, Stroke};
+use crate::menu::{DataType, MetricsConfigurationOption};
+use crate::menu::menu_resource::VARIANCE;
 use crate::metrics::MetricState;
 use crate::network::{Layer, LayerType, Network, NetworkId, Node};
 
@@ -123,13 +126,14 @@ pub(crate) fn draw_node_connections(
                             Vec2::new(relative_pos.translation.x, connection_to_make.2.translation.y),
                         ));
 
-                    let line = commands.spawn((
-                        ShapeBundle {
-                            path: line,
-                            ..default()
-                        }, Fill::color(Color::BLACK),
-                        Stroke::new(Color::BLACK, 1.)
-                    ));
+                    let line = commands.
+                        spawn((
+                            ShapeBundle {
+                                path: line,
+                                ..default()
+                            }, Fill::color(Color::BLACK),
+                            Stroke::new(Color::BLACK, 1.)
+                        ));
 
                     line.id()
                 })
@@ -181,8 +185,17 @@ fn draw_node(
             PickableBundle::default()
         ))
         .insert((PickableBundle::default()))
-        .insert((SpriteBundle {
-            transform: Transform::from_xyz(0.0, y, 1.0),
-            ..Default::default()
-        }, PickableBundle::default()));
+        .insert((
+                    SpriteBundle {
+                    transform: Transform::from_xyz(0.0, y, 1.0),
+                    ..Default::default()
+                },
+                PickableBundle::default()
+        ))
+        .with_children(|child| {
+            child.spawn(MetricsConfigurationOption::Variance(PhantomData::<Node>::default(), DataType::Selected, VARIANCE))
+                // TODO: create the display component that will be made visible/invisible
+                // .insert()
+                ;
+        });
 }

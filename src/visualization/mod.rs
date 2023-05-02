@@ -9,7 +9,7 @@ use bevy::sprite::MaterialMesh2dBundle;
 use bevy::utils::HashMap;
 use bevy_mod_picking::{HoverEvent, PickableBundle, PickableMesh, PickingEvent, SelectionEvent};
 use crate::event::event_state::{HoverStateChange, StateChange};
-use crate::menu::{CollapsableMenu, ConfigurationOption, ConfigurationOptionEnum, DataType, Dropdown, DropdownOption, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionType};
+use crate::menu::{CollapsableMenu, MetricsConfigurationOption, ConfigurationOptionEnum, DataType, Dropdown, DropdownOption, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionType};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
 use crate::event::event_propagation::{ChangePropagation, StartingState};
 use crate::event::event_state::StateChange::ChangeComponentStyle;

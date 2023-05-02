@@ -3,7 +3,7 @@ use bevy::ecs::system::CommandQueue;
 use bevy::prelude::{Commands, Entity, World};
 use bevy::ui::{Display, Style};
 use crate::event::event_state::{Update, UpdateStateInPlace};
-use crate::menu::{ConfigurationOption, DataType};
+use crate::menu::{MetricsConfigurationOption, DataType};
 use crate::menu::menu_resource::{CONCAVITY, METRICS};
 use crate::menu::ui_menu_event::ui_menu_event_plugin::NextUiState;
 use crate::metrics::HistoricalData;
@@ -52,10 +52,10 @@ fn test_update_state() {
 
 #[test]
 fn test_update_state_config() {
-    let config_option = ConfigurationOption::Concavity(PhantomData::<Node>::default(), DataType::Number(Some(20.0)), CONCAVITY);
-    let x = &mut ConfigurationOption::Metrics(PhantomData::<Node>::default(), DataType::Number(Some(0.0)), METRICS);
+    let config_option = MetricsConfigurationOption::Concavity(PhantomData::<Node>::default(), DataType::Number(Some(20.0)), CONCAVITY);
+    let x = &mut MetricsConfigurationOption::Metrics(PhantomData::<Node>::default(), DataType::Number(Some(0.0)), METRICS);
     config_option.update_state(&mut Commands::new(&mut CommandQueue::default(), &World::default()),x);
-    if let ConfigurationOption::Concavity(_, DataType::Number(Some(n)), id) = x {
+    if let MetricsConfigurationOption::Concavity(_, DataType::Number(Some(n)), id) = x {
         assert_eq!(*n, 20.0);
     } else {
         assert!(false);

@@ -2,41 +2,44 @@ use std::fmt::Debug;
 use bevy::prelude::*;
 use crate::event::event_actions::RetrieveState;
 use crate::event::event_descriptor::EventDescriptor;
-use crate::menu::{ConfigurationOption, ConfigurationOptionComponent, ConfigurationOptionEnum, DataType};
-use crate::menu::config_menu_event::config_event::ConfigurationOptionEvent;
+use crate::menu::{MetricsConfigurationOption, ConfigurationOptionComponent, ConfigurationOptionEnum, DataType};
+use crate::menu::config_menu_event::config_event::ConfigurationOptionEventArgs;
 use crate::network::Node;
 
 #[derive(Default, Resource, Debug)]
 pub struct ConfigOptionActionStateRetriever;
 
 impl <T: Component + Send + Sync + Default + Clone + Debug + 'static> RetrieveState<
-    ConfigurationOptionEvent<T>, DataType, ConfigurationOption<T>,
-    (Entity, &ConfigurationOption<T>),
-    (Entity, &Parent, &ConfigurationOption<T>),
-    (Entity, &Children, &ConfigurationOption<T>),
-    (With<ConfigurationOption<T>>),
-    (With<Parent>, With<ConfigurationOption<T>>),
-    (With<Children>, With<ConfigurationOption<T>>),
+    ConfigurationOptionEventArgs<T>,
+    DataType,
+    MetricsConfigurationOption<T>,
+    (Entity, &MetricsConfigurationOption<T>),
+    (Entity, &Parent, &MetricsConfigurationOption<T>),
+    (Entity, &Children, &MetricsConfigurationOption<T>),
+    (With<MetricsConfigurationOption<T>>),
+    (With<Parent>, With<MetricsConfigurationOption<T>>),
+    (With<Children>, With<MetricsConfigurationOption<T>>),
 >
 for ConfigOptionActionStateRetriever
 {
-    fn retrieve_state(
+    fn create_event(
         commands: &mut Commands,
         entity: Entity,
-        self_query: &Query<(Entity, &ConfigurationOption<T>), (With<ConfigurationOption<T>>)>,
+        self_query: &Query<(Entity, &MetricsConfigurationOption<T>), (With<MetricsConfigurationOption<T>>)>,
         with_parent_query: &Query<
-            (Entity, &Parent, &ConfigurationOption<T>),
-            (With<Parent>, With<ConfigurationOption<T>>)
+            (Entity, &Parent, &MetricsConfigurationOption<T>),
+            (With<Parent>, With<MetricsConfigurationOption<T>>)
         >,
         with_child_query: &Query<
-            (Entity, &Children, &ConfigurationOption<T>),
-            (With<Children>, With<ConfigurationOption<T>>)
+            (Entity, &Children, &MetricsConfigurationOption<T>),
+            (With<Children>, With<MetricsConfigurationOption<T>>)
         >
-    ) -> Option<EventDescriptor<DataType, ConfigurationOptionEvent<T>, ConfigurationOption<T>>> {
+    ) -> Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>> {
+        // Get all of the node entities
         // self_query.get(entity)
         //     .map(|entity_option| {
         //
         //     })
-        None
+        vec![]
     }
 }

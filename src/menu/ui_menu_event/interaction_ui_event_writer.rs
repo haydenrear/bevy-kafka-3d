@@ -26,7 +26,7 @@ impl RetrieveState<
 >
 for StateChangeActionTypeStateRetriever
 {
-    fn retrieve_state(
+    fn create_event(
         mut commands: &mut Commands,
         entity: Entity,
         entity_query: &Query<
@@ -41,7 +41,7 @@ for StateChangeActionTypeStateRetriever
             (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
             (With<UiComponent>, With<Children>, With<Style>)
         >
-    ) -> Option<EventDescriptor<StateChangeActionType, UiEventArgs, Style>> {
+    ) -> Vec<EventDescriptor<StateChangeActionType, UiEventArgs, Style>> {
 
         entity_query.get(entity.clone())
             .iter()
@@ -52,7 +52,8 @@ for StateChangeActionTypeStateRetriever
             .flat_map(|(entity, ui_component, style, updateable_value, state_change_action)|
                 Self::create_ui_event(&entity_query, &with_parent_query, &with_children_query, entity, style, updateable_value, &state_change_action)
             )
-            .next()
+            .collect::<Vec<EventDescriptor<StateChangeActionType, UiEventArgs, Style>>>()
+
     }
 }
 
