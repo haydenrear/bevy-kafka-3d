@@ -9,8 +9,11 @@ use crate::initialize_test_plugin::add_node_entities;
 use crate::metrics::{MetricsMetadataSubscription, MetricState, MetricsSubscription, update_metrics, publish_metrics};
 use crate::draw_network::{create_network, draw_network_initial, draw_node_connections, update_network};
 use menu::menu_event::UiEventPlugin;
+use crate::menu::menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::menu_event::network_component_event_reader::update_components_selected;
+// use crate::menu::menu_event::{StateChangeEventWriter, StateChangeWriter, UiComponent, UiEvent};
 use crate::menu::menu_resource::MenuResource;
+use crate::visualization::UiIdentifiableComponent;
 
 mod config;
 mod metrics;

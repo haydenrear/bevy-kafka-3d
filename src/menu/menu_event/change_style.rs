@@ -3,7 +3,7 @@ use std::sync::Arc;
 use bevy::log::info;
 use bevy::utils::HashMap;
 use bevy::prelude::{BackgroundColor, Component, Display, Entity, Size, Style, Val};
-use crate::menu::menu_event::{ChangePropagation, ClickStateChangeState, StyleNode, StartingState, UiComponentFilters, UiEvent};
+use crate::menu::menu_event::{ChangePropagation, ClickStateChangeState, StyleNode, StartingState, UiComponentFilters, UiEventArgs, Update};
 use crate::Node;
 
 /// Need to translate StyleChangeType to UiComponentFilters, and then pass the UiComponentFilters to
@@ -20,28 +20,26 @@ impl ChangeStyleTypes {
         false
     }
 
-    fn do_create_change_size_ui_event(update_display: HashMap<Entity, Size>, current_display: HashMap<Entity, Size>) -> Option<UiEvent> {
-        return Some(UiEvent::Event(ClickStateChangeState::ChangeSize {
+    fn do_create_change_size_ui_event(update_display: HashMap<Entity, Update<Size>>) -> Option<UiEventArgs> {
+        return Some(UiEventArgs::Event(ClickStateChangeState::ChangeSize {
             update_display,
-            current_display
         }));
     }
 
-    fn do_create_display_ui_event(update_display: HashMap<Entity, Display>, current_display: HashMap<Entity, Display>) -> Option<UiEvent> {
-        return Some(UiEvent::Event(ClickStateChangeState::ChangeDisplay {
+    fn do_create_display_ui_event(update_display: HashMap<Entity, Update<Display>>) -> Option<UiEventArgs> {
+        return Some(UiEventArgs::Event(ClickStateChangeState::ChangeDisplay {
             update_display,
-            current_display
         }));
     }
 
-    fn do_create_updates<T: Clone>(entities: &HashMap<Entity, StyleNode>,
+    fn do_create_updates<T: Clone + Debug + Default + Send + Sync>(entities: &HashMap<Entity, StyleNode>,
                                    component: &T,
-                                   get_component: &dyn Fn(&StyleNode) -> T) -> (HashMap<Entity, T>, HashMap<Entity, T>) {
+                                   get_component: &dyn Fn(&StyleNode) -> T) -> (HashMap<Entity, Update<T>>, HashMap<Entity, T>) {
         let update_display = entities.keys()
             .map(|entity| {
-                (entity.clone(), component.clone())
+                (entity.clone(), Update {update_to: Some(component.clone())})
             })
-            .collect::<HashMap<Entity, T>>();
+            .collect::<HashMap<Entity, Update<T>>>();
         let current_display = entities.iter()
             .map(|(entity, node)| {
                 (entity.clone(), get_component(node))
@@ -62,7 +60,7 @@ impl ChangeStyleTypes {
 }
 
 pub trait ChangeStyle<T, S>: Send + Sync + Debug + Clone {
-    fn do_create_ui_event(&self, update_display: HashMap<Entity, T>, current_display: HashMap<Entity, T>) -> Option<UiEvent>;
+    fn do_create_ui_event(&self, update_display: HashMap<Entity, T>, current_display: HashMap<Entity, T>) -> Option<UiEventArgs>;
     fn get_change(&self, value: &S) -> T;
     fn get_value(self, node: &StyleNode) -> T;
 }
@@ -89,29 +87,29 @@ macro_rules! gen_style_types {
         }
 
         impl ChangeStyleTypes {
-            pub(crate) fn do_change(&self, starting_state: &Style, entities: HashMap<Entity, StyleNode>) -> Option<UiEvent> {
+            pub(crate) fn do_change(&self, starting_state: &Style, entities: HashMap<Entity, StyleNode>) -> Option<UiEventArgs> {
                 info!("Creating UI event for {:?}.", &entities);
                 match self {
                     ChangeStyleTypes::RemoveVisible(_) => {
                         let values = Self::do_create_updates(&entities, &Display::None, &|node| node.get_style().display);
-                        Self::do_create_display_ui_event(values.0, values.1)
+                        Self::do_create_display_ui_event(values.0)
                     }
                     ChangeStyleTypes::AddVisible(_) => {
                         let values = Self::do_create_updates(&entities, &Display::Flex, &|node| node.get_style().display);
-                        Self::do_create_display_ui_event(values.0, values.1)
+                        Self::do_create_display_ui_event(values.0)
                     }
                     ChangeStyleTypes::ChangeVisible(_) => {
                         let display = Self::get_change_display(starting_state);
                         let values = Self::do_create_updates(&entities, &display, &|node| node.get_style().display);
                         info!("Found values: {:?} for changin visible.", values);
-                        Self::do_create_display_ui_event(values.0, values.1)
+                        Self::do_create_display_ui_event(values.0)
                     }
                     ChangeStyleTypes::ChangeSize { width_1,width_2, height_1,height_2, .. } => {
                         let size = Self::size(height_1, height_2, width_1, width_2, starting_state);
                         size.map(|new_size| {
                                 Self::do_create_updates(&entities, &new_size, &|node| node.get_style().size)
                             })
-                            .map(|created| Self::do_create_change_size_ui_event(created.0, created.1))
+                            .map(|created| Self::do_create_change_size_ui_event(created.0))
                             .flatten()
                             .or_else(|| {
                                 info!("Sizes did not match.");
@@ -122,7 +120,7 @@ macro_rules! gen_style_types {
                        ChangeStyleTypes::$name(value, _) => {
                            let changed = value.get_change(starting_state);
                            let values = Self::do_create_updates(&entities, &changed, &value.get_value);
-                           value.do_create_ui_event(values.0, values.1)
+                           value.do_create_ui_event(values.0)
                        }
                     )*
                 }

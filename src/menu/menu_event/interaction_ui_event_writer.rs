@@ -1,10 +1,89 @@
-use bevy::prelude::{Button, Changed, Commands, Entity, EventWriter, Interaction, Query, Style, With};
+use std::marker::PhantomData;
+use std::os::macos::raw::stat;
+use bevy::prelude::{Button, Changed, Commands, Entity, EventWriter, Interaction, Query, Resource, Style, With};
 use bevy::hierarchy::{Children, Parent};
 use bevy::utils::HashMap;
 use bevy::log::info;
 use bevy::ecs::query::QueryEntityError;
-use crate::menu::menu_event::{ChangePropagation, StartingState, StyleNode, UiComponent, UiEvent};
+use crate::menu::menu_event::{ChangePropagation, EventDescriptor, RetrieveState, StartingState, StateChangeActionType, StyleNode, UiComponent, UiEventArgs};
 use crate::visualization::UiIdentifiableComponent;
+
+#[derive(Default, Resource, Debug)]
+pub struct StateChangeActionTypeStateRetriever;
+
+impl RetrieveState<
+    UiEventArgs,
+    StateChangeActionType,
+    Style,
+    (Entity, &UiComponent, &Style, &UiIdentifiableComponent),
+    (Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style),
+    (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
+    (With<UiComponent>, With<Style>),
+    (With<UiComponent>, With<Parent>, With<Style>),
+    (With<UiComponent>, With<Children>, With<Style>),
+>
+for StateChangeActionTypeStateRetriever
+{
+    fn retrieve_state(
+        entity: Entity,
+        entity_query: &Query<(Entity, &UiComponent, &Style, &UiIdentifiableComponent), (With<UiComponent>, With<Style>)>,
+        with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
+        with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>
+    ) -> Option<EventDescriptor<StateChangeActionType, UiEventArgs, Style>> {
+        entity_query.get(entity.clone())
+            .iter()
+            .flat_map(|(_, ui_component, style, updateable_value)| {
+                ui_component.get_state_change_types().iter()
+                    .map(move |state_change_action|{
+                        (entity, ui_component, style, updateable_value, state_change_action)
+                    })
+            })
+            .flat_map(|(entity, ui_component, style, updateable_value, state_change_action)| {
+                info!("found state change action: {:?}", state_change_action);
+                let clicked = state_change_action.clicked.clone();
+
+                let style_change_types = clicked.propagation();
+                let mut entities = HashMap::new();
+
+                if style_change_types
+                    .filter(|propagation| propagation.includes_parent())
+                    .is_some() {
+
+                    parent_entities(&with_children_query, &with_parent_query, entity, &mut entities);
+                }
+
+                if style_change_types
+                    .filter(|any| any.includes_self())
+                    .is_some() {
+                    let node_style = StyleNode::SelfNode(style.clone().clone(), updateable_value.0);
+                    entities.insert(entity.clone(), node_style);
+                }
+
+                if style_change_types.iter()
+                    .any(|any| any.includes_children()) {
+                    child_entities(&entity_query, &with_children_query, entity, &mut entities)
+                }
+
+                if let Some(ChangePropagation::CustomPropagation {  to, from }) = style_change_types {
+                    custom_propagation_entities(&entity_query, &with_children_query, &with_parent_query, entity, style, updateable_value, &mut entities, to, from);
+
+                    info!("Custom propagation event with {:?}.", entities);
+                }
+
+                info!("propagation event with {:?}.", entities);
+                return clicked.get_ui_event(entities)
+                    .map(|args| {
+                        EventDescriptor {
+                            component: PhantomData::default(),
+                            description: state_change_action.clone(),
+                            event_args: args,
+                        }
+                    });
+            })
+            .next()
+    }
+}
+
 
 /// Some events can affect multiple UiComponents. Therefore, when an Interaction happens, that Interaction
 /// needs to be translated into a bunch of UiEvents. The UiEvents that are created will be based on
@@ -27,7 +106,7 @@ use crate::visualization::UiIdentifiableComponent;
 /// those events affect different components.
 pub fn write_ui_events(
     mut commands: Commands,
-    mut event_write: EventWriter<UiEvent>,
+    mut event_write: EventWriter<UiEventArgs>,
     entity_query: Query<(Entity, &UiComponent, &Style, &UiIdentifiableComponent), (With<UiComponent>, With<Style>)>,
     with_children_query: Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
     with_parent_query: Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
@@ -154,7 +233,14 @@ fn child_entities(entity_query: &Query<(Entity, &UiComponent, &Style, &UiIdentif
 fn custom_propagation_entities(
     entity_query: &Query<(Entity, &UiComponent, &Style, &UiIdentifiableComponent), (With<UiComponent>, With<Style>)>,
     with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
-    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>, entity: Entity, style: &Style, updateable_value: &UiIdentifiableComponent, mut entities: &mut HashMap<Entity, StyleNode>, to: &Vec<f32>, from: &StartingState) {
+    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
+    entity: Entity,
+    style: &Style,
+    updateable_value: &UiIdentifiableComponent,
+    mut entities: &mut HashMap<Entity, StyleNode>,
+    to: &Vec<f32>,
+    from: &StartingState
+) {
     if let StartingState::SelfState = from {
         entities.insert(entity.clone(), StyleNode::SelfNode(style.clone(), updateable_value.0));
     }
