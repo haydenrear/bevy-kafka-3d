@@ -8,10 +8,8 @@ use crate::camera::{camera_control, setup_camera, ZoomableDraggableCamera};
 use crate::initialize_test_plugin::add_node_entities;
 use crate::metrics::{MetricsMetadataSubscription, MetricState, MetricsSubscription, update_metrics, publish_metrics};
 use crate::draw_network::{create_network, draw_network_initial, draw_node_connections, update_network};
-use menu::menu_event::UiEventPlugin;
-use crate::menu::menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
-use crate::menu::menu_event::network_component_event_reader::update_components_selected;
-// use crate::menu::menu_event::{StateChangeEventWriter, StateChangeWriter, UiComponent, UiEvent};
+use menu::ui_menu_event::ui_menu_event_plugin::UiEventPlugin;
+use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::menu_resource::MenuResource;
 use crate::visualization::UiIdentifiableComponent;
 
@@ -24,6 +22,7 @@ mod camera;
 mod draw_network;
 mod visualization;
 mod menu;
+mod event;
 mod test;
 
 fn main() {
@@ -40,7 +39,6 @@ fn main() {
         .add_startup_system(setup_camera)
         .add_startup_system(add_node_entities)
         .add_system(update_network)
-        .add_system(update_components_selected::<network::Node>)
         .add_system(camera_control)
         .add_system(draw_node_connections)
         .add_system(create_network)

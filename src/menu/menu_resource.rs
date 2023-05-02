@@ -64,7 +64,8 @@ impl Default for MenuResource {
                                                             // variance
                                                             MenuOption {
                                                                 data_type: MenuOptionType::Primitive(
-                                                                    ConfigurationOptionEnum::NetworkVariance(ConfigurationOption::Variance(
+                                                                    ConfigurationOptionEnum::NetworkVariance(
+                                                                        ConfigurationOption::Variance(
                                                                         PhantomData::<Network>::default(),
                                                                         DataType::Selected
                                                                     ))),

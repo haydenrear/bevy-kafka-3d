@@ -81,11 +81,11 @@ impl Default for MetricsSubscription {
     }
 }
 
-#[derive(Default, Resource)]
+#[derive(Default, Resource, Clone, Debug)]
 pub struct MetricsMetadataSubscription {
 }
 
-#[derive(Default, Component)]
+#[derive(Default, Component, Clone, Debug)]
 pub struct MetricChildNodes {
     nodes: Vec<Entity>
 }

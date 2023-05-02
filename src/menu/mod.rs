@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::marker::PhantomData;
 use bevy::ecs::component::TableStorage;
 use bevy::prelude::{Color, Component, Entity};
@@ -7,7 +8,8 @@ use bevy_mod_picking::Selection;
 use crate::metrics::{Metric, MetricChildNodes};
 use crate::network::{Layer, Network, Node};
 
-pub(crate) mod menu_event;
+pub(crate) mod ui_menu_event;
+pub(crate) mod config_menu_event;
 pub(crate) mod menu_resource;
 
 pub struct MenuData {
@@ -89,32 +91,31 @@ pub enum MenuInputType {
 /// Query by the T in ConfigurationOption, and then query by the T component in order to apply
 /// the configuration option
 #[derive(Component, Debug, Clone)]
-pub enum ConfigurationOption<T: Component + Send + Sync + 'static> {
+pub enum ConfigurationOption<T: Component + Send + Sync + Clone + Debug + Default + 'static> {
     Variance(PhantomData<T>, DataType),
     Concavity(PhantomData<T>, DataType),
     Metrics(PhantomData<T>, DataType),
     Menu(PhantomData<T>, DataType)
 }
 
-
 /// When you select an option, there are a few things to keep in mind:
 /// 1. When you select an option it may deselect other options. Or it may not.
 /// This means that when an option is selected, there needs to be a way to query all of the other options
 /// that exist in order to modify or delete them.
 #[derive(Component, Clone, Debug)]
-pub struct ConfigurationOptionComponent<T: Component + Send + Sync + 'static> {
+pub struct ConfigurationOptionComponent<T: Component + Send + Sync + Clone + Debug + Default + 'static> {
     phantom: PhantomData<T>,
     configuration_option: ConfigurationOption<T>,
     value: DataType,
 }
 
-impl <T: Component + Send + Sync + 'static> Default for ConfigurationOption<T> {
+impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> Default for ConfigurationOption<T> {
     fn default() -> Self {
         ConfigurationOption::Variance(PhantomData::default(), DataType::Number(Some(0.0)))
     }
 }
 
-pub trait AcceptConfigurationOption<T> where Self: Component {
+pub trait AcceptConfigurationOption<T> where Self: Component + Clone + Default + Debug {
     fn accept_configuration_option(value: ConfigurationOption<Self>, args: T)
     where Self: Sized;
 }
@@ -138,10 +139,10 @@ pub struct MenuOption {
     pub(crate) metadata: MenuItemMetadata
 }
 
-#[derive(Clone, Debug, Component)]
+#[derive(Clone, Debug, Component, Default)]
 pub struct Menu;
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, Component)]
 pub enum ConfigurationOptionEnum {
     Menu(ConfigurationOption<Menu>),
     Metrics(ConfigurationOption<Metric>),
@@ -154,6 +155,12 @@ pub enum ConfigurationOptionEnum {
     NodeMetrics(ConfigurationOption<Node>),
     NodeVariance(ConfigurationOption<Node>),
     NodeConcavity(ConfigurationOption<Node>)
+}
+
+impl Default for ConfigurationOptionEnum {
+    fn default() -> Self {
+        ConfigurationOptionEnum::Menu(ConfigurationOption::Menu(PhantomData::default(), DataType::Selected))
+    }
 }
 
 

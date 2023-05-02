@@ -1,11 +1,12 @@
+use std::fmt::Debug;
 use bevy::prelude::*;
 use crate::menu::ConfigurationOptionComponent;
-use crate::menu::menu_event::ConfigurationOptionEvent;
+use crate::menu::config_menu_event::config_event::ConfigurationOptionEvent;
 use crate::network::Node;
 
 /// When an interaction happens with a ConfigurationOptionComponent, then the following happens
 /// 1.
-pub fn write_config_events<T: Component>(
+pub fn write_config_events<T: Component + Clone + Default + Debug>(
     mut commands: Commands,
     mut event_write: EventWriter<ConfigurationOptionEvent<T>>,
     entity_query: Query<(Entity, &Style), (With<ConfigurationOptionComponent<Node>>)>,

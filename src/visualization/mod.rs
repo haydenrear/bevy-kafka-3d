@@ -8,11 +8,13 @@ use bevy::render::render_resource::Face::Back;
 use bevy::sprite::MaterialMesh2dBundle;
 use bevy::utils::HashMap;
 use bevy_mod_picking::{HoverEvent, PickableBundle, PickableMesh, PickingEvent, SelectionEvent};
+use crate::event::event_state::{HoverStateChange, StateChange};
 use crate::menu::{CollapsableMenu, ConfigurationOption, ConfigurationOptionEnum, DataType, Dropdown, DropdownOption, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionType};
-use crate::menu::menu_event::{ChangePropagation, StateChange, HoverStateChange, StartingState, StateChangeActionType, UiComponent, UiComponentFilters};
-use crate::menu::menu_event::change_style::ChangeStyleTypes;
-use crate::menu::menu_event::StateChange::ChangeComponentStyle;
-use crate::menu::menu_event::UiComponent::CollapsableMenuComponent;
+use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
+use crate::event::event_propagation::{ChangePropagation, StartingState};
+use crate::event::event_state::StateChange::ChangeComponentStyle;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, UiComponent, UiComponentFilters};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponent::CollapsableMenuComponent;
 use crate::menu::menu_resource::MenuResource;
 use crate::metrics::MetricType;
 

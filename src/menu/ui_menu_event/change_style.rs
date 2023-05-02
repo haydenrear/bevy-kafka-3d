@@ -1,9 +1,12 @@
-use std::fmt::Debug;
+use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use bevy::log::info;
 use bevy::utils::HashMap;
 use bevy::prelude::{BackgroundColor, Component, Display, Entity, Size, Style, Val};
-use crate::menu::menu_event::{ChangePropagation, ClickStateChangeState, StyleNode, StartingState, UiComponentFilters, UiEventArgs, Update};
+use crate::event::event_state::Update;
+use crate::event::event_propagation::{ChangePropagation, StartingState};
+use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentFilters, UiEventArgs};
 use crate::Node;
 
 /// Need to translate StyleChangeType to UiComponentFilters, and then pass the UiComponentFilters to
@@ -21,13 +24,13 @@ impl ChangeStyleTypes {
     }
 
     fn do_create_change_size_ui_event(update_display: HashMap<Entity, Update<Size>>) -> Option<UiEventArgs> {
-        return Some(UiEventArgs::Event(ClickStateChangeState::ChangeSize {
+        return Some(UiEventArgs::Event(UiClickStateChange::ChangeSize {
             update_display,
         }));
     }
 
     fn do_create_display_ui_event(update_display: HashMap<Entity, Update<Display>>) -> Option<UiEventArgs> {
-        return Some(UiEventArgs::Event(ClickStateChangeState::ChangeDisplay {
+        return Some(UiEventArgs::Event(UiClickStateChange::ChangeDisplay {
             update_display,
         }));
     }
@@ -226,7 +229,7 @@ impl ChangeStyleTypes {
             StartingState::Other(val) => {
                 entities.iter()
                     .filter(|(entity, node_val)| {
-                        node_val.id() == val
+                        node_val.id() == *val
                     })
                     .map(|(entity, val)| {
                         val.get_style()
@@ -300,4 +303,72 @@ impl ChangeStyleTypes {
             .unwrap()
     }
 
+}
+
+/// May consider adding a flag to signify that the state of that node should be the one to determine
+/// the state of the others. For instance, if switching from visible to invisible, which node determines?
+/// So you can use a flag here.
+#[derive(Clone)]
+pub enum StyleNode {
+    Child(Style, f32),
+    SelfNode(Style, f32),
+    Parent(Style, f32),
+    Other(Style, f32)
+}
+
+impl Debug for StyleNode {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        f.write_str("Node enum: ");
+        match self {
+            StyleNode::Child(_, _) => {
+                f.write_str(" Child ");
+            }
+            StyleNode::SelfNode(_, _) => {
+                f.write_str(" Self ");
+            }
+            StyleNode::Parent(_, _) => {
+                f.write_str(" Parent ");
+            }
+            StyleNode::Other(_, _) => {
+                f.write_str(" Other ");
+            }
+        }
+        f.write_str(self.id().to_string().as_str())
+    }
+}
+
+impl StyleNode {
+    pub(crate) fn id(&self) -> f32 {
+        match self {
+            StyleNode::Child(_, id) => {
+                *id
+            }
+            StyleNode::SelfNode(_, id) => {
+                *id
+            }
+            StyleNode::Parent(_, id) => {
+                *id
+            }
+            StyleNode::Other(_, id) => {
+                *id
+            }
+        }
+    }
+
+    pub(crate) fn get_style(&self) -> Style {
+        match self {
+            StyleNode::Child(style, _) => {
+                style.clone()
+            }
+            StyleNode::SelfNode(style, id) => {
+                style.clone()
+            }
+            StyleNode::Parent(style, id) => {
+                style.clone()
+            }
+            StyleNode::Other(style, _) => {
+                style.clone()
+            }
+        }
+    }
 }

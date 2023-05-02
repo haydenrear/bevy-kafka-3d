@@ -1,5 +1,6 @@
 use bevy::prelude::*;
-use crate::menu::menu_event::{ConfigurationOptionEvent, UiComponent, UiEventArgs};
+use crate::menu::config_menu_event::config_event::ConfigurationOptionEvent;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponent, UiEventArgs};
 use crate::network::Node;
 
 fn read_configuration_event(

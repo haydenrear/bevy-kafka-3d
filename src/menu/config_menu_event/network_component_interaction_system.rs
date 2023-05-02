@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_mod_picking::{PickingEvent, SelectionEvent};
-use crate::menu::menu_event::UiComponent;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponent;
 use crate::network::{HasMetrics, Node};
 
 /// When Layer, Network, Node components selected, remove menu component and show new menu
@@ -34,3 +34,4 @@ pub(crate) fn update_components_selected<T: HasMetrics + Component>(
         }
     }
 }
+
