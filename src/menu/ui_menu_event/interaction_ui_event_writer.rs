@@ -10,7 +10,7 @@ use crate::event::event_propagation::{ChangePropagation, StartingState};
 use crate::event::event_actions::RetrieveState;
 use crate::menu::ui_menu_event::change_style::StyleNode;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, UiComponent, UiEventArgs};
-use crate::visualization::UiIdentifiableComponent;
+use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 #[derive(Default, Resource, Debug)]
 pub struct StateChangeActionTypeStateRetriever;

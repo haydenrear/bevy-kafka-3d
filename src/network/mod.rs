@@ -73,7 +73,8 @@ pub enum LayerType {
 /// Based on the different type of network, different display.
 impl LayerType {
     pub(crate) fn create_mesh(
-        &self, layer: &Layer,
+        &self,
+        layer: &Layer,
         mut meshes: &mut ResMut<Assets<Mesh>>,
         mut materials: &mut ResMut<Assets<ColorMaterial>>
     ) -> MaterialMesh2dBundle<ColorMaterial> {

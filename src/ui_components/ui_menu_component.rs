@@ -1,22 +1,17 @@
-use std::marker::PhantomData;
-use bevy::a11y::accesskit::NodeBuilder;
-use bevy::ecs::system::{EntityCommand, EntityCommands};
-use bevy::prelude::*;
-use bevy::prelude::shape::Quad;
-use bevy::prelude::Visibility::{Hidden, Visible};
-use bevy::render::render_resource::Face::Back;
-use bevy::sprite::MaterialMesh2dBundle;
-use bevy::utils::HashMap;
-use bevy_mod_picking::{HoverEvent, PickableBundle, PickableMesh, PickingEvent, SelectionEvent};
-use crate::event::event_state::{HoverStateChange, StateChange};
-use crate::menu::{CollapsableMenu, MetricsConfigurationOption, ConfigurationOptionEnum, DataType, Dropdown, DropdownOption, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionType};
-use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
+use bevy::prelude::{AlignSelf, BackgroundColor, ButtonBundle, Color, ColorMaterial, Commands, Component, default, Display, Entity, FlexDirection, JustifyContent, Label, Mesh, NodeBundle, Res, ResMut, Size, Style, Text, TextBundle, TextStyle, UiRect, Val};
+use bevy::asset::{Assets, AssetServer};
+use bevy::log::info;
+use bevy::hierarchy::BuildChildren;
 use crate::event::event_propagation::{ChangePropagation, StartingState};
+use crate::event::event_state::HoverStateChange;
 use crate::event::event_state::StateChange::ChangeComponentStyle;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, UiComponent, UiComponentFilters};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponent::CollapsableMenuComponent;
+use crate::menu::{CollapsableMenu, ConfigurationOptionEnum, Dropdown, DropdownOption, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionType};
 use crate::menu::menu_resource::MenuResource;
-use crate::metrics::MetricType;
+use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, UiComponent};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponent::CollapsableMenuComponent;
+use crate::ui_components::ui_menu_component;
+use bevy::ecs::system::EntityCommands;
 
 #[derive(Component, Debug, Clone)]
 pub struct UiIdentifiableComponent(pub f32);
@@ -110,7 +105,9 @@ fn collapsable_menu(
                         width_2: 4.0,
                         filters: None
                     },
-                    ChangePropagation::SelfChange(StartingState::SelfState)
+                    ChangePropagation::SelfChange(
+                        StartingState::SelfState
+                    )
                 ),
             },
         ]),
@@ -135,7 +132,7 @@ fn collapsable_menu(
             );
         });
 
-    insert_config_option(option, entity_commands);
+    ui_menu_component::insert_config_option(option, entity_commands);
 
     let entity = entity_commands.id().clone();
 
@@ -273,6 +270,9 @@ fn draw_dropdown(
 
 }
 
+
+/// For the change, it depends on some previous state, and obtaining this state is difficult across
+/// the entire tree.
 fn draw_dropdown_components(
     commands: &mut Commands,
     mut asset_server: &Res<AssetServer>,
@@ -317,14 +317,18 @@ fn draw_dropdown_components(
                         hover: HoverStateChange::None,
                         clicked: ChangeComponentStyle(
                             ChangeStyleTypes::ChangeVisible(None),
-                            ChangePropagation::Children(StartingState::Child),
+                            ChangePropagation::Children(
+                                StartingState::Child
+                            ),
                         ),
                     },
                     StateChangeActionType {
                         hover: HoverStateChange::None,
                         clicked: ChangeComponentStyle(
                             ChangeStyleTypes::RemoveVisible(None),
-                            ChangePropagation::SiblingsChildren(StartingState::SiblingChild),
+                            ChangePropagation::SiblingsChildren(
+                                StartingState::SiblingChild
+                            ),
                         ),
                     }
                 ],

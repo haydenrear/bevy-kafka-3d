@@ -19,7 +19,7 @@ use crate::network::{Layer, LayerType, Network, NetworkId, Node};
 pub const NODE_RADIUS: f32 = 30.0;
 pub const LAYER_SPACING: f32 = 200.0;
 pub const NODE_SPACING: f32 = 70.0;
-pub const CONNECTION_THICKNESS: f32 = 2.0;
+pub const CONNECTION_THICKNESS: f32 = 1.0;
 
 /// Network created to have ability to inspect Layers to determine how to draw.
 /// 1. Add network
@@ -133,7 +133,7 @@ pub(crate) fn draw_node_connections(
                                 path: line,
                                 ..default()
                             }, Fill::color(Color::BLACK),
-                            Stroke::new(Color::BLACK, 1.)
+                            Stroke::new(Color::BLACK, CONNECTION_THICKNESS)
                         ));
 
                     line.id()

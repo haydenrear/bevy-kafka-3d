@@ -161,7 +161,77 @@ macro_rules! gen_style_types {
     }
 }
 
-gen_style_types!();
+// gen_style_types!();
+
+#[derive(Clone, Debug)]
+pub enum ChangeStyleTypes {
+    RemoveVisible(Option<UiComponentFilters>),
+    AddVisible(Option<UiComponentFilters>),
+    ChangeVisible(Option<UiComponentFilters>),
+    ChangeSize {
+        height_1: f32,
+        height_2: f32,
+        width_1: f32,
+        width_2: f32,
+        filters: Option<UiComponentFilters>
+    },
+}
+
+impl ChangeStyleTypes {
+    pub(crate) fn do_change(&self, starting_state: &Style, entities: HashMap<Entity, StyleNode>) -> Option<UiEventArgs> {
+        info!("Creating UI event for {:?}.", &entities);
+        match self {
+            ChangeStyleTypes::RemoveVisible(_) => {
+                let values = Self::do_create_updates(&entities, &Display::None, &|node| node.get_style().display);
+                Self::do_create_display_ui_event(values.0)
+            }
+            ChangeStyleTypes::AddVisible(_) => {
+                let values = Self::do_create_updates(&entities, &Display::Flex, &|node| node.get_style().display);
+                Self::do_create_display_ui_event(values.0)
+            }
+            ChangeStyleTypes::ChangeVisible(_) => {
+                let display = Self::get_change_display(starting_state);
+                let values = Self::do_create_updates(&entities, &display, &|node| node.get_style().display);
+                info!("Found values: {:?} for changin visible.", values);
+                Self::do_create_display_ui_event(values.0)
+            }
+            ChangeStyleTypes::ChangeSize { width_1,width_2, height_1,height_2, .. } => {
+                let size = Self::size(height_1, height_2, width_1, width_2, starting_state);
+                size.map(|new_size| {
+                    Self::do_create_updates(&entities, &new_size, &|node| node.get_style().size)
+                })
+                    .map(|created| Self::do_create_change_size_ui_event(created.0))
+                    .flatten()
+                    .or_else(|| {
+                        info!("Sizes did not match.");
+                        None
+                    })
+            }
+        }
+    }
+
+
+    pub(crate) fn filter_entities(&self,
+                                  entities: HashMap<Entity, StyleNode>
+    ) ->  HashMap<Entity, StyleNode> {
+        match self {
+            ChangeStyleTypes::RemoveVisible(remove_visible) => {
+                Self::get_filter(entities, remove_visible)
+            }
+            ChangeStyleTypes::AddVisible(add_visible) => {
+                Self::get_filter(entities, add_visible)
+            }
+            ChangeStyleTypes::ChangeVisible(change_visible) => {
+                Self::get_filter(entities, change_visible)
+            }
+            ChangeStyleTypes::ChangeSize { filters, .. } => {
+                Self::get_filter(entities, filters)
+            }
+            _ => { entities }
+        }
+    }
+
+}
 
 impl ChangeStyleTypes {
 

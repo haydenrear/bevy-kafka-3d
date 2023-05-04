@@ -10,7 +10,7 @@ use crate::menu::{CollapsableMenu, Dropdown, DropdownOption, ui_menu_event};
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::ui_menu_event::ui_state_change;
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
-use crate::visualization::{create_dropdown, UiIdentifiableComponent};
+use crate::ui_components::ui_menu_component::{create_dropdown, UiIdentifiableComponent};
 
 pub struct UiEventPlugin;
 

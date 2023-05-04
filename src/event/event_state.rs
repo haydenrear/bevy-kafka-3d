@@ -45,6 +45,9 @@ pub enum HoverStateChange {
     None,
 }
 
+pub trait Context {
+}
+
 #[derive(Clone, Debug)]
 pub enum StateChange {
     ChangeComponentColor(Color, ChangePropagation),

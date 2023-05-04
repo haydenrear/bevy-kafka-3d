@@ -11,7 +11,6 @@ use crate::draw_network::{create_network, draw_network_initial, draw_node_connec
 use menu::ui_menu_event::ui_menu_event_plugin::UiEventPlugin;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::menu_resource::MenuResource;
-use crate::visualization::UiIdentifiableComponent;
 
 mod config;
 mod metrics;
@@ -20,7 +19,7 @@ mod network_state;
 mod initialize_test_plugin;
 mod camera;
 mod draw_network;
-mod visualization;
+mod ui_components;
 mod menu;
 mod event;
 mod test;
