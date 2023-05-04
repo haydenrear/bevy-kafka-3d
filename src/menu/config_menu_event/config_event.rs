@@ -1,9 +1,9 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use bevy::prelude::{Commands, Component, Entity, Resource};
+use bevy::prelude::{Commands, Component, Entity, ResMut, Resource};
 use bevy::utils::HashMap;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
-use crate::event::event_state::{NextStateChange, StateChangeFactory, Update, UpdateStateInPlace};
+use crate::event::event_state::{Context, NextStateChange, StateChangeFactory, Update, UpdateStateInPlace};
 use crate::menu::{MetricsConfigurationOption, ConfigurationOptionEnum, DataType};
 use crate::network::{Layer, Node};
 
@@ -59,11 +59,15 @@ pub enum NextConfigurationOptionState<T: Component + Send + Sync + 'static + Clo
     Default
 }
 
-impl <T: Component + Send + Sync + 'static + Clone + Debug + Default> UpdateStateInPlace<MetricsConfigurationOption<T>>
-for NextConfigurationOptionState<T> {
-    fn update_state(&self, commands: &mut Commands, value: &mut MetricsConfigurationOption<T>) {
+impl <T, Ctx> UpdateStateInPlace<MetricsConfigurationOption<T>, Ctx>
+for NextConfigurationOptionState<T>
+where
+    T : Component + Send + Sync + 'static + Clone + Debug + Default,
+    Ctx: Context
+{
+    fn update_state(&self, commands: &mut Commands, value: &mut MetricsConfigurationOption<T>, ctx: &mut Option<ResMut<Ctx>>) {
         if let NextConfigurationOptionState::UpdateConcavity(node) = self {
-            node.update_state(commands, value);
+            node.update_state(commands, value, ctx);
         }
     }
 }
@@ -71,14 +75,19 @@ for NextConfigurationOptionState<T> {
 #[derive(Resource, Default, Clone)]
 pub struct ConfigEventStateFactory;
 
+#[derive(Resource, Default, Clone)]
+pub struct ConfigCtx;
+
+impl Context for ConfigCtx {}
+
 impl <T: Component + Send + Sync + Clone + Default + Debug + 'static>
 StateChangeFactory<
     DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>,
-    MetricsConfigurationOption<T>, NextConfigurationOptionState<T>
+    MetricsConfigurationOption<T>, ConfigCtx, NextConfigurationOptionState<T>
 >
 for ConfigEventStateFactory {
     fn current_state(current: &EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>)
-        -> Vec<NextStateChange<NextConfigurationOptionState<T>, MetricsConfigurationOption<T>>>
+        -> Vec<NextStateChange<NextConfigurationOptionState<T>, MetricsConfigurationOption<T>, ConfigCtx>>
     {
         if let ConfigurationOptionEventArgs::Event(
             config,
@@ -89,7 +98,8 @@ for ConfigEventStateFactory {
                 .map(|config| NextStateChange {
                     entity: entity.clone(),
                     next_state: config,
-                    phantom: PhantomData::default()
+                    phantom: PhantomData::default(),
+                    phantom_ctx: Default::default(),
                 })
                 .collect();
         }

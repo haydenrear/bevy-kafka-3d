@@ -5,7 +5,7 @@ use std::fmt::{Debug, Formatter};
 use bevy::time::TimerMode;
 use crate::event::event_actions::{InteractionEventReader, StateChangeEventReader};
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
-use crate::event::event_state::{HoverStateChange, NextStateChange, StateChange, StateChangeFactory, Update, UpdateStateInPlace};
+use crate::event::event_state::{Context, HoverStateChange, NextStateChange, StateChange, StateChangeFactory, Update, UpdateStateInPlace};
 use crate::menu::{CollapsableMenu, Dropdown, DropdownOption, ui_menu_event};
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::ui_menu_event::ui_state_change;
@@ -39,7 +39,7 @@ impl Plugin for UiEventPlugin {
             .add_system(<StateChangeEventReader as InteractionEventReader<
                 StateChangeActionType, UiEventArgs, Style, Style,
                 StateChangeActionComponentStateFactory,
-                NextUiState, (With<UiComponent>)
+                NextUiState, StyleContext, (With<UiComponent>)
             >>::read_events)
             .add_system(ui_state_change::hover_event)
             .add_event::<UiEventArgs>()
@@ -50,9 +50,9 @@ impl Plugin for UiEventPlugin {
 #[derive(Resource, Default, Clone)]
 pub struct StateChangeActionComponentStateFactory;
 
-impl StateChangeFactory<StateChangeActionType, UiEventArgs, Style, Style, NextUiState>
+impl StateChangeFactory<StateChangeActionType, UiEventArgs, Style, Style, StyleContext, NextUiState>
 for StateChangeActionComponentStateFactory {
-    fn current_state(current: &EventDescriptor<StateChangeActionType, UiEventArgs, Style>) -> Vec<NextStateChange<NextUiState, Style>> {
+    fn current_state(current: &EventDescriptor<StateChangeActionType, UiEventArgs, Style>) -> Vec<NextStateChange<NextUiState, Style, StyleContext>> {
         if let UiEventArgs::Event(UiClickStateChange::ChangeSize { update_display}) = &current.event_args {
             return update_display.iter()
                 .map(|(entity, size)| {
@@ -60,6 +60,7 @@ for StateChangeActionComponentStateFactory {
                         entity: entity.clone(),
                         next_state: NextUiState::ReplaceSize(size.clone()),
                         phantom: Default::default(),
+                        phantom_ctx: Default::default(),
                     }
                 })
                 .collect();
@@ -70,6 +71,7 @@ for StateChangeActionComponentStateFactory {
                         entity: entity.clone(),
                         next_state: NextUiState::ReplaceDisplay(size.clone()),
                         phantom: Default::default(),
+                        phantom_ctx: Default::default(),
                     }
                 })
                 .collect();
@@ -83,12 +85,20 @@ pub enum NextUiState {
     ReplaceDisplay(Update<Display>),
 }
 
-impl UpdateStateInPlace<Style> for NextUiState {
-    fn update_state(&self, commands: &mut Commands,  value: &mut Style) {
+#[derive(Resource, Default, Clone)]
+pub struct StyleContext {
+}
+
+impl Context for StyleContext {
+
+}
+
+impl UpdateStateInPlace<Style, StyleContext> for NextUiState {
+    fn update_state(&self, commands: &mut Commands,  value: &mut Style, style_context: &mut Option<ResMut<StyleContext>>) {
         if let NextUiState::ReplaceSize(update) = &self {
-            update.update_state(commands, &mut value.size);
+            update.update_state(commands, &mut value.size, style_context);
         } else if let NextUiState::ReplaceDisplay(display) = &self {
-            display.update_state(commands, &mut value.display);
+            display.update_state(commands, &mut value.display, style_context);
         }
     }
 }
@@ -117,8 +127,8 @@ pub struct ChangeComponentColorUpdate {
     new_color: Color
 }
 
-impl UpdateStateInPlace<BackgroundColor> for ChangeComponentColorUpdate {
-    fn update_state(&self, commands: &mut Commands, value: &mut BackgroundColor) {
+impl UpdateStateInPlace<BackgroundColor, StyleContext> for ChangeComponentColorUpdate {
+    fn update_state(&self, commands: &mut Commands, value: &mut BackgroundColor, ctx: &mut Option<ResMut<StyleContext>>) {
         value.0 = self.new_color;
     }
 }

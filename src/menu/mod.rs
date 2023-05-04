@@ -1,11 +1,11 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use bevy::ecs::component::TableStorage;
-use bevy::prelude::{Color, Commands, Component, Entity};
+use bevy::prelude::{Color, Commands, Component, Entity, ResMut};
 use bevy::ui::{Size, Val};
 use bevy::utils::petgraph::visit::Data;
 use bevy_mod_picking::Selection;
-use crate::event::event_state::UpdateStateInPlace;
+use crate::event::event_state::{Context, UpdateStateInPlace};
 use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
 use crate::menu::menu_resource::{MENU, VARIANCE};
 use crate::metrics::{Metric, MetricChildNodes};
@@ -101,11 +101,12 @@ pub enum MetricsConfigurationOption<T: Component + Send + Sync + Clone + Debug +
     Menu(PhantomData<T>, DataType, &'static str)
 }
 
-impl <T> UpdateStateInPlace<MetricsConfigurationOption<T>>
+impl <T, Ctx> UpdateStateInPlace<MetricsConfigurationOption<T>, Ctx>
 for MetricsConfigurationOption<T>
-where T: Component + Send + Sync + Clone + Debug + Default + 'static
+where T: Component + Send + Sync + Clone + Debug + Default + 'static,
+    Ctx: Context
 {
-    fn update_state(&self,commands: &mut Commands, value: &mut MetricsConfigurationOption<T>) {
+    fn update_state(&self,commands: &mut Commands, value: &mut MetricsConfigurationOption<T>, ctx: &mut Option<ResMut<Ctx>>) {
         *value = self.clone()
     }
 }
