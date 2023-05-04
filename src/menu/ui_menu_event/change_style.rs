@@ -63,7 +63,10 @@ impl ChangeStyleTypes {
 }
 
 pub trait ChangeStyle<T, S>: Send + Sync + Debug + Clone {
-    fn do_create_ui_event(&self, update_display: HashMap<Entity, T>, current_display: HashMap<Entity, T>) -> Option<UiEventArgs>;
+    fn do_create_ui_event(&self,
+                          update_display: HashMap<Entity, T>,
+                          current_display: HashMap<Entity, T>
+    ) -> Option<UiEventArgs>;
     fn get_change(&self, value: &S) -> T;
     fn get_value(self, node: &StyleNode) -> T;
 }

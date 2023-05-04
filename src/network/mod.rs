@@ -76,8 +76,9 @@ impl LayerType {
         &self,
         layer: &Layer,
         mut meshes: &mut ResMut<Assets<Mesh>>,
-        mut materials: &mut ResMut<Assets<ColorMaterial>>
-    ) -> MaterialMesh2dBundle<ColorMaterial> {
+        mut materials: &mut ResMut<Assets<StandardMaterial>>,
+        color: &Res<ClearColor>
+    ) -> PbrBundle {
         // match self {
         //     LayerType::TFormer => {}
         //     LayerType::FullyConnected => {
@@ -85,10 +86,18 @@ impl LayerType {
         //     }
         //     LayerType::Normalization => {}
         // }
-        MaterialMesh2dBundle {
-            mesh: meshes.add(Mesh::from(Quad::new(Vec2::new(NODE_RADIUS + 20.0, NODE_RADIUS * 2.0 * layer.nodes.len() as f32 + 100.0)))).into(),
-            transform: Transform::from_xyz(layer.layer_depth as f32 * LAYER_SPACING, 0.0, 0.0),
-            material: materials.add(ColorMaterial::from(Color::BEIGE)),
+        let y_length = NODE_RADIUS * 2.0 * layer.nodes.len() as f32 + NODE_SPACING * (layer.nodes.len() - 1) as f32;
+        let mut standard_material = StandardMaterial::from(color.0);
+        let materials = materials.add(standard_material).into();
+
+        PbrBundle {
+            mesh: meshes.add(Mesh::from(shape::Box::new(
+                NODE_RADIUS + 20.0,
+                y_length,
+                0.0
+            ))).into(),
+            transform: Transform::from_xyz(layer.layer_depth as f32 * LAYER_SPACING, 0.0, -1.0),
+            material: materials,
             ..default()
         }
     }
@@ -97,12 +106,19 @@ impl LayerType {
         &self,
         y: f32,
         mut meshes: &mut ResMut<Assets<Mesh>>,
-        mut materials: &mut ResMut<Assets<ColorMaterial>>
-    ) -> MaterialMesh2dBundle<ColorMaterial> {
-        MaterialMesh2dBundle {
-            mesh: meshes.add(shape::Circle::new(30.).into()).into(),
-            material: materials.add(ColorMaterial::from(Color::PURPLE)),
-            transform: Transform::from_xyz(0.0, y, 1.0),
+        mut materials: &mut ResMut<Assets<StandardMaterial>>
+    ) -> PbrBundle {
+        let mut material = StandardMaterial::from(Color::GREEN);
+        material.base_color = Color::GREEN;
+        material.emissive = Color::GREEN;
+        PbrBundle {
+            mesh: meshes.add(shape::UVSphere{
+                radius: NODE_RADIUS,
+                sectors: 20,
+                stacks:  20,
+            }.into()),
+            material: materials.add(material),
+            transform: Transform::from_xyz(0.0, y, 0.0),
             ..default()
         }
     }

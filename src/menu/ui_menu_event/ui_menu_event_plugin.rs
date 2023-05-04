@@ -19,7 +19,7 @@ impl Plugin for UiEventPlugin {
         app
             .add_startup_system(create_dropdown)
             .insert_resource(StateChangeActionTypeStateRetriever::default())
-            .add_system(crate::event::event_actions::write_events::<
+            .add_system(crate::event::event_actions::click_write_events::<
                 StateChangeActionTypeStateRetriever, UiEventArgs, StateChangeActionType, Style,
                 // self query
                 (Entity, &UiComponent, &Style, &UiIdentifiableComponent),

@@ -1,5 +1,6 @@
+use std::intrinsics::{caller_location, fabsf32, powf32, sqrtf32};
 use std::marker::PhantomData;
-use bevy::prelude::{BuildChildren, Changed, Children, Color, ColorMaterial, Commands, default, Entity, GlobalTransform, Mesh, Parent, Query, ResMut, shape, SpriteBundle, Transform, Without};
+use bevy::prelude::{BuildChildren, Changed, Children, ClearColor, Color, ColorMaterial, Commands, default, Entity, GlobalTransform, Mesh, Parent, PbrBundle, Query, Res, ResMut, shape, SpriteBundle, StandardMaterial, Transform, Without};
 use bevy::asset::Assets;
 use bevy::utils::{HashMap, Uuid};
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
@@ -7,19 +8,25 @@ use bevy_mod_picking::PickableBundle;
 use bevy::log::{error, info};
 use bevy_prototype_lyon::geometry::GeometryBuilder;
 use bevy_prototype_lyon::shapes;
-use bevy::math::Vec2;
+use bevy::math::{Quat, Vec2, Vec3};
+use bevy::pbr::{MaterialMeshBundle, PointLightBundle};
 use bevy::prelude::shape::Quad;
+use bevy::render::mesh::PrimitiveTopology;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::draw::{Fill, Stroke};
+use bevy_prototype_lyon::path::PathBuilder;
+use bevy_prototype_lyon::prelude::{FillOptions, Path};
+use bevy_prototype_lyon::prelude::tess::{BuffersBuilder, FillTessellator, FillVertex, VertexBuffers};
+use crate::lines::{create_3d_line, LineList, LineMaterial};
 use crate::menu::{DataType, MetricsConfigurationOption};
 use crate::menu::menu_resource::VARIANCE;
 use crate::metrics::MetricState;
 use crate::network::{Layer, LayerType, Network, NetworkId, Node};
 
-pub const NODE_RADIUS: f32 = 30.0;
+pub const NODE_RADIUS: f32 = 5.0;
 pub const LAYER_SPACING: f32 = 200.0;
 pub const NODE_SPACING: f32 = 70.0;
-pub const CONNECTION_THICKNESS: f32 = 1.0;
+pub const CONNECTION_THICKNESS: f32 = 20.0;
 
 /// Network created to have ability to inspect Layers to determine how to draw.
 /// 1. Add network
@@ -66,35 +73,40 @@ pub(crate) fn create_network(
 /// Draws fully connected layers.
 pub(crate) fn draw_network_initial(
     mut commands: Commands,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut layer_query: Query<(Entity, &mut Layer, &mut Transform), Changed<Layer>>,
+    color: Res<ClearColor>
 ) {
     if layer_query.is_empty() {
         return;
     }
 
     for layer_tuple in layer_query.iter() {
-        draw_layers_and_nodes(&mut commands, &mut materials, &mut meshes, &(layer_tuple.1, layer_tuple.2, layer_tuple.0));
+        draw_layers_and_nodes(&mut commands, &mut materials, &mut meshes, &(layer_tuple.1, layer_tuple.2, layer_tuple.0), &color);
     }
 }
 
 /// Draws fully connected layers.
 pub(crate) fn update_network(
     mut commands: Commands,
-    mut materials: ResMut<Assets<ColorMaterial>>,
+    mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut layer_query: Query<(&mut Layer, &mut Transform, Entity), Changed<Layer>>,
+    color: Res<ClearColor>
 ) {
 
     for layer_tuple in layer_query.iter() {
-        draw_layers_and_nodes(&mut commands, &mut materials, &mut meshes, &layer_tuple);
+        draw_layers_and_nodes(&mut commands, &mut materials, &mut meshes, &layer_tuple, &color);
     }
 }
+
 
 pub(crate) fn draw_node_connections(
     mut commands: Commands,
     mut layer_query: Query<(Entity, &Parent, &mut Transform, &mut Node), Changed<Node>>,
+    mut materials: ResMut<Assets<LineMaterial>>,
+    mut meshes: ResMut<Assets<Mesh>>,
     global_transform_query: Query<&GlobalTransform>
 ) {
     /// Track if dirty updated somewhere else, in which case do not set not dirty.
@@ -121,19 +133,20 @@ pub(crate) fn draw_node_connections(
 
                     let relative_pos = Transform::from_matrix(relative_pos);
 
-                    let line = GeometryBuilder::build_as(
-                        &shapes::Line(
-                            Vec2::new(0.0, layer.2.translation.y),
-                            Vec2::new(relative_pos.translation.x, connection_to_make.2.translation.y),
-                        ));
+                    let mesh = create_3d_line(LineList {
+                        lines: vec![(
+                            Vec3::new(0.0, layer.2.translation.y, 0.0),
+                            Vec3::new(relative_pos.translation.x, connection_to_make.2.translation.y, 0.0)
+                        )]
+                    });
 
                     let line = commands.
                         spawn((
-                            ShapeBundle {
-                                path: line,
+                            MaterialMeshBundle {
+                                mesh: meshes.add(mesh.0),
+                                material: materials.add(mesh.1),
                                 ..default()
-                            }, Fill::color(Color::BLACK),
-                            Stroke::new(Color::BLACK, CONNECTION_THICKNESS)
+                            }
                         ));
 
                     line.id()
@@ -148,9 +161,10 @@ pub(crate) fn draw_node_connections(
 
 fn draw_layers_and_nodes<'a>(
     mut commands: &mut Commands,
-    mut materials: &mut ResMut<Assets<ColorMaterial>>,
+    mut materials: &mut ResMut<Assets<StandardMaterial>>,
     mut meshes: &mut ResMut<Assets<Mesh>>,
-    layer_tuple: &(&'a Layer, &Transform, Entity)
+    layer_tuple: &(&'a Layer, &Transform, Entity),
+    color: &Res<ClearColor>
 ) {
 
 
@@ -158,7 +172,10 @@ fn draw_layers_and_nodes<'a>(
     let layer_entity = layer_tuple.2;
 
     commands.entity(layer_entity)
-        .insert((layer_tuple.0.layer_type.create_mesh(layer_tuple.0, meshes, materials)));
+        .insert((layer_tuple.0.layer_type.create_mesh(layer_tuple.0, meshes, materials, color)));
+
+
+
 
     for node in layer_tuple.0.nodes.iter() {
         let node_entity = node.entity.clone();
@@ -171,14 +188,15 @@ fn draw_layers_and_nodes<'a>(
 
 fn draw_node(
     mut commands: &mut Commands,
-    mut materials: &mut ResMut<Assets<ColorMaterial>>,
+    mut materials: &mut ResMut<Assets<StandardMaterial>>,
     mut meshes: &mut ResMut<Assets<Mesh>>,
     node: &Node,
     node_entity: Entity,
     layer: &Layer
 ) {
     info!("Drawing node!");
-    let y = (node.node_pos as f32 * NODE_SPACING) - ((layer.sub_layers.len() as f32 * NODE_SPACING) / 2.0);
+    let mut y = (node.node_pos as f32 * NODE_SPACING) - ((layer.sub_layers.len() as f32 * NODE_SPACING) / 2.0);
+    let value = (NODE_RADIUS * 2.0 * layer.nodes.len() as f32 + NODE_SPACING * (layer.nodes.len() - 1) as f32) / 2 as f32;
     commands.entity(node_entity)
         .insert(node.clone())
         .insert((
@@ -188,7 +206,7 @@ fn draw_node(
         .insert((PickableBundle::default()))
         .insert((
                     SpriteBundle {
-                    transform: Transform::from_xyz(0.0, y, 1.0),
+                    transform: Transform::from_xyz(0.0, y - value + LAYER_SPACING / 4.0, 1.0),
                     ..Default::default()
                 },
                 PickableBundle::default()

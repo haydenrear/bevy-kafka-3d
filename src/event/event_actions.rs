@@ -6,7 +6,7 @@ use bevy::time::Time;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_state::{Context, StateChangeFactory, Update, UpdateStateInPlace};
 
-pub fn write_events<
+pub fn click_write_events<
     RetrieveStateT,
     EventArgsT: EventArgs + 'static,
     EventDataT: EventData + 'static,
