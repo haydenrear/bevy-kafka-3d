@@ -9,6 +9,8 @@ use crate::menu::ui_menu_event::ui_menu_event_plugin::NextUiState;
 use crate::metrics::HistoricalData;
 use crate::network::Node;
 
+mod test_arr;
+
 #[test]
 fn test_historical_data() {
     let mut historical_data = HistoricalData::new(3);

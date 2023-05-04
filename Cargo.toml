@@ -10,7 +10,9 @@ bevy = { version = "0.10.0", features = ["dynamic_linking"]  }
 bevy_prototype_lyon = "0.8.0"
 bevy_transform = "0.10.1"
 bevy_mod_picking = {path = "../../../bevy_mod_picking"}
-
+ndarray = "0.15.6"
+serde_json = "1.0.96"
+serde = "1.0.160"
 
 # Enable a small amount of optimization in debug mode
 [profile.dev]

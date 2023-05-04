@@ -12,11 +12,21 @@ use crate::metrics::Metric;
 
 pub trait HasMetrics: Send + Sync {
     fn get_metrics(&self) -> Metric;
+    fn get_id(&self) -> MetricId;
+}
+
+#[derive(Copy, Clone, Default)]
+pub struct MetricId {
+    id: u32
 }
 
 impl HasMetrics for Node {
     fn get_metrics(&self) -> Metric {
         todo!()
+    }
+
+    fn get_id(&self) -> MetricId {
+        MetricId::default()
     }
 }
 

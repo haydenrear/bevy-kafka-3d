@@ -10,8 +10,14 @@ pub enum ChangePropagation {
     SelfChange(StartingState),
     // Include children only
     Children(StartingState),
+    // includes siblings
+    Siblings(StartingState),
+    // include self and siblings
+    SelfToSiblings(StartingState),
     // Include parent only
     Parent(StartingState),
+    // propagate event to siblings children
+    SiblingsChildren(StartingState),
     // Propagate event to specific Id's
     CustomPropagation {
         to: Vec<f32>,
@@ -41,29 +47,26 @@ impl ChangePropagation {
             ChangePropagation::CustomPropagation { to , from} => {
                 from
             }
+            ChangePropagation::Siblings(starting) => {
+                starting
+            }
+            ChangePropagation::SelfToSiblings(starting) => {
+                starting
+            }
+            ChangePropagation::SiblingsChildren(starting) => {
+               starting
+            }
         }
     }
 }
 
-impl ChangePropagation {
+impl StartingState {
     pub(crate) fn includes_parent(&self) -> bool {
         match self {
-            ChangePropagation::ParentToChild(_) => {
+            StartingState::Parent => {
                 true
             }
-            ChangePropagation::ChildToParent(_) => {
-                true
-            }
-            ChangePropagation::SelfChange(_) => {
-                false
-            }
-            ChangePropagation::Children(_) => {
-                false
-            }
-            ChangePropagation::Parent(_) => {
-                true
-            }
-            ChangePropagation::CustomPropagation { .. } => {
+            _ => {
                 false
             }
         }
@@ -71,22 +74,10 @@ impl ChangePropagation {
 
     pub(crate) fn includes_self(&self) -> bool {
         match self {
-            ChangePropagation::ParentToChild(_) => {
+            StartingState::SelfState => {
                 true
             }
-            ChangePropagation::ChildToParent(_) => {
-                true
-            }
-            ChangePropagation::SelfChange(_) => {
-                true
-            }
-            ChangePropagation::Children(_) => {
-                false
-            }
-            ChangePropagation::Parent(_) => {
-                false
-            }
-            ChangePropagation::CustomPropagation { .. } => {
+            _ => {
                 false
             }
         }
@@ -94,23 +85,195 @@ impl ChangePropagation {
 
     pub(crate) fn includes_children(&self) -> bool {
         match self {
-            ChangePropagation::ParentToChild(_) => {
+            StartingState::Child => {
                 true
             }
-            ChangePropagation::ChildToParent(_) => {
+            _ => {
                 false
             }
-            ChangePropagation::SelfChange(_) => {
-                false
-            }
-            ChangePropagation::Children(_) => {
+        }
+    }
+
+    pub(crate) fn includes_sibling(&self) -> bool {
+        match self {
+            StartingState::Sibling => {
                 true
             }
-            ChangePropagation::Parent(_) => {
+            _ => {false}
+        }
+    }
+
+    pub(crate) fn includes_siblings_children(&self) -> bool {
+        match self {
+            StartingState::SiblingChild => {
+                true
+            }
+            _ => {
                 false
             }
-            ChangePropagation::CustomPropagation { .. } => {
-                false
+        }
+    }
+
+}
+
+impl ChangePropagation {
+
+    pub(crate) fn includes_parent(&self) -> bool {
+        match self {
+            ChangePropagation::ParentToChild(state) => {
+                true
+            }
+            ChangePropagation::ChildToParent(state) => {
+                true
+            }
+            ChangePropagation::SelfChange(state) => {
+                state.includes_parent()
+            }
+            ChangePropagation::Children(state) => {
+                state.includes_parent()
+            }
+            ChangePropagation::Siblings(state) => {
+                state.includes_parent()
+            }
+            ChangePropagation::SelfToSiblings(state) => {
+                state.includes_parent()
+            }
+            ChangePropagation::Parent(state) => {
+                true
+            }
+            ChangePropagation::SiblingsChildren(state) => {
+                state.includes_parent()
+            }
+            ChangePropagation::CustomPropagation { to, from } => {
+                from.includes_parent()
+            }
+        }
+    }
+
+    pub(crate) fn includes_self(&self) -> bool {
+        match self {
+            ChangePropagation::ParentToChild(state) => {
+                state.includes_self()
+            }
+            ChangePropagation::ChildToParent(state) => {
+                state.includes_self()
+            }
+            ChangePropagation::SelfChange(state) => {
+                true
+            }
+            ChangePropagation::Children(state) => {
+                state.includes_self()
+            }
+            ChangePropagation::Siblings(state) => {
+                state.includes_self()
+            }
+            ChangePropagation::SelfToSiblings(state) => {
+                true
+            }
+            ChangePropagation::Parent(state) => {
+                state.includes_self()
+            }
+            ChangePropagation::SiblingsChildren(state) => {
+                state.includes_self()
+            }
+            ChangePropagation::CustomPropagation { to, from } => {
+                from.includes_self()
+            }
+        }
+    }
+
+    pub(crate) fn includes_children(&self) -> bool {
+        match self {
+            ChangePropagation::ParentToChild(state) => {
+                true
+            }
+            ChangePropagation::ChildToParent(state) => {
+                true
+            }
+            ChangePropagation::SelfChange(state) => {
+                state.includes_children()
+            }
+            ChangePropagation::Children(state) => {
+                true
+            }
+            ChangePropagation::Siblings(state) => {
+                state.includes_children()
+            }
+            ChangePropagation::SelfToSiblings(state) => {
+                state.includes_children()
+            }
+            ChangePropagation::Parent(state) => {
+                state.includes_children()
+            }
+            ChangePropagation::SiblingsChildren(state) => {
+                state.includes_children()
+            }
+            ChangePropagation::CustomPropagation { to, from } => {
+                from.includes_children()
+            }
+        }
+    }
+
+    pub(crate) fn includes_sibling(&self) -> bool {
+        match self {
+            ChangePropagation::ParentToChild(state) => {
+                state.includes_sibling()
+            }
+            ChangePropagation::ChildToParent(state) => {
+                state.includes_sibling()
+            }
+            ChangePropagation::SelfChange(state) => {
+                state.includes_sibling()
+            }
+            ChangePropagation::Children(state) => {
+                state.includes_sibling()
+            }
+            ChangePropagation::Siblings(state) => {
+                true
+            }
+            ChangePropagation::SelfToSiblings(state) => {
+                true
+            }
+            ChangePropagation::Parent(state) => {
+                state.includes_sibling()
+            }
+            ChangePropagation::SiblingsChildren(state) => {
+                state.includes_sibling()
+            }
+            ChangePropagation::CustomPropagation { to, from } => {
+                from.includes_sibling()
+            }
+        }
+    }
+
+    pub(crate) fn includes_siblings_children(&self) -> bool {
+        match self {
+            ChangePropagation::ParentToChild(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::ChildToParent(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::SelfChange(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::Children(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::Siblings(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::SelfToSiblings(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::Parent(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::SiblingsChildren(state) => {
+                true
+            }
+            ChangePropagation::CustomPropagation { to, from  } => {
+                from.includes_siblings_children()
             }
         }
     }
@@ -124,11 +287,12 @@ pub enum StartingState {
     Child,
     Parent,
     SelfState,
+    Sibling,
+    SiblingChild,
     Other(f32)
 }
 
 impl StateChange {
-
     pub fn propagation(&self) -> Option<&ChangePropagation> {
         match self {
             StateChange::ChangeComponentColor(_, change_type) => {
@@ -142,5 +306,4 @@ impl StateChange {
             }
         }
     }
-
 }

@@ -24,7 +24,7 @@ impl <T> ConfigurationOptionChange<T>
 where T: Component + Send + Sync + Clone + Default + Debug + 'static
 {
 
-    pub(crate) fn to_config_option_state(&self) -> Vec<NextConfigurationOptionState<T>>  {
+    pub(crate) fn to_config_option_states(&self) -> Vec<NextConfigurationOptionState<T>>  {
 
         let mut to_replace: Option<HashMap<Entity, MetricsConfigurationOption<T>>> = self.config_option.clone();
 
@@ -35,6 +35,10 @@ where T: Component + Send + Sync + Clone + Default + Debug + 'static
                     return vec![NextConfigurationOptionState::UpdateVariance(option)];
                 } else if matches!(option, MetricsConfigurationOption::Concavity(..)) {
                     return vec![NextConfigurationOptionState::UpdateVariance(option)];
+                } else if matches!(option, MetricsConfigurationOption::Menu(..)) {
+                    return vec![NextConfigurationOptionState::UpdateMenu(option)];
+                } else if matches!(option, MetricsConfigurationOption::Metrics(..)) {
+                    return vec![NextConfigurationOptionState::UpdateMetrics(option)];
                 }
                 vec![]
             })
@@ -50,6 +54,8 @@ impl <T: Component + Send + Sync + Default + Clone + Debug + 'static> EventArgs 
 pub enum NextConfigurationOptionState<T: Component + Send + Sync + 'static + Clone + Debug + Default> {
     UpdateVariance(MetricsConfigurationOption<T>),
     UpdateConcavity(MetricsConfigurationOption<T>),
+    UpdateMetrics(MetricsConfigurationOption<T>),
+    UpdateMenu(MetricsConfigurationOption<T>),
     Default
 }
 
@@ -78,7 +84,7 @@ for ConfigEventStateFactory {
             config,
             entity
         ) = &current.event_args {
-            return config.to_config_option_state()
+            return config.to_config_option_states()
                 .into_iter()
                 .map(|config| NextStateChange {
                     entity: entity.clone(),

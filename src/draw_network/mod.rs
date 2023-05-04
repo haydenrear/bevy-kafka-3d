@@ -101,6 +101,7 @@ pub(crate) fn draw_node_connections(
     let _ = layer_query.iter()
         .for_each(|layer| {
             // Draw connections between nodes in consecutive layers
+            // The connections for two layers are owned by the receiving layer.
             info!("drawing!");
             let parent_pos = global_transform_query.get(layer.1.get())
                 .unwrap();

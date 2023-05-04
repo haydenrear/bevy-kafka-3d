@@ -47,7 +47,10 @@ for StateChangeActionTypeStateRetriever
             .iter()
             .flat_map(|(_, ui_component, style, updateable_value)|
                 ui_component.get_state_change_types().iter()
-                    .map(move |state_change_action| (entity, ui_component, style, updateable_value, state_change_action))
+                    .map(move |state_change_action| {
+                        info!("Found state change action:\n {:?}\n", state_change_action);
+                        (entity, ui_component, style, updateable_value, state_change_action)
+                    })
             )
             .flat_map(|(entity, ui_component, style, updateable_value, state_change_action)|
                 Self::create_ui_event(&entity_query, &with_parent_query, &with_children_query, entity, style, updateable_value, &state_change_action)
@@ -59,18 +62,29 @@ for StateChangeActionTypeStateRetriever
 
 impl StateChangeActionTypeStateRetriever {
     fn create_ui_event(
-        entity_query: &Query<(Entity, &UiComponent, &Style, &UiIdentifiableComponent), (With<UiComponent>, With<Style>)>,
-        with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
-        with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
+        entity_query: &Query<
+            (Entity, &UiComponent, &Style, &UiIdentifiableComponent),
+            (With<UiComponent>, With<Style>)
+        >,
+        with_parent_query: &Query<
+            (Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style),
+            (With<UiComponent>, With<Parent>, With<Style>)
+        >,
+        with_children_query: &Query<
+            (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
+            (With<UiComponent>, With<Children>, With<Style>)
+        >,
         entity: Entity,
         style: &Style,
         updateable_value: &UiIdentifiableComponent,
         state_change_action: &StateChangeActionType
     ) -> Option<EventDescriptor<StateChangeActionType, UiEventArgs, Style>> {
-        info!("found state change action: {:?}", state_change_action);
-        let clicked = &state_change_action.clicked;
 
+        let clicked = &state_change_action.clicked;
         let style_change_types = clicked.propagation();
+
+        info!("found state change action: {:?}.\n\n and style change types: {:?}", &state_change_action, &style_change_types);
+
         let mut entities = HashMap::new();
 
         if style_change_types
@@ -86,9 +100,18 @@ impl StateChangeActionTypeStateRetriever {
             entities.insert(entity.clone(), node_style);
         }
 
-        if style_change_types.iter()
-            .any(|any| any.includes_children()) {
+        if style_change_types.iter().any(|any| any.includes_children()) {
             child_entities(&entity_query, &with_children_query, entity, &mut entities)
+        }
+
+        if style_change_types.iter().any(|any| any.includes_sibling()) {
+            info!("Including siblings.");
+            sibling_entities(&with_children_query, &with_parent_query, entity, &mut entities);
+        }
+
+        if style_change_types.iter().any(|any| any.includes_siblings_children()) {
+            info!("Including siblings.");
+            siblings_children_entities(&with_children_query, &with_parent_query, entity, &mut entities);
         }
 
         if let Some(ChangePropagation::CustomPropagation { to, from }) = style_change_types {
@@ -109,7 +132,12 @@ impl StateChangeActionTypeStateRetriever {
     }
 }
 
-fn parent_entities(with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>, with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>, entity: Entity, mut entities: &mut HashMap<Entity, StyleNode>) {
+fn parent_entities(
+    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
+    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
+    entity: Entity,
+    mut entities: &mut HashMap<Entity, StyleNode>
+) {
     let parent = with_parent_query.get(entity.clone())
         .map(|(_, _, parent, updateable, style)| parent.get())
         .ok();
@@ -133,7 +161,89 @@ fn parent_entities(with_children_query: &Query<(Entity, &UiComponent, &Children,
         });
 }
 
-fn child_entities(entity_query: &Query<(Entity, &UiComponent, &Style, &UiIdentifiableComponent), (With<UiComponent>, With<Style>)>, with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>, entity: Entity, mut entities: &mut HashMap<Entity, StyleNode>) {
+fn sibling_entities(
+    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
+    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
+    entity: Entity,
+    mut entities: &mut HashMap<Entity, StyleNode>
+) {
+    let parent = with_parent_query.get(entity.clone())
+        .map(|(_, _, parent, updateable, style)| parent.get())
+        .ok();
+
+    parent.map(|parent| {
+        with_children_query.get(parent.clone())
+            .map(|(_, _, children, update, style)| {
+                info!("Found parent with id {}.", update.0);
+                children.iter().for_each(|child| {
+                    with_parent_query.get(child.clone())
+                        .into_iter()
+                        .for_each(|(entity, component, parent, id, style)| {
+                            info!("Including sibling: {}.", id.0);
+                            entities.insert(entity.clone(), StyleNode::Sibling(style.clone(), id.0));
+                        });
+                });
+            })
+            .or_else(|_| {
+                info!("Failed to fetch parent when parent was included in fetch.");
+                Ok::<(), QueryEntityError>(())
+            })
+            .unwrap()
+    })
+        .or_else(|| {
+            info!("Failed to fetch parent when parent was included in fetch.");
+            None
+        });
+}
+
+fn siblings_children_entities(
+    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
+    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
+    entity: Entity,
+    mut entities: &mut HashMap<Entity, StyleNode>
+) {
+    let parent = with_parent_query.get(entity.clone())
+        .map(|(_, _, parent, updateable, style)| parent.get())
+        .ok();
+
+    parent.map(|parent| {
+        with_children_query.get(parent.clone())
+            .map(|(_, _, children, update, style)| {
+                info!("Found parent with id {}.", update.0);
+                children.iter().for_each(|child| {
+                    with_parent_query.get(child.clone())
+                        .into_iter()
+                        .filter(|(this_entity, _, _, _, _)| entity != *this_entity)
+                        .for_each(|(sibling, _, _, _, _)| {
+                            with_children_query.get(sibling)
+                                .into_iter()
+                                .for_each(|(_, _, children, update, style)| {
+                                    children.iter().for_each(|child| {
+                                        entities.insert(child.clone(), StyleNode::SiblingChild(style.clone(), update.0));
+                                    });
+                                });
+                            info!("Including sibling: {}.", update.0);
+                        });
+                });
+            })
+            .or_else(|_| {
+                info!("Failed to fetch parent when parent was included in fetch.");
+                Ok::<(), QueryEntityError>(())
+            })
+            .unwrap()
+    })
+        .or_else(|| {
+            info!("Failed to fetch parent when parent was included in fetch.");
+            None
+        });
+}
+
+fn child_entities(
+    entity_query: &Query<(Entity, &UiComponent, &Style, &UiIdentifiableComponent), (With<UiComponent>, With<Style>)>,
+    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
+    entity: Entity,
+    mut entities: &mut HashMap<Entity, StyleNode>
+) {
 
     info!("Including children.");
 

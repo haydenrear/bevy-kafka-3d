@@ -319,7 +319,15 @@ fn draw_dropdown_components(
                             ChangeStyleTypes::ChangeVisible(None),
                             ChangePropagation::Children(StartingState::Child),
                         ),
-                    }],
+                    },
+                    StateChangeActionType {
+                        hover: HoverStateChange::None,
+                        clicked: ChangeComponentStyle(
+                            ChangeStyleTypes::RemoveVisible(None),
+                            ChangePropagation::SiblingsChildren(StartingState::SiblingChild),
+                        ),
+                    }
+                ],
             )
         ));
 
@@ -382,14 +390,13 @@ fn draw_menu_option(
 
     let mut add_dropdown_option_component = menu_option_button
         .insert((
+            UiIdentifiableComponent(component_id),
             UiComponent::DropdownOption(
                 DropdownOption {
                     index: menu_option.index,
                     option_name: option.clone(),
-                }, vec![StateChangeActionType {
-                    hover: HoverStateChange::None,
-                    clicked: StateChange::None,
-                }]
+                }, vec![
+                ]
             )
         ));
 

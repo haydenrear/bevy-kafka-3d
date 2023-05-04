@@ -6,6 +6,7 @@ use bevy::ui::{Size, Val};
 use bevy::utils::petgraph::visit::Data;
 use bevy_mod_picking::Selection;
 use crate::event::event_state::UpdateStateInPlace;
+use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
 use crate::menu::menu_resource::{MENU, VARIANCE};
 use crate::metrics::{Metric, MetricChildNodes};
 use crate::network::{Layer, Network, Node};

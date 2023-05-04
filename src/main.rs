@@ -25,6 +25,8 @@ mod menu;
 mod event;
 mod test;
 
+pub(crate) mod ndarray;
+
 fn main() {
     App::new()
         .insert_resource(MetricState::default())

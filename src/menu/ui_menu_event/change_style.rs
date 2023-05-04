@@ -236,17 +236,47 @@ impl ChangeStyleTypes {
                     })
                     .next()
             }
+            StartingState::Sibling => {
+                Self::get_sibling_style(entities)
+                    .or_else(|| {
+                        info!("Failed to fetch sibling style.");
+                        None
+                    })
+            }
+            StartingState::SiblingChild => {
+                Self::get_sibling_child_style(entities)
+                    .or_else(|| {
+                        info!("Failed to fetch sibling style.");
+                        None
+                    })
+            }
         }
+    }
+
+    fn get_sibling_child_style(entities: &HashMap<Entity, StyleNode>) -> Option<Style> {
+        entities.iter()
+            .flat_map(|(entity, node)| {
+                if let StyleNode::SiblingChild(style, _) = node {
+                    return vec![style.clone()]
+                }
+                vec![]
+            })
+            .next()
+    }
+
+    fn get_sibling_style(entities: &HashMap<Entity, StyleNode>) -> Option<Style> {
+        entities.iter()
+            .flat_map(|(entity, node)| {
+                if let StyleNode::Sibling(style, _) = node {
+                    return vec![style.clone()]
+                }
+                vec![]
+            })
+            .next()
     }
 
     fn get_parent_style(entities: &HashMap<Entity, StyleNode>) -> Option<Style> {
         entities.iter()
-            .filter(|(entity, node)| {
-                if let StyleNode::Parent(_, _) = node {
-                    return true
-                }
-                false
-            })
             .flat_map(|(entity, node)| {
                 if let StyleNode::Parent(style, _) = node {
                     return vec![style.clone()]
@@ -284,7 +314,10 @@ impl ChangeStyleTypes {
             })
     }
 
-    fn get_filter(entities: HashMap<Entity, StyleNode>, remove_visible: &Option<UiComponentFilters>) -> HashMap<Entity, StyleNode> {
+    fn get_filter(
+        entities: HashMap<Entity, StyleNode>,
+        remove_visible: &Option<UiComponentFilters>,
+    ) -> HashMap<Entity, StyleNode> {
         if remove_visible.is_none() || (remove_visible.is_some() && remove_visible.as_ref().unwrap().exclude.is_none()) {
             let entities_id = entities.values().map(|n| n.id()).collect::<Vec<f32>>();
             info!("Including entities: {:?}.", &entities_id);
@@ -313,6 +346,8 @@ pub enum StyleNode {
     Child(Style, f32),
     SelfNode(Style, f32),
     Parent(Style, f32),
+    Sibling(Style, f32),
+    SiblingChild(Style, f32),
     Other(Style, f32)
 }
 
@@ -331,6 +366,12 @@ impl Debug for StyleNode {
             }
             StyleNode::Other(_, _) => {
                 f.write_str(" Other ");
+            }
+            StyleNode::Sibling(_,_) => {
+                f.write_str(" Sibling ");
+            }
+            StyleNode::SiblingChild(..) => {
+                f.write_str(" Sibling Child ");
             }
         }
         f.write_str(self.id().to_string().as_str())
@@ -352,11 +393,16 @@ impl StyleNode {
             StyleNode::Other(_, id) => {
                 *id
             }
+            StyleNode::Sibling(_, id) => {
+                *id
+            }
+            StyleNode::SiblingChild(_, id) => *id
         }
     }
 
     pub(crate) fn get_style(&self) -> Style {
         match self {
+            StyleNode::SiblingChild(style, ..) => style.clone(),
             StyleNode::Child(style, _) => {
                 style.clone()
             }
@@ -367,6 +413,9 @@ impl StyleNode {
                 style.clone()
             }
             StyleNode::Other(style, _) => {
+                style.clone()
+            }
+            StyleNode::Sibling(style, _) => {
                 style.clone()
             }
         }
