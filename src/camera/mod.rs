@@ -1,6 +1,7 @@
 use bevy::core_pipeline::clear_color::ClearColorConfig;
 use bevy::input::keyboard::KeyboardInput;
 use bevy::input::mouse::{MouseButtonInput, MouseMotion, MouseWheel};
+use bevy::math::Vec4Swizzles;
 use bevy::prelude::*;
 use bevy::prelude::shape::Quad;
 use bevy::render::camera::Viewport;
@@ -59,6 +60,7 @@ pub(crate) fn setup_camera(
 pub const MOUSE_SENSITIVITY: f32 = 0.5;
 pub const MIN_PITCH: f32 = -89.0;
 pub const MAX_PITCH: f32 = 89.0;
+pub const FORWARD_SENSITIVITY: f32 = 10.0;
 
 pub(crate) fn camera_control(
     mut commands: Commands,
@@ -67,18 +69,35 @@ pub(crate) fn camera_control(
     mut camera_query: Query<(&Camera, &mut Transform)>,
     mut mouse_wheel: EventReader<MouseWheel>,
     mut ev_mousse: EventReader<MouseMotion>,
+    mut keyboard_events: EventReader<KeyboardInput>
 ) {
 
+    for key in keyboard_events.iter() {
+        let (_cam, mut transform) = camera_query.single_mut();
+        let cam_matrix = transform.compute_matrix();
+        let forward = -cam_matrix.z_axis.xyz().normalize();
+        let right = cam_matrix.x_axis.xyz().normalize();
+        let mut movement = Vec3::ZERO;
+        if let Some(KeyCode::W) = key.key_code {
+            movement += forward;
+        } else if let Some(KeyCode::S) = key.key_code {
+            movement -= forward;
+        } else if let Some(KeyCode::D) = key.key_code {
+            movement += right;
+        } else if let Some(KeyCode::A) = key.key_code {
+            movement -= right;
+        }
+        if movement.length() != 0.0 {
+            movement = movement.normalize() * FORWARD_SENSITIVITY;
+            transform.translation += movement;
+        }
+    }
 
     for event in ev_mousse.iter() {
         if mouse_button_input.pressed(MouseButton::Left) {
             camera_drag_data.yaw -= event.delta.x * MOUSE_SENSITIVITY;
             camera_drag_data.pitch += event.delta.y * MOUSE_SENSITIVITY;
 
-            // Clamp pitch to avoid gimbal lock
-            // camera_drag_data.pitch = camera_drag_data.pitch.clamp(MIN_PITCH, MAX_PITCH);
-
-            // Calculate new camera rotation quaternion
             let yaw_quat = Quat::from_axis_angle(Vec3::Y, camera_drag_data.yaw.to_radians());
             let pitch_quat = Quat::from_axis_angle(Vec3::X, camera_drag_data.pitch.to_radians());
             let rotation = yaw_quat * pitch_quat;
