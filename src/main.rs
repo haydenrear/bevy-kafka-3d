@@ -5,15 +5,20 @@ extern crate core;
 
 use bevy::prelude::*;
 use bevy::ui::UiPlugin;
+use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_mod_picking::DefaultPickingPlugins;
 use bevy_prototype_lyon::plugin::ShapePlugin;
+use graph::setup_graph;
 use crate::camera::{camera_control, setup_camera, ZoomableDraggableCamera};
 use crate::initialize_test_plugin::add_node_entities;
-use crate::metrics::{MetricsMetadataSubscription, MetricState, MetricsSubscription, update_metrics, publish_metrics};
 use crate::draw_network::{create_network, draw_network_initial, draw_node_connections, update_network};
 use menu::ui_menu_event::ui_menu_event_plugin::UiEventPlugin;
-use crate::graph::setup_graph;
-use crate::lines::LineMaterial;
+use lines::line_list::LineMaterial;
+use metrics::network_metrics::{publish_metrics, update_metrics};
+use crate::data_subscriber::data_subscriber_plugin::DataSubscriberPlugin;
+use crate::graph::draw_graph_points::draw_graph_points;
+use crate::graph::graph_plugin::GraphPlugin;
+use crate::graph::setup_graph::setup_graph;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::menu_resource::MenuResource;
 
@@ -29,29 +34,29 @@ mod ui_components;
 mod menu;
 mod event;
 mod graph;
+pub(crate) mod data_subscriber;
+pub(crate) mod ndarray;
 mod test;
 
-pub(crate) mod ndarray;
-
-fn main() {
+#[tokio::main]
+async fn main() {
     App::new()
-        .insert_resource(MetricState::default())
-        .insert_resource(MetricsSubscription::default())
-        .insert_resource(MetricsMetadataSubscription::default())
         .insert_resource(ZoomableDraggableCamera{
             min_distance: -5000.0,
             max_distance: 1000.0,
             current_distance: -1000.0,
             zoom_sensitivity: 10.0,
-           initialized: false,
+            initialized: false,
            ..default()
         })
         .insert_resource(MenuResource::default())
-        .insert_resource(ClearColor(Color::WHITE))
         .add_plugins(DefaultPlugins)
         .add_plugins(DefaultPickingPlugins)
         .add_plugin(ShapePlugin)
+        .add_plugin(WorldInspectorPlugin::new())
         .add_plugin(UiEventPlugin)
+        .add_plugin(GraphPlugin)
+        .add_plugin(DataSubscriberPlugin)
         .add_plugin(MaterialPlugin::<LineMaterial>::default())
         .add_startup_system(setup_camera)
         .add_startup_system(add_node_entities)
@@ -59,7 +64,6 @@ fn main() {
         .add_system(camera_control)
         .add_system(draw_node_connections)
         .add_system(create_network)
-        .add_startup_system(setup_graph)
         .add_system(draw_network_initial)
         .add_system(update_metrics)
         .add_system(publish_metrics)

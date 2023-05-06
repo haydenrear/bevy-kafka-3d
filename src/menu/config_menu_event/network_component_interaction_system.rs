@@ -4,7 +4,8 @@ use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponent;
 use crate::network::{HasMetrics, Node};
 
 /// When Layer, Network, Node components selected, remove menu component and show new menu
-pub(crate) fn update_components_selected<T: HasMetrics + Component>(
+pub(crate) fn update_components_selected<T: HasMetrics<T> + Component, U: Component>
+(
     mut commands: Commands,
     mut read_events: EventReader<PickingEvent>,
     mut query: Query<(&Node), (With<T>, Without<UiComponent>)>,

@@ -132,13 +132,15 @@ fn collapsable_menu(
             );
         });
 
-    ui_menu_component::insert_config_option(option, entity_commands);
+    insert_config_option(option, entity_commands);
 
     let entity = entity_commands.id().clone();
 
     for menu_option in options.iter() {
         match &menu_option.data_type {
-            MenuOptionType::Primitive(_) => {}
+            MenuOptionType::Primitive(primitive) => {
+                draw_menu_option(commands, asset_server, menu_option, primitive, &vec![], entity);
+            }
             MenuOptionType::SubMenu { sub_menu, parent, config_option } => {
                 draw_menu_recurs(
                     commands,
@@ -371,7 +373,7 @@ fn draw_menu_option(
     menu_option: &MenuOption,
     config_option: &ConfigurationOptionEnum,
     parents: &Vec<MenuItemMetadata>,
-    parent_entity: Entity
+    parent_entity: Entity,
 ) -> Entity {
 
     let component_id = menu_option.metadata.id;
@@ -395,12 +397,11 @@ fn draw_menu_option(
     let mut add_dropdown_option_component = menu_option_button
         .insert((
             UiIdentifiableComponent(component_id),
-            UiComponent::DropdownOption(
+            UiComponent::MenuOption(
                 DropdownOption {
                     index: menu_option.index,
                     option_name: option.clone(),
-                }, vec![
-                ]
+                }, vec![]
             )
         ));
 
@@ -455,6 +456,9 @@ macro_rules! insert_config_option {
                         menu_option.insert(metrics.clone());
                     }
                 )*
+                _ => {
+
+                }
             }
         }
     }

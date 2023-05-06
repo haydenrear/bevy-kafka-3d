@@ -111,7 +111,7 @@ impl UpdateStateInPlace<Style, StyleContext> for NextUiState {
 #[derive(Component, Debug, Clone)]
 pub enum UiComponent {
     Dropdown(Dropdown, Vec<StateChangeActionType>),
-    DropdownOption(DropdownOption, Vec<StateChangeActionType>),
+    MenuOption(DropdownOption, Vec<StateChangeActionType>),
     CollapsableMenuComponent(CollapsableMenu, Vec<StateChangeActionType>),
     Node(Vec<StateChangeActionType>),
 }
@@ -171,7 +171,7 @@ impl UiComponent {
             UiComponent::Dropdown(_, events) => {
                 events
             }
-            UiComponent::DropdownOption(_, events) => {
+            UiComponent::MenuOption(_, events) => {
                 events
             }
             UiComponent::CollapsableMenuComponent(_, events) => {

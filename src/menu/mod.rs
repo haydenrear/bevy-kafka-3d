@@ -6,9 +6,10 @@ use bevy::ui::{Size, Val};
 use bevy::utils::petgraph::visit::Data;
 use bevy_mod_picking::Selection;
 use crate::event::event_state::{Context, UpdateStateInPlace};
+use crate::graph::Graph;
 use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
 use crate::menu::menu_resource::{MENU, VARIANCE};
-use crate::metrics::{Metric, MetricChildNodes};
+use crate::metrics::network_metrics::{Metric, MetricChildNodes};
 use crate::network::{Layer, Network, Node};
 
 pub(crate) mod ui_menu_event;
@@ -190,7 +191,7 @@ pub struct Menu;
 #[derive(Clone, Debug, Component)]
 pub enum ConfigurationOptionEnum {
     Menu(MetricsConfigurationOption<Menu>),
-    Metrics(MetricsConfigurationOption<Metric>),
+    Metrics(MetricsConfigurationOption<Metric<Network>>),
     NetworkMetrics(MetricsConfigurationOption<Network>),
     NetworkVariance(MetricsConfigurationOption<Network>),
     NetworkConcavity(MetricsConfigurationOption<Network>),
@@ -199,7 +200,9 @@ pub enum ConfigurationOptionEnum {
     LayerConcavity(MetricsConfigurationOption<Layer>),
     NodeMetrics(MetricsConfigurationOption<Node>),
     NodeVariance(MetricsConfigurationOption<Node>),
-    NodeConcavity(MetricsConfigurationOption<Node>)
+    NodeConcavity(MetricsConfigurationOption<Node>),
+    DisplayGraph(MetricsConfigurationOption<Menu>),
+    DisplayNetwork(MetricsConfigurationOption<Graph>),
 }
 
 impl ConfigurationOptionEnum {

@@ -5,9 +5,15 @@ use bevy::math::Vec4Swizzles;
 use bevy::prelude::*;
 use bevy::prelude::shape::Quad;
 use bevy::render::camera::Viewport;
+use bevy::render::primitives::Plane;
 use bevy::sprite::MaterialMesh2dBundle;
 use bevy::window::{CursorGrabMode, WindowRef};
 use bevy_mod_picking::PickingCameraBundle;
+
+pub const MOUSE_SENSITIVITY: f32 = 0.5;
+pub const MIN_PITCH: f32 = -89.0;
+pub const MAX_PITCH: f32 = 89.0;
+pub const FORWARD_SENSITIVITY: f32 = 20.0;
 
 #[derive(Resource, Default)]
 pub struct ZoomableDraggableCamera {
@@ -30,7 +36,7 @@ pub(crate) fn setup_camera(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut cam: ResMut<ZoomableDraggableCamera>
 ) {
-    let initial_position = Vec3::new(-2.0, 2.5, -1000.0); // Replace with your desired initial position
+    let initial_position = Vec3::new(500.0, 500.0, 1000.0); // Replace with your desired initial position
 
     let mut initial = Transform::from_translation(initial_position)
         .looking_at(Vec3::ZERO, Vec3::Y);
@@ -45,22 +51,30 @@ pub(crate) fn setup_camera(
     commands.spawn((
         Camera3dBundle {
             transform: initial,
-            camera_3d: Camera3d {
-                clear_color: ClearColorConfig::Custom(Color::WHITE),
-                ..default()
-            },
             ..default()
         },
         PickingCameraBundle::default()
     ));
 
+    commands.spawn(PointLightBundle {
+        point_light: PointLight {
+            intensity: 9000.0,
+            range: 100.,
+            shadows_enabled: true,
+            ..default()
+        },
+        transform: Transform::from_xyz(8.0, 16.0, 8.0),
+        ..default()
+    });
+
+    // commands.spawn(PbrBundle {
+    //     mesh: mesh.add(shape::Plane::from_size(50.0).into()),
+    //     material: std_mat.add(Color::SILVER.into()),
+    //     ..default()
+    // });
+
 
 }
-
-pub const MOUSE_SENSITIVITY: f32 = 0.5;
-pub const MIN_PITCH: f32 = -89.0;
-pub const MAX_PITCH: f32 = 89.0;
-pub const FORWARD_SENSITIVITY: f32 = 10.0;
 
 pub(crate) fn camera_control(
     mut commands: Commands,

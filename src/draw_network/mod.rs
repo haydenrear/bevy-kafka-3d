@@ -17,10 +17,9 @@ use bevy_prototype_lyon::draw::{Fill, Stroke};
 use bevy_prototype_lyon::path::PathBuilder;
 use bevy_prototype_lyon::prelude::{FillOptions, Path};
 use bevy_prototype_lyon::prelude::tess::{BuffersBuilder, FillTessellator, FillVertex, VertexBuffers};
-use crate::lines::{create_3d_line, LineList, LineMaterial};
+use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 use crate::menu::{DataType, MetricsConfigurationOption};
 use crate::menu::menu_resource::VARIANCE;
-use crate::metrics::MetricState;
 use crate::network::{Layer, LayerType, Network, NetworkId, Node};
 
 pub const NODE_RADIUS: f32 = 5.0;
@@ -137,8 +136,9 @@ pub(crate) fn draw_node_connections(
                         lines: vec![(
                             Vec3::new(0.0, layer.2.translation.y, 0.0),
                             Vec3::new(relative_pos.translation.x, connection_to_make.2.translation.y, 0.0)
-                        )]
-                    });
+                        )],
+                        thickness: 0.5,
+                    }, LineMaterial::default());
 
                     let line = commands.
                         spawn((
