@@ -1,7 +1,7 @@
 use bevy::ecs::system::CommandQueue;
 use bevy::prelude::{Commands, World};
 use bevy::utils::hashbrown::HashMap;
-use ndarray::{arr1, arr2, arr3, array, Array2, Array3, Ix2};
+use ndarray::{arr1, arr2, arr3, array, Array2, Array3, Ix2, s};
 use crate::data_subscriber::data_event_reader::MetricsState;
 use crate::metrics::network_metrics::HistoricalData;
 use crate::ndarray::{get_arr, get_arr_from_vec, get_metric_message};
@@ -85,12 +85,20 @@ fn test_historical_data() {
     // let output = array.dot(&array_2);
     // println!("{:?} is the output", output);
 
-    let out = historical_data.retrieve_values("1", 1);
-    println!("{:?} is out",out.unwrap());
-    let out = historical_data.retrieve_values("1", 2);
-    println!("{:?} is out",out.unwrap());
+    let (first, second) = historical_data.retrieve_values("1", 2);
+    println!("{:?} is first and {:?} is second", &first, &second);
+    assert_eq!(first.unwrap(), arr1(&[1.0, 2.0]));
+    assert_eq!(second.unwrap(), arr1(&[5.0, 6.0]));
 
-    println!("{:?} is historical after.", historical_data.data);
+    let out = historical_data.retrieve_historical("1");
+    println!("{:?} is out ", &out);
+
+    let out = historical_data.retrieve_historical_1d("1");
+    println!("{:?} is out ", &out);
 
 }
 
+#[test]
+fn test_calculate_convergence_time() {
+
+}

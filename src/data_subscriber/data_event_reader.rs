@@ -74,9 +74,8 @@ where
 
                     commands.spawn((metric, DataSeries{
                         drawn: vec![],
-                        columns: vec![
-
-                        ]
+                        prev_convergence_times: Default::default(),
+                        columns: vec![]
                     }));
                     break;
                 }

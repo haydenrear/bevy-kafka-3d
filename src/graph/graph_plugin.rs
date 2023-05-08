@@ -8,7 +8,7 @@ impl Plugin for GraphPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GraphData::default())
             .add_startup_system(setup_graph::setup_graph)
-            // .add_system(draw_graph_points)
+            .add_system(draw_graph_points::<Node>)
         ;
     }
 }

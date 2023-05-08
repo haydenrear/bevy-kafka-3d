@@ -11,6 +11,7 @@ use crate::network::Node;
 
 mod test_arr;
 mod test_data_subscriber;
+mod test_convergence;
 
 #[test]
 fn test_update_state() {

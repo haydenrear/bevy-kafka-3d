@@ -24,7 +24,7 @@ use crate::metrics::network_metrics::{Metric, MetricChildNodes};
 use crate::network::{Layer, Network, Node};
 
 #[derive(Resource, Default)]
-pub(crate) struct KafkaReceiver<T, C>
+pub(crate) struct EventReceiver<T, C>
 where
     T: NetworkMetricsServiceEvent<C>,
     C: Component
@@ -88,7 +88,7 @@ impl KafkaClientProvider {
 pub(crate) fn write_events<E, C>
 (
     mut event_writer: EventWriter<E>,
-    mut receiver_handler: ResMut<KafkaReceiver<E, C>>
+    mut receiver_handler: ResMut<EventReceiver<E, C>>
 )
 where E: NetworkMetricsServiceEvent<C> + Send + Sync + Debug + 'static,
       C: Component
@@ -103,7 +103,7 @@ where E: NetworkMetricsServiceEvent<C> + Send + Sync + Debug + 'static,
 
 pub(crate) fn consume_kafka_messages<E, C>(
     mut consumer: ResMut<KafkaClientProvider>,
-    mut receiver_handler: ResMut<KafkaReceiver<E, C>>
+    mut receiver_handler: ResMut<EventReceiver<E, C>>
 )
 where E: NetworkMetricsServiceEvent<C> + Send + Sync + Debug + 'static,
       C: Component
