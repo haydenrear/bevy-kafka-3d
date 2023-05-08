@@ -1,24 +1,59 @@
-use bevy::prelude::{Color, Commands, default, Entity, Mesh, ResMut};
+use std::marker::PhantomData;
+use bevy::prelude::{Added, Color, Commands, Component, default, Entity, Mesh, Query, ResMut, Visibility};
 use bevy::asset::Assets;
 use bevy::math::Vec3;
 use bevy::pbr::{MaterialMeshBundle, PbrBundle};
 use bevy::hierarchy::BuildChildren;
-use crate::graph::{Graph, Grid, GRID_AXES_THICKNESS, GRID_LINES_THICKNESS, GRID_SIZE, GridAxis, LossConvergenceSeries, NUM_GRIDLINES};
+use crate::graph::{Graph, Grid, GRID_AXES_THICKNESS, GRID_LINES_THICKNESS, GRID_SIZE, GridAxis, DataSeries, NUM_GRIDLINES};
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
+use crate::metrics::network_metrics::Metric;
+use crate::network::Network;
 
-pub(crate) fn setup_graph(mut commands: Commands,
-                          mut meshes: ResMut<Assets<Mesh>>,
-                          mut materials: ResMut<Assets<LineMaterial>>
+pub(crate) fn graph_generator<T>
+(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<LineMaterial>>,
+    metric_added_event: Query<
+        (Entity, &Metric<T>),
+        (Added<Metric<T>>)
+    >
+)
+    where
+        T: Component
+{
+    for (metric_entity, metric) in metric_added_event.iter() {
+        let graph = draw_graph::<T>(&mut commands, &mut meshes, &mut materials);
+        commands.get_entity(graph)
+            .as_mut()
+            .map(|entity_cmd| entity_cmd.add_child(metric_entity));
+    }
+}
+
+pub(crate) fn setup_graph(
+    mut commands: Commands,
+    mut meshes: ResMut<Assets<Mesh>>,
+    mut materials: ResMut<Assets<LineMaterial>>,
 ) {
+    draw_graph::<Network>(&mut commands, &mut meshes, &mut materials);
+}
 
+fn draw_graph<T>(
+    mut commands: &mut Commands,
+    mut meshes: &mut ResMut<Assets<Mesh>>,
+    mut materials: &mut ResMut<Assets<LineMaterial>>
+) -> Entity
+where T: Component
+{
     let grid = draw_axes(&mut commands, &mut materials, &mut meshes, GRID_SIZE);
     draw_gridlines(&mut commands, &mut materials, &mut meshes, GRID_SIZE, &grid);
-    let loss_convergence_series = commands.spawn((LossConvergenceSeries {}, PbrBundle::default())).id();
-    let mut graph_component = commands.spawn((Graph {}, PbrBundle::default()));
-    graph_component.add_child(loss_convergence_series);
+    let mut graph_component = commands.spawn((Graph {
+        component: PhantomData::<T>::default()
+    }, PbrBundle::default()));
     graph_component.add_child(grid.x_axis);
     graph_component.add_child(grid.y_axis);
     graph_component.add_child(grid.z_axis);
+    graph_component.id()
 }
 
 fn draw_axes(
@@ -155,3 +190,4 @@ fn create_grid_line(
         .id()
 
 }
+

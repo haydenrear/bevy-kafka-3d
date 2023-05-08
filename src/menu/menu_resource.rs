@@ -708,7 +708,7 @@ impl Default for MenuResource {
                                 data_type: MenuOptionType::Primitive(
                                     ConfigurationOptionEnum::DisplayNetwork(
                                         MetricsConfigurationOption::Menu(
-                                            PhantomData::<Graph>::default(),
+                                            PhantomData::<Graph<Network>>::default(),
                                             DataType::Selected,
                                             MENU
                                         )

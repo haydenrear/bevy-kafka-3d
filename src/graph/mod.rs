@@ -1,3 +1,4 @@
+use std::marker::PhantomData;
 use std::path::Path;
 use bevy::prelude::*;
 use bevy::sprite::MaterialMesh2dBundle;
@@ -34,18 +35,41 @@ pub struct Grid {
 }
 
 #[derive(Component, Clone, Default, Debug)]
-pub struct Graph {
+pub struct Graph<T>
+where
+    T: Component {
+    component: PhantomData<T>
+}
+
+// Take each layer, and spread it's nodes out around the y-axis, rotating around the y-axis. So
+// then each layer has it's own color, and the nodes' gradient for the loss is mapped to the space.
+// So a part of each layer is in each quadrant and the lines are colored according to that layer.
+// So you need to do it like this because some layers matter much more for change in accuracy/loss than
+// others - for instance base layers.
+pub enum GraphDimType {
+    Colored, Sized, Location, Time
+}
+
+pub struct GraphDim {
+    dim_type: GraphDimType,
+    name: String,
+    grid_axis: Option<GridAxis>
 }
 
 #[derive(Component)]
-pub struct LossConvergenceSeries {
+pub struct DataSeries {
+    pub(crate) drawn: Vec<u64>,
+    pub(crate) columns: Vec<GraphDim>
 }
 
 #[derive(Component)]
-pub struct LossConvergenceStep {
+pub struct SeriesStep {
 }
 
 #[derive(Component)]
 pub enum GridAxis {
-    XGridY, XGridZ, YGridX, YGridZ, ZGridX, ZGridY, X, Y, Z
+    XGridY, XGridZ,
+    YGridX, YGridZ,
+    ZGridX, ZGridY,
+    X, Y, Z
 }

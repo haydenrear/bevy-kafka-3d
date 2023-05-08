@@ -5,6 +5,7 @@ use bevy::prelude::{Color, Commands, Component, Entity, ResMut};
 use bevy::ui::{Size, Val};
 use bevy::utils::petgraph::visit::Data;
 use bevy_mod_picking::Selection;
+use serde::Deserialize;
 use crate::event::event_state::{Context, UpdateStateInPlace};
 use crate::graph::Graph;
 use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
@@ -185,7 +186,7 @@ pub struct MenuOption {
     pub(crate) metadata: MenuItemMetadata
 }
 
-#[derive(Clone, Debug, Component, Default)]
+#[derive(Clone, Debug, Component, Default, Deserialize, Ord, PartialOrd, PartialEq, Eq, Hash)]
 pub struct Menu;
 
 #[derive(Clone, Debug, Component)]
@@ -202,7 +203,7 @@ pub enum ConfigurationOptionEnum {
     NodeVariance(MetricsConfigurationOption<Node>),
     NodeConcavity(MetricsConfigurationOption<Node>),
     DisplayGraph(MetricsConfigurationOption<Menu>),
-    DisplayNetwork(MetricsConfigurationOption<Graph>),
+    DisplayNetwork(MetricsConfigurationOption<Graph<Network>>),
 }
 
 impl ConfigurationOptionEnum {

@@ -1,5 +1,4 @@
 use bevy::prelude::*;
-use crate::menu::config_menu_event::network_component_interaction_system::update_components_selected;
 
 
 pub struct ConfigMenuEventPlugin;

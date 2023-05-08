@@ -10,30 +10,6 @@ use bevy_prototype_lyon::shapes;
 use crate::draw_network::{LAYER_SPACING, NODE_RADIUS, NODE_SPACING};
 use crate::metrics::network_metrics::Metric;
 
-pub trait HasMetrics<T>: Send + Sync
-where T: Component
-{
-    fn get_metrics(&self) -> Metric<T>;
-    fn get_id(&self) -> MetricId;
-}
-
-#[derive(Copy, Clone, Default)]
-pub struct MetricId {
-    id: u32
-}
-
-impl <T> HasMetrics<T> for Node
-where T: Component
-{
-    fn get_metrics(&self) -> Metric<T> {
-        todo!()
-    }
-
-    fn get_id(&self) -> MetricId {
-        MetricId::default()
-    }
-}
-
 #[derive(Default, Component, Clone, Debug)]
 pub struct Node {
     pub(crate) entity: Option<Entity>,

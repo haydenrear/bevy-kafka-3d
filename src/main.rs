@@ -1,6 +1,7 @@
 #![feature(core_intrinsics)]
 #![feature(default_free_fn)]
 
+
 extern crate core;
 
 use bevy::prelude::*;
@@ -15,6 +16,7 @@ use crate::draw_network::{create_network, draw_network_initial, draw_node_connec
 use menu::ui_menu_event::ui_menu_event_plugin::UiEventPlugin;
 use lines::line_list::LineMaterial;
 use metrics::network_metrics::{publish_metrics, update_metrics};
+use crate::config::ConfigurationProperties;
 use crate::data_subscriber::data_subscriber_plugin::DataSubscriberPlugin;
 use crate::graph::draw_graph_points::draw_graph_points;
 use crate::graph::graph_plugin::GraphPlugin;
@@ -22,18 +24,18 @@ use crate::graph::setup_graph::setup_graph;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::menu_resource::MenuResource;
 
-mod config;
-mod lines;
-mod metrics;
-mod network;
-mod network_state;
-mod initialize_test_plugin;
-mod camera;
-mod draw_network;
-mod ui_components;
-mod menu;
-mod event;
-mod graph;
+pub(crate) mod config;
+pub(crate) mod lines;
+pub(crate) mod metrics;
+pub(crate) mod network;
+pub(crate) mod network_state;
+pub(crate) mod initialize_test_plugin;
+pub(crate) mod camera;
+pub(crate) mod draw_network;
+pub(crate) mod ui_components;
+pub(crate) mod menu;
+pub(crate) mod event;
+pub(crate) mod graph;
 pub(crate) mod data_subscriber;
 pub(crate) mod ndarray;
 mod test;
@@ -50,6 +52,7 @@ async fn main() {
            ..default()
         })
         .insert_resource(MenuResource::default())
+        .insert_resource(ConfigurationProperties::default())
         .add_plugins(DefaultPlugins)
         .add_plugins(DefaultPickingPlugins)
         .add_plugin(ShapePlugin)

@@ -1,53 +1,38 @@
+use std::cell::{Cell, RefCell};
 use std::env;
 use std::env::VarError;
 use std::fmt::Debug;
 use std::fs::read_to_string;
+use std::hash::Hash;
+use std::marker::PhantomData;
 use std::path::Path;
 use std::sync::{Arc, mpsc, Mutex};
 use std::time::Duration;
-use bevy::prelude::{Commands, Condition, error, Events, EventWriter, Res, ResMut, Resource, World};
+use bevy::prelude::{Commands, Component, Condition, error, Events, EventWriter, Res, ResMut, Resource, World};
 use bevy::tasks::AsyncComputeTaskPool;
+use bevy::utils::HashMap;
 use bevy::utils::petgraph::visit::Walker;
 use kafka::client::{FetchOffset, KafkaClient};
 use kafka::consumer::Consumer;
 use kafka::producer::Producer;
-use serde::{Deserialize, Serialize};
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Semaphore;
 use tokio::time::timeout;
+use crate::config::ConfigurationProperties;
+use crate::data_subscriber::metric_event::NetworkMetricsServiceEvent;
+use crate::metrics::network_metrics::{Metric, MetricChildNodes};
+use crate::network::{Layer, Network, Node};
 
 #[derive(Resource, Default)]
-pub(crate) struct KafkaReceiver<T: NetworkMetricsServiceEvent + Send + Sync + 'static> {
-    receiver: Option<Receiver<T>>
+pub(crate) struct KafkaReceiver<T, C>
+where
+    T: NetworkMetricsServiceEvent<C>,
+    C: Component
+{
+    receiver: Option<Receiver<T>>,
+    phantom: PhantomData<C>
 }
 
-pub trait NetworkMetricsServiceEvent: for<'a> Deserialize<'a> + Send + Sync {
-    fn topic_matcher() -> &'static str;
-}
-
-macro_rules! network_events {
-    ($($event_type:ident, $event_lit:literal),*) => {
-        $(
-
-            #[derive(Serialize, Deserialize, Default, Debug, Clone)]
-            pub struct $event_type {
-            }
-
-            impl NetworkMetricsServiceEvent for $event_type {
-                fn topic_matcher() -> &'static str {
-                    return $event_lit;
-                }
-            }
-        )*
-    }
-}
-
-network_events!(
-    NodeMetricEvent, "node_metric",
-    LayerMetricEvent, "layer_metric",
-    NetworkMetricEvent, "network_metric",
-    NodeChildrenMetricEvent, "node_as_children_metric"
-);
 
 #[derive(Resource, Debug)]
 pub struct KafkaClientProvider {
@@ -59,31 +44,9 @@ pub struct KafkaClientProvider {
     consumers: Vec<Consumer>
 }
 
-#[derive(Deserialize, Default)]
-pub struct ConfigurationProperties {
-    kafka: KafkaConfiguration
-}
-
-#[derive(Deserialize)]
-pub struct KafkaConfiguration {
-    hosts: Vec<String>,
-    consumer_group_id: String,
-    client_id: String
-}
-
-impl Default for KafkaConfiguration {
-    fn default() -> Self {
-        Self {
-            hosts: vec!["localhost:9092".to_string()],
-            consumer_group_id: "consumer".to_string(),
-            client_id: "nn-fe".to_string()
-        }
-    }
-}
-
 impl Default for KafkaClientProvider {
     fn default() -> Self {
-        let config = Self::read_config();
+        let config = ConfigurationProperties::read_config();
         let hosts = config.kafka.hosts;
         let group_id = config.kafka.consumer_group_id;
         let client_id = config.kafka.client_id;
@@ -120,27 +83,16 @@ impl KafkaClientProvider {
             .create()
     }
 
-    fn read_config() -> ConfigurationProperties {
-        let config_file = env::var("CONFIG_PROPS")
-            .or(Ok::<String, VarError>("resources/config.toml".to_string()))
-            .unwrap();
-        let config = read_to_string(Path::new(&config_file))
-            .map(|toml| toml::from_str::<ConfigurationProperties>(toml.as_str()).ok())
-            .or_else(|e| {
-                error!("Error reading configuration properties: {:?}.", e);
-                Ok::<Option<ConfigurationProperties>, toml::de::Error>(Some(ConfigurationProperties::default()))
-            })
-            .ok()
-            .flatten()
-            .unwrap();
-        config
-    }
 }
 
-pub(crate) fn write_events<E: NetworkMetricsServiceEvent + Send + Sync + Debug + 'static>(
+pub(crate) fn write_events<E, C>
+(
     mut event_writer: EventWriter<E>,
-    mut receiver_handler: ResMut<KafkaReceiver<E>>
-) {
+    mut receiver_handler: ResMut<KafkaReceiver<E, C>>
+)
+where E: NetworkMetricsServiceEvent<C> + Send + Sync + Debug + 'static,
+      C: Component
+{
     if receiver_handler.receiver.is_none() {
         return;
     }
@@ -149,10 +101,14 @@ pub(crate) fn write_events<E: NetworkMetricsServiceEvent + Send + Sync + Debug +
     }
 }
 
-pub(crate) fn consume_kafka_messages<E: NetworkMetricsServiceEvent + Send + Sync + Debug + 'static>(
+pub(crate) fn consume_kafka_messages<E, C>(
     mut consumer: ResMut<KafkaClientProvider>,
-    mut receiver_handler: ResMut<KafkaReceiver<E>>
-) {
+    mut receiver_handler: ResMut<KafkaReceiver<E, C>>
+)
+where E: NetworkMetricsServiceEvent<C> + Send + Sync + Debug + 'static,
+      C: Component
+{
+
     let topics = vec![E::topic_matcher().to_string()];
     let mut consumers = vec![];
     let mut task_pool = AsyncComputeTaskPool::get();

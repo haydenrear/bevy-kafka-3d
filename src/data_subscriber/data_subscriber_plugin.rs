@@ -1,7 +1,13 @@
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 use kafka::client::fetch::Data;
-use crate::data_subscriber::kafka_data_subscriber::{KafkaClientProvider, LayerMetricEvent, NodeChildrenMetricEvent, NetworkMetricEvent, NodeMetricEvent, consume_kafka_messages, write_events};
+
+use crate::data_subscriber::kafka_data_subscriber::{KafkaClientProvider, consume_kafka_messages, write_events};
+use crate::data_subscriber::metric_event::{LayerMetricEvent, NodeChildrenMetricEvent, NetworkMetricEvent, NodeMetricEvent};
+use crate::metrics::network_metrics::{Metric, MetricChildNodes};
+use crate::network::{Layer, Network, Node};
+use crate::data_subscriber::data_event_reader::MetricsState;
+
 
 pub struct DataSubscriberPlugin;
 
@@ -23,25 +29,27 @@ pub struct DataSubscriberPlugin;
 
 
 macro_rules! network_plugin {
-    ($($event_type:ident, $event_lit:literal),*) => {
+    ($($event_type:ident, $component_ty:ty),*) => {
         impl Plugin for DataSubscriberPlugin {
             fn build(&self, app: &mut App) {
                 app.insert_resource(KafkaClientProvider::default())
                     $(
                         .add_event::<$event_type>()
-                        .add_startup_system(consume_kafka_messages::<$event_type>)
-                        .add_system(write_events::<$event_type>)
+                        .add_startup_system(consume_kafka_messages::<$event_type, $component_ty>)
+                        .add_system(write_events::<$event_type, $component_ty>)
                     )*
+                    .insert_resource(MetricsState::default())
                 ;
             }
         }
     }
 }
 
+
 network_plugin!(
-    NodeMetricEvent, "node_metric",
-    LayerMetricEvent, "layer_metric",
-    NetworkMetricEvent, "network_metric",
-    NodeChildrenMetricEvent, "node_as_children_metric"
+    NodeMetricEvent, Node,
+    LayerMetricEvent, Layer,
+    NetworkMetricEvent, Network,
+    NodeChildrenMetricEvent, MetricChildNodes
 );
 

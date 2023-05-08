@@ -1,25 +1,64 @@
 use std::marker::PhantomData;
-use bevy::prelude::{Commands, Component, Entity, Query, ResMut, Resource};
+use bevy::prelude::{Commands, Component, Entity, error, Query, ResMut, Resource};
 use bevy::utils::HashMap;
-use crate::network::Node;
+use ndarray::{Array, Array2, ArrayBase, ArrayD, ArrayView, ArrayView1, Axis, Dim, Ix, Ix0, Ix1, Ix2, IxDyn, OwnedRepr, s, Shape, ShapeBuilder, Slice, SliceArg, SliceInfoElem, ViewRepr};
+use serde::{Deserialize, Deserializer};
+use serde::de::EnumAccess;
+use crate::menu::Menu;
+use crate::network::{ Node};
 
 #[derive(Component, Clone, Debug, Default)]
 pub struct Metric <T>
 where T: Component {
-    metric_name: &'static str,
-    metric_value: f32,
-    historical: HistoricalData,
-    metric_type: MetricType<T>,
-    pub(crate) dirty: bool
+    pub(crate) historical: HistoricalData,
+    pub(crate) metric_type: MetricType<T>
 }
 
-#[derive(Clone, Debug)]
+impl <T> Metric<T> where T: Component {
+    pub(crate) fn new(
+        size: Vec<usize>,
+        metric_type: MetricType<T>,
+        labels: HashMap<String, usize>
+    )  -> Metric<T> {
+        Self {
+            historical: HistoricalData::new(size, labels),
+            metric_type
+        }
+    }
+}
+
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
 pub enum MetricType<T>
 where T: Component
 {
     WeightVariance(PhantomData<T>),
     Concavity(PhantomData<T>),
     Loss(PhantomData<T>)
+}
+
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Deserialize)]
+pub enum MetricTypeMatcher {
+    WeightVariance,
+    Concavity,
+    Loss
+}
+
+impl MetricTypeMatcher {
+    pub(crate) fn get_metric<T>(&self) -> MetricType<T>
+    where T: Component
+    {
+        match self {
+            MetricTypeMatcher::WeightVariance => {
+                MetricType::WeightVariance(PhantomData::<T>::default())
+            }
+            MetricTypeMatcher::Concavity => {
+                MetricType::Concavity((PhantomData::<T>::default()))
+            }
+            MetricTypeMatcher::Loss => {
+                MetricType::Loss((PhantomData::<T>::default()))
+            }
+        }
+    }
 }
 
 impl <T> Default for MetricType<T> where T: Component
@@ -29,36 +68,68 @@ impl <T> Default for MetricType<T> where T: Component
     }
 }
 
-
 #[derive(Default, Component, Clone, Debug)]
 pub(crate) struct HistoricalData {
-    data: Vec<f32>,
+    pub(crate) data: ArrayD<f32>,
+    pub(crate) labels: HashMap<String, usize>,
+    pub(crate) timestep: HashMap<u64, usize>,
     write_index: usize,
-    size: usize,
+    size: Vec<usize>,
 }
 
 impl HistoricalData {
-    pub(crate) fn new(size: usize) -> Self {
+
+    pub(crate) fn new(size: Vec<usize>, labels: HashMap<String, usize>) -> Self {
+        let mut size = size.clone();
+        size.insert(0, 1);
         Self {
-            data: vec![0.0; size],
-            write_index: 0,
+            data: ArrayD::zeros(size.clone()),
+            write_index: 1,
             size,
+            labels,
+            timestep: HashMap::new()
         }
     }
 
-    pub(crate) fn push(&mut self, value: f32) {
-        self.data[self.write_index] = value;
-        self.write_index = (self.write_index + 1) % self.size;
+    pub(crate) fn retrieve_values(&self, column_name: &str, timestamp: u64) -> Option<ArrayBase<OwnedRepr<f32>, Ix1>> {
+        self.labels.get(column_name)
+            .map(|col| self.timestep.get(&timestamp).map(|t| (col, t)))
+            .flatten()
+            .map(|(label, time)| {
+                self.data.index_axis(Axis(0), *time)
+                    .into_dimensionality::<Ix2>()
+                    .or_else(|e| {
+                        error!("Could not make dimension 2 array: {:?}", e);
+                        Err(e)
+                    })
+                    .ok()
+                    .map(|d| (d, *label))
+            })
+            .flatten()
+            .map(|(all_data, label)| {
+                all_data.select(Axis(0), &[label])
+                    .remove_axis(Axis(0))
+            })
     }
 
-    pub(crate) fn get(&self, index: usize) -> Option<f32> {
-        if index >= self.size {
-            return None;
-        }
+    pub(crate) fn extend(&mut self, mut value: ArrayD<f32>, timestep: u64) {
+        value.insert_axis_inplace(Axis(0));
 
-        let read_index = (self.write_index + self.size - index - 1) % self.size;
-        Some(self.data[read_index])
+        let _ = self.data.append(Axis(0), value.view())
+            .or_else(|e| {
+                error!("Error adding to historical data: {:?}", e);
+                Err(e)
+            });
+
+        self.timestep.insert(timestep, self.write_index);
+        self.write_index += 1;
     }
+
+    pub(crate) fn get(&self, index: &[usize]) -> Option<f32> {
+        self.data.get(index)
+            .cloned()
+    }
+
 }
 
 

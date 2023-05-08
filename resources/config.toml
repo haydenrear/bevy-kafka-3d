@@ -2,3 +2,10 @@
 hosts = ["localhost:9092"]
 consumer_group_id = "nn-fe"
 client_id = "nn-fe"
+
+[metrics]
+[metrics.metric_type]
+WeightVariance = "*-weight-variance-*"
+Concavity = "*-concavity-*"
+Loss = "*-loss-*"
+
