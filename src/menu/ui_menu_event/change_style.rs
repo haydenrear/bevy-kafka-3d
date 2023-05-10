@@ -6,7 +6,7 @@ use bevy::prelude::{BackgroundColor, Component, Display, Entity, Size, Style, Va
 use crate::event::event_state::Update;
 use crate::event::event_propagation::{ChangePropagation, StartingState};
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentFilters, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentFilters, UiComponentState, UiEventArgs};
 use crate::Node;
 
 /// Need to translate StyleChangeType to UiComponentFilters, and then pass the UiComponentFilters to
@@ -196,6 +196,7 @@ pub enum ChangeStyleTypes {
 impl ChangeStyleTypes {
     pub(crate) fn do_change(&self, starting_state: HashMap<Entity, Style>, entities: HashMap<&Entity, &StyleNode>) -> Option<UiEventArgs> {
         info!("Creating UI event for {:?}.", &entities);
+        info!("{} is size of staring and {} is size of entities.", starting_state.len(), entities.len());
         match self {
             ChangeStyleTypes::RemoveVisible(_) => {
                 let values = Self::do_create_updates(
@@ -250,6 +251,8 @@ impl ChangeStyleTypes {
                 Self::do_create_change_size_ui_event(created.0)
             }
             ChangeStyleTypes::UpdateSize { width_1, height_1, .. } => {
+                info!("Doing size update with {} and {}", width_1, height_1);
+                info!("Doing size Change with entities: {:?} and starting state: {:?}", entities, &starting_state);
                 let size = Size::new(Val::Percent(*width_1), Val::Percent(*height_1));
                 let created = Self::do_create_updates(
                     entities,
@@ -257,6 +260,7 @@ impl ChangeStyleTypes {
                     &|node| node.get_style().size,
                     &|style| Some(size)
                 );
+                info!("Size updates: {:?}", created);
                 Self::do_create_change_size_ui_event(created.0)
             }
         }
@@ -275,9 +279,13 @@ impl ChangeStyleTypes {
                 Self::get_filter(entities, change_visible)
             }
             ChangeStyleTypes::ChangeSize { filters, .. } => {
+                info!("{:?} are the entities being filtered for size.", entities);
                 Self::get_filter(entities, filters)
             }
-            _ => { entities.into_iter().collect() }
+            ChangeStyleTypes::UpdateSize { filters, .. } => {
+                info!("{:?} are the entities being filtered for size.", entities);
+                Self::get_filter(entities, filters)
+            }
         }
     }
 
@@ -319,8 +327,8 @@ impl ChangeStyleTypes {
     }
 
     fn get_style(style: Option<Style>, entities: &HashMap<Entity, StyleNode>) -> HashMap<Entity, Style> {
-        style
-            .map(|style| {
+        info!("Fetching style for nodes: {:?}", entities) ;
+        style.map(|style| {
                 entities.iter()
                     .map(|(entity, _)| (*entity, style.clone()))
                     .collect()
@@ -333,7 +341,7 @@ impl ChangeStyleTypes {
     pub(crate) fn get_current_state(
         &self,
         entities: &HashMap<Entity, StyleNode>,
-        propagation: &StartingState
+        propagation: &StartingState,
     ) -> HashMap<Entity, Style> {
         match propagation {
             StartingState::SelfState => {
@@ -410,6 +418,7 @@ impl ChangeStyleTypes {
             StartingState::EachSelfState => {
                 entities.iter()
                     .map(|entity| {
+                        info!("Starting state: {:?}", entity.1);
                         (*entity.0, entity.1.get_style())
                     })
                     .collect()

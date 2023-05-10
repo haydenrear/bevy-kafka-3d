@@ -117,8 +117,8 @@ pub enum UiComponent {
     Node,
 }
 
-pub trait UiComponentStateFilter {
-    fn matches(&self, other: &Self) -> bool;
+pub trait UiComponentStateFilter<T> {
+    fn matches(&self, other: &T) -> bool;
 }
 
 #[derive(Debug)]
@@ -145,7 +145,8 @@ pub struct UiComponentStateTransitions {
 
 #[derive(Debug, Eq, PartialEq)]
 pub enum DisplayState {
-    DisplayFlex, DisplayNone
+    DisplayFlex, DisplayNone,
+    DisplayAny,
 }
 
 #[derive(Debug, Eq, PartialEq)]
@@ -159,15 +160,76 @@ pub enum SizeState {
     }
 }
 
-impl UiComponentStateFilter for DisplayState {
-    fn matches(&self, other: &DisplayState) -> bool {
-        &self == &other
+impl DisplayState {
+    fn get_display(&self) -> Display {
+        match self {
+            DisplayState::DisplayFlex => {
+                Display::Flex
+            }
+            DisplayState::DisplayNone => {
+                Display::None
+            }
+            DisplayState::DisplayAny => {
+                Display::Flex
+            }
+        }
     }
 }
 
-impl UiComponentStateFilter for SizeState {
-    fn matches(&self, other: &SizeState) -> bool {
-        &self == &other
+impl UiComponentStateFilter<Display> for DisplayState {
+    fn matches(&self, other: &Display) -> bool {
+        if let DisplayState::DisplayAny = self {
+            return true;
+        }
+        if self.get_display() == *other  {
+            return true;
+        } else {
+            return false;
+        }
+    }
+}
+
+impl SizeState {
+
+    fn get_width_height(&self) -> (u32, u32) {
+        match self  {
+            SizeState::Expanded { height, width } => {
+                (*height, *width)
+            }
+            SizeState::Minimized { height, width } => {
+                (*height, *width)
+            }
+        }
+    }
+
+}
+
+impl UiComponentStateFilter<Size> for SizeState {
+    fn matches(&self, starting_state: &Size) -> bool {
+        let (height_state, width_state) = self.get_width_height();
+        info!("{} is height and {} is width, and {:?} is starting_state.", height_state, width_state, starting_state);
+        if let Val::Percent(height) = starting_state.height {
+            if let Val::Percent(width) = starting_state.width {
+                info!("{} is match height and {} is match width.", height, width);
+                if height as u32 == height_state && width as u32 == width_state {
+                    info!("matched");
+                    return true;
+                }
+                return false;
+            }
+        }
+        if let Val::Px(height) = starting_state.height {
+            if let Val::Px(width) = starting_state.width {
+                info!("{} is match height and {} is match width.", height, width);
+                info!("{} is match height and {} is match width.", height, width);
+                if height as u32 == height_state && width as u32 == width_state {
+                    info!("matched");
+                    return true;
+                }
+                return false;
+            }
+        }
+        false
     }
 }
 

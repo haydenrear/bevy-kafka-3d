@@ -1,5 +1,6 @@
 #![feature(core_intrinsics)]
 #![feature(default_free_fn)]
+#![feature(let_chains)]
 
 
 extern crate core;

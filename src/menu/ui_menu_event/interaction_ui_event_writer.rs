@@ -11,7 +11,7 @@ use crate::event::event_propagation::{ChangePropagation, PropagateComponentEvent
 use crate::event::event_actions::RetrieveState;
 use crate::event::event_state::StateChange;
 use crate::menu::ui_menu_event::change_style::StyleNode;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, StyleContext, UiComponent, UiComponentStateTransition, UiComponentStateTransitions, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, StyleContext, UiComponent, UiComponentState, UiComponentStateFilter, UiComponentStateTransition, UiComponentStateTransitions, UiEventArgs};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 #[derive(Default, Resource, Debug)]
@@ -93,18 +93,28 @@ impl StateChangeActionTypeStateRetriever {
         let mut entities = HashMap::new();
 
         let propagation = &state_transition.propagation;
+        let node_style = StyleNode::SelfNode(style.clone().clone(), updateable_value.0);
+
+        if !match &state_transition.filter_state {
+            UiComponentState::StateDisplay(state) => {
+                state.matches(&style.display)
+            }
+            UiComponentState::StateSize(state) => {
+                state.matches(&style.size)
+            }
+        } {
+            return vec![];
+        }  else if propagation.includes_self() {
+            entities.insert(entity.clone(), node_style);
+        }
+
 
         if propagation.includes_parent() {
             parent_entities(&with_children_query, &with_parent_query, entity, &mut entities);
         }
 
-        if propagation.includes_self() {
-            let node_style = StyleNode::SelfNode(style.clone().clone(), updateable_value.0);
-            entities.insert(entity.clone(), node_style);
-        }
-
         if propagation.includes_children() {
-            child_entities(&entity_query, &with_children_query, entity, &mut entities)
+            child_entities(&entity_query, &with_children_query, entity, &mut entities);
         }
 
         if propagation.includes_sibling() {
@@ -133,6 +143,9 @@ impl StateChangeActionTypeStateRetriever {
                         clicked.get_ui_event(
                             &entities,
                             state_transition.propagation.get_starting_state().clone(),
+                            &state_transition.filter_state,
+                            &state_transition.current_state_filter,
+                            &state_transition.propagation
                             )
                             .map(|args| {
                                 EventDescriptor {
@@ -263,7 +276,10 @@ fn child_entities(
         (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
         (With<UiComponent>, With<Style>)
     >,
-    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
+    with_children_query: &Query<
+        (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
+        (With<UiComponent>, With<Children>, With<Style>)
+    >,
     entity: Entity,
     mut entities: &mut HashMap<Entity, StyleNode>
 ) {

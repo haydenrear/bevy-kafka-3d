@@ -92,6 +92,36 @@ fn collapsable_menu(
         UiComponentStateTransitions {
             transitions: vec![
                 UiComponentStateTransition{
+                    filter_state: UiComponentState::StateSize(SizeState::Expanded{
+                        height: 100,
+                        width: 20
+                    }),
+                    state_change: vec![
+                        StateChangeActionType::Clicked(ChangeComponentStyle(
+                            ChangeStyleTypes::RemoveVisible(None)
+                        ))
+                    ],
+                    propagation: ChangePropagation::Children(
+                        StartingState::EachSelfState
+                    ),
+                    current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                },
+                UiComponentStateTransition{
+                    filter_state: UiComponentState::StateSize(SizeState::Minimized {
+                        height: 100,
+                        width: 4
+                    }),
+                    state_change: vec![
+                        StateChangeActionType::Clicked(ChangeComponentStyle(
+                            ChangeStyleTypes::AddVisible(None)
+                        ))
+                    ],
+                    propagation: ChangePropagation::Children(
+                        StartingState::EachSelfState
+                    ),
+                    current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayNone),
+                },
+                UiComponentStateTransition{
                     filter_state: UiComponentState::StateSize(SizeState::Minimized{
                         height: 100,
                         width: 4
@@ -109,7 +139,7 @@ fn collapsable_menu(
                     propagation: ChangePropagation::SelfChange(
                         StartingState::SelfState
                     ),
-                    current_state_filter: UiComponentState::StateSize(SizeState::Expanded {
+                    current_state_filter: UiComponentState::StateSize(SizeState::Minimized {
                         height: 100,
                         width: 4
                     }),
@@ -137,36 +167,6 @@ fn collapsable_menu(
                         width: 20
                     }),
                 },
-                UiComponentStateTransition{
-                    filter_state: UiComponentState::StateSize(SizeState::Expanded{
-                        height: 100,
-                        width: 20
-                    }),
-                    state_change: vec![
-                        StateChangeActionType::Clicked(StateChange::ChangeComponentStyle(
-                            ChangeStyleTypes::RemoveVisible(None)
-                        ))
-                    ],
-                    propagation: ChangePropagation::Children(
-                        StartingState::EachSelfState
-                    ),
-                    current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                },
-                UiComponentStateTransition{
-                    filter_state: UiComponentState::StateSize(SizeState::Minimized {
-                        height: 100,
-                        width: 4
-                    }),
-                    state_change: vec![
-                        StateChangeActionType::Clicked(StateChange::ChangeComponentStyle(
-                            ChangeStyleTypes::AddVisible(None)
-                        ))
-                    ],
-                    propagation: ChangePropagation::Children(
-                        StartingState::EachSelfState
-                    ),
-                    current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayNone),
-                }
             ],
         },
         CollapsableMenuComponent(CollapsableMenu::default()),
@@ -373,48 +373,36 @@ fn draw_dropdown_components(
                 Dropdown {
                     options: options.clone(),
                     selected_index: 0,
-                }),
+                }
+            ),
             UiComponentStateTransitions {
                 transitions: vec![
                     UiComponentStateTransition {
-                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
                         state_change: vec![
                             StateChangeActionType::Clicked(
                                 ChangeComponentStyle(
-                                    ChangeStyleTypes::RemoveVisible(None)
+                                    ChangeStyleTypes::ChangeVisible(None)
                                 ))
                         ],
                         propagation: ChangePropagation::Children(
                             StartingState::EachSelfState
                         ),
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
                     },
-                    UiComponentStateTransition {
-                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayNone),
-                        state_change: vec![
-                            StateChangeActionType::Clicked(
-                                ChangeComponentStyle(
-                                    ChangeStyleTypes::AddVisible(None)
-                                ))
-                        ],
-                        propagation: ChangePropagation::Children(
-                            StartingState::EachSelfState
-                        ),
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                    },
-                    UiComponentStateTransition {
-                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                        state_change: vec![
-                            StateChangeActionType::Clicked(
-                                ChangeComponentStyle(
-                                    ChangeStyleTypes::RemoveVisible(None)
-                                ))
-                        ],
-                        propagation: ChangePropagation::SiblingsChildren(
-                            StartingState::EachSelfState
-                        ),
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                    }
+                    // UiComponentStateTransition {
+                    //     filter_state: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                    //     state_change: vec![
+                    //         StateChangeActionType::Clicked(
+                    //             ChangeComponentStyle(
+                    //                 ChangeStyleTypes::RemoveVisible(None)
+                    //             ))
+                    //     ],
+                    //     propagation: ChangePropagation::SiblingsChildren(
+                    //         StartingState::EachSelfState
+                    //     ),
+                    //     current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                    // }
                 ]
             }
         ));
@@ -437,7 +425,7 @@ fn draw_dropdown_components(
                     ..default()
                 },
                 Label,
-                UiIdentifiableComponent(menu_metadata.id)
+                UiIdentifiableComponent(menu_metadata.id),
             ));
         });
 
@@ -473,7 +461,10 @@ fn draw_menu_option(
                 background_color: BackgroundColor(Color::GREEN),
                 ..default()
             },
-            UiIdentifiableComponent(component_id)
+            UiIdentifiableComponent(component_id),
+            UiComponentStateTransitions {
+                transitions: vec![],
+            }
         ));
 
     let mut add_dropdown_option_component = menu_option_button
