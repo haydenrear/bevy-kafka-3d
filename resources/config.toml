@@ -9,3 +9,9 @@ WeightVariance = "*-weight-variance-*"
 Concavity = "*-concavity-*"
 Loss = "*-loss-*"
 
+[network]
+[network.layer_type]
+Normalization = ["1dNormalization", "2dNormalization"]
+AttentionEncoder = ["TransformerEncoder"]
+AttentionDecoder = ["TransformerEncoder"]
+FullyConnected = ["Linear"]

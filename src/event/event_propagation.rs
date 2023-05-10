@@ -1,4 +1,72 @@
+use bevy::prelude::{Commands, Component, Entity, error, EventReader, info, Visibility};
+use bevy::ui::Display;
 use crate::event::event_state::StateChange;
+
+// macro_rules! component_propagation {
+//
+//     ($($component_ident:ident, $component_ty:ty),*) => {
+//
+//         pub enum ComponentPropagation
+//         {
+//             $(
+//                 $component_ident(Entity, $component_ty)
+//             )*
+//         }
+//
+//         pub fn component_propagation_system(
+//             mut commands: Commands,
+//             mut propagation_reader: EventReader<ComponentPropagation>
+//         ) {
+//             for event in propagation_reader.iter() {
+//                 match event {
+//                     $(
+//                         ComponentPropagation::$component_ident(e, c) => {
+//                             add_component(&mut commands, e, *c);
+//                         }
+//                     )*
+//                 }
+//             }
+//         }
+//     }
+// }
+//
+// component_propagation!(
+//     Visible, Visibility
+// );
+
+#[derive(Debug)]
+pub enum PropagateComponentEvent {
+    Visible(Entity, Visibility)
+}
+
+pub fn component_propagation_system(
+    mut commands: Commands,
+    mut propagation_reader: EventReader<PropagateComponentEvent>
+) {
+    for event in propagation_reader.iter() {
+        match event {
+            PropagateComponentEvent::Visible(entity, component) => {
+                info!("Adding propagation event: {:?}", component);
+                add_component(&mut commands, entity, *component)
+            }
+        }
+    }
+}
+
+fn add_component<T>(commands: &mut Commands, e: &Entity, to_add: T)
+where
+    T: Component
+{
+    let _ = commands.get_entity(*e)
+        .as_mut()
+        .map(|entity| {
+            entity.insert(to_add);
+        })
+        .or_else(|| {
+            error!("Could not find entity to make hidden.");
+            None
+        });
+}
 
 #[derive(Clone, Debug)]
 pub enum ChangePropagation {
@@ -23,7 +91,7 @@ pub enum ChangePropagation {
         to: Vec<f32>,
         // starting state
         from: StartingState
-    }
+    },
 }
 
 impl ChangePropagation {
@@ -287,23 +355,10 @@ pub enum StartingState {
     Child,
     Parent,
     SelfState,
+    EachSelfState,
     Sibling,
     SiblingChild,
-    Other(f32)
+    Other(f32),
+    VisibleState(Display)
 }
 
-impl StateChange {
-    pub fn propagation(&self) -> Option<&ChangePropagation> {
-        match self {
-            StateChange::ChangeComponentColor(_, change_type) => {
-                Some(change_type)
-            }
-            StateChange::ChangeComponentStyle(_, change_type) => {
-                Some(change_type)
-            }
-            StateChange::None => {
-                None
-            }
-        }
-    }
-}

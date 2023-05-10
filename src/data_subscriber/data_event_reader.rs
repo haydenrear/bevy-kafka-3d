@@ -72,11 +72,13 @@ where
                     get_arr_from_vec( event.get_data(), event.get_shape())
                         .map(|arr| metric.historical.extend(arr, 0));
 
+                    // TODO: this should wait and the series is created based on changes in menu
                     commands.spawn((metric, DataSeries{
                         drawn: vec![],
                         prev_convergence_times: Default::default(),
                         columns: vec![]
                     }));
+
                     break;
                 }
             }

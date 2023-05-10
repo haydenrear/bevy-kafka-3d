@@ -5,6 +5,7 @@ use std::fmt::{Debug, Formatter};
 use bevy::time::TimerMode;
 use crate::event::event_actions::{InteractionEventReader, StateChangeEventReader};
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
+use crate::event::event_propagation::ChangePropagation;
 use crate::event::event_state::{Context, HoverStateChange, NextStateChange, StateChange, StateChangeFactory, Update, UpdateStateInPlace};
 use crate::menu::{CollapsableMenu, Dropdown, DropdownOption, ui_menu_event};
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
@@ -19,10 +20,11 @@ impl Plugin for UiEventPlugin {
         app
             .add_startup_system(create_dropdown)
             .insert_resource(StateChangeActionTypeStateRetriever::default())
+            .insert_resource(StyleContext::default())
             .add_system(crate::event::event_actions::click_write_events::<
-                StateChangeActionTypeStateRetriever, UiEventArgs, StateChangeActionType, Style,
+                StateChangeActionTypeStateRetriever, UiEventArgs, StateChangeActionType, Style, StyleContext,
                 // self query
-                (Entity, &UiComponent, &Style, &UiIdentifiableComponent),
+                (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
                 // self filter
                 (With<UiComponent>, With<Style>),
                 // parent query
@@ -52,7 +54,7 @@ pub struct StateChangeActionComponentStateFactory;
 
 impl StateChangeFactory<StateChangeActionType, UiEventArgs, Style, Style, StyleContext, NextUiState>
 for StateChangeActionComponentStateFactory {
-    fn current_state(current: &EventDescriptor<StateChangeActionType, UiEventArgs, Style>) -> Vec<NextStateChange<NextUiState, Style, StyleContext>> {
+    fn current_state(current: &EventDescriptor<StateChangeActionType, UiEventArgs, Style>, context: &mut ResMut<StyleContext>) -> Vec<NextStateChange<NextUiState, Style, StyleContext>> {
         if let UiEventArgs::Event(UiClickStateChange::ChangeSize { update_display}) = &current.event_args {
             return update_display.iter()
                 .map(|(entity, size)| {
@@ -90,11 +92,10 @@ pub struct StyleContext {
 }
 
 impl Context for StyleContext {
-
 }
 
 impl UpdateStateInPlace<Style, StyleContext> for NextUiState {
-    fn update_state(&self, commands: &mut Commands,  value: &mut Style, style_context: &mut Option<ResMut<StyleContext>>) {
+    fn update_state(&self, commands: &mut Commands,  value: &mut Style, style_context: &mut ResMut<StyleContext>) {
         if let NextUiState::ReplaceSize(update) = &self {
             update.update_state(commands, &mut value.size, style_context);
         } else if let NextUiState::ReplaceDisplay(display) = &self {
@@ -110,10 +111,64 @@ impl UpdateStateInPlace<Style, StyleContext> for NextUiState {
 /// will be updated by the UiComponentStateFactory.
 #[derive(Component, Debug, Clone)]
 pub enum UiComponent {
-    Dropdown(Dropdown, Vec<StateChangeActionType>),
-    MenuOption(DropdownOption, Vec<StateChangeActionType>),
-    CollapsableMenuComponent(CollapsableMenu, Vec<StateChangeActionType>),
-    Node(Vec<StateChangeActionType>),
+    Dropdown(Dropdown),
+    MenuOption(DropdownOption),
+    CollapsableMenuComponent(CollapsableMenu),
+    Node,
+}
+
+pub trait UiComponentStateFilter {
+    fn matches(&self, other: &Self) -> bool;
+}
+
+#[derive(Debug)]
+pub enum UiComponentState {
+    StateDisplay(DisplayState),
+    StateSize(SizeState)
+}
+
+#[derive(Debug)]
+pub struct UiComponentStateTransition {
+    pub(crate) filter_state: UiComponentState,
+    pub(crate) state_change: Vec<StateChangeActionType>,
+    pub(crate) propagation: ChangePropagation,
+    /// Sometimes the event is driven from another component, and then propagated to other components.
+    /// In this case, there needs to be a filter for whether or not to change the other component, the
+    /// component for which the event is propagated to.
+    pub(crate) current_state_filter: UiComponentState
+}
+
+#[derive(Component, Debug)]
+pub struct UiComponentStateTransitions {
+    pub(crate) transitions: Vec<UiComponentStateTransition>
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum DisplayState {
+    DisplayFlex, DisplayNone
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum SizeState {
+    Expanded{
+        height: u32,
+        width: u32,
+    }, Minimized {
+        height: u32,
+        width: u32,
+    }
+}
+
+impl UiComponentStateFilter for DisplayState {
+    fn matches(&self, other: &DisplayState) -> bool {
+        &self == &other
+    }
+}
+
+impl UiComponentStateFilter for SizeState {
+    fn matches(&self, other: &SizeState) -> bool {
+        &self == &other
+    }
 }
 
 #[derive(Debug)]
@@ -128,7 +183,7 @@ pub struct ChangeComponentColorUpdate {
 }
 
 impl UpdateStateInPlace<BackgroundColor, StyleContext> for ChangeComponentColorUpdate {
-    fn update_state(&self, commands: &mut Commands, value: &mut BackgroundColor, ctx: &mut Option<ResMut<StyleContext>>) {
+    fn update_state(&self, commands: &mut Commands, value: &mut BackgroundColor, ctx: &mut ResMut<StyleContext>) {
         value.0 = self.new_color;
     }
 }
@@ -164,30 +219,10 @@ pub struct UiComponentFilters {
     pub(crate) exclude: Option<Vec<f32>>,
 }
 
-
-impl UiComponent {
-    pub fn get_state_change_types(&self) -> &Vec<StateChangeActionType> {
-        match self {
-            UiComponent::Dropdown(_, events) => {
-                events
-            }
-            UiComponent::MenuOption(_, events) => {
-                events
-            }
-            UiComponent::CollapsableMenuComponent(_, events) => {
-                events
-            }
-            UiComponent::Node(events) => {
-                events
-            }
-        }
-    }
-}
-
 impl EventData for StateChangeActionType {}
 
 #[derive(Clone, Debug)]
-pub struct StateChangeActionType {
-    pub(crate) hover: HoverStateChange,
-    pub(crate) clicked: StateChange,
+pub enum StateChangeActionType {
+    Hover(StateChange),
+    Clicked(StateChange)
 }

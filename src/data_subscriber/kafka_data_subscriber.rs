@@ -19,20 +19,18 @@ use tokio::sync::mpsc::Receiver;
 use tokio::sync::Semaphore;
 use tokio::time::timeout;
 use crate::config::ConfigurationProperties;
-use crate::data_subscriber::metric_event::NetworkMetricsServiceEvent;
+use crate::data_subscriber::data_subscriber::{DataSubscriber, MessageClientProvider};
+use crate::data_subscriber::metric_event::{NetworkEvent, NetworkMetricsServiceEvent};
 use crate::metrics::network_metrics::{Metric, MetricChildNodes};
 use crate::network::{Layer, Network, Node};
 
 #[derive(Resource, Default)]
-pub(crate) struct EventReceiver<T, C>
+pub struct EventReceiver<T>
 where
-    T: NetworkMetricsServiceEvent<C>,
-    C: Component
+    T: NetworkEvent,
 {
-    receiver: Option<Receiver<T>>,
-    phantom: PhantomData<C>
+    receiver: Option<Receiver<T>>
 }
-
 
 #[derive(Resource, Debug)]
 pub struct KafkaClientProvider {
@@ -43,6 +41,8 @@ pub struct KafkaClientProvider {
     num_consumers_per_event: u8,
     consumers: Vec<Consumer>
 }
+
+impl MessageClientProvider for KafkaClientProvider {}
 
 impl Default for KafkaClientProvider {
     fn default() -> Self {
@@ -82,16 +82,14 @@ impl KafkaClientProvider {
             .with_client_id(self.client_id.clone())
             .create()
     }
-
 }
 
-pub(crate) fn write_events<E, C>
+pub(crate) fn write_events<E>
 (
     mut event_writer: EventWriter<E>,
-    mut receiver_handler: ResMut<EventReceiver<E, C>>
+    mut receiver_handler: ResMut<EventReceiver<E>>
 )
-where E: NetworkMetricsServiceEvent<C> + Send + Sync + Debug + 'static,
-      C: Component
+where E: NetworkEvent + 'static
 {
     if receiver_handler.receiver.is_none() {
         return;
@@ -101,65 +99,74 @@ where E: NetworkMetricsServiceEvent<C> + Send + Sync + Debug + 'static,
     }
 }
 
-pub(crate) fn consume_kafka_messages<E, C>(
-    mut consumer: ResMut<KafkaClientProvider>,
-    mut receiver_handler: ResMut<EventReceiver<E, C>>
-)
-where E: NetworkMetricsServiceEvent<C> + Send + Sync + Debug + 'static,
-      C: Component
+pub struct KafkaMessageSubscriber<E>
+    where E: NetworkEvent + 'static
+{
+    phantom: PhantomData<E>
+}
+
+impl <E> DataSubscriber<E, KafkaClientProvider> for KafkaMessageSubscriber<E>
+    where E: NetworkEvent + 'static
 {
 
-    let topics = vec![E::topic_matcher().to_string()];
-    let mut consumers = vec![];
-    let mut task_pool = AsyncComputeTaskPool::get();
+    fn subscribe(
+        mut consumer: ResMut<KafkaClientProvider>,
+        mut receiver_handler: ResMut<EventReceiver<E>>
+    )
+    {
+
+        let topics = vec![E::topic_matcher().to_string()];
+        let mut consumers = vec![];
+        let mut task_pool = AsyncComputeTaskPool::get();
 
 
-    for _ in 0..consumer.num_consumers_per_event {
-        let _ = consumer.get_consumer(topics.clone())
-            .map(|consumer| {
-                consumers.push(consumer);
-            })
-            .or_else(|e| {
-                error!("Failed to create Kafka consumer for topic {:?}: {:?}", &topics, e);
-                Ok::<(), kafka::Error>(())
-            })
-            .ok();
-    }
+        for _ in 0..consumer.num_consumers_per_event {
+            let _ = consumer.get_consumer(topics.clone())
+                .map(|consumer| {
+                    consumers.push(consumer);
+                })
+                .or_else(|e| {
+                    error!("Failed to create Kafka consumer for topic {:?}: {:?}", &topics, e);
+                    Ok::<(), kafka::Error>(())
+                })
+                .ok();
+        }
 
-    let (mut tx, mut rx) = tokio::sync::mpsc::channel::<E>(16);
+        let (mut tx, mut rx) = tokio::sync::mpsc::channel::<E>(16);
 
-    let mut rx: Receiver<E> = rx;
+        let mut rx: Receiver<E> = rx;
 
-    let _ = std::mem::replace(&mut receiver_handler.receiver, Some(rx));
+        let _ = std::mem::replace(&mut receiver_handler.receiver, Some(rx));
 
-    let tx = Arc::new(tx);
+        let tx = Arc::new(tx);
 
-    consumers.into_iter().for_each(|mut consumer| {
-        let tx = tx.clone();
-        let _ = task_pool.spawn(async move {
+        consumers.into_iter().for_each(|mut consumer| {
             let tx = tx.clone();
-            loop {
-                if let Ok(message_set) = consumer.poll() {
-                    for message_set in message_set.iter() {
-                        for message in message_set.messages().iter() {
-                            let event = match serde_json::from_slice::<E>(message.value) {
-                                Ok(event) => event,
-                                Err(e) => {
-                                    error!("Error deserializing event: {:?}.", e);
-                                    continue;
-                                }
-                            };
-                            let _ = tx.send(event)
-                                .await
-                                .or_else(|e| {
-                                    error!("Error sending event: {}.", e.to_string());
-                                    Err(e)
-                                });
+            let _ = task_pool.spawn(async move {
+                let tx = tx.clone();
+                loop {
+                    if let Ok(message_set) = consumer.poll() {
+                        for message_set in message_set.iter() {
+                            for message in message_set.messages().iter() {
+                                let event = match serde_json::from_slice::<E>(message.value) {
+                                    Ok(event) => event,
+                                    Err(e) => {
+                                        error!("Error deserializing event: {:?}.", e);
+                                        continue;
+                                    }
+                                };
+                                let _ = tx.send(event)
+                                    .await
+                                    .or_else(|e| {
+                                        error!("Error sending event: {}.", e.to_string());
+                                        Err(e)
+                                    });
+                            }
                         }
                     }
                 }
-            }
+            });
         });
-    });
 
+    }
 }

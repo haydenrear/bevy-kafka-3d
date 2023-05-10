@@ -25,10 +25,13 @@ use crate::config::ConfigurationProperties;
 use crate::metrics::network_metrics::{Metric, MetricChildNodes};
 use crate::network::{Layer, Network, Node};
 
-pub trait NetworkMetricsServiceEvent<C>: for<'a> Deserialize<'a> + Send + Sync
+pub trait NetworkEvent: for<'a> Deserialize<'a> + Send + Sync {
+    fn topic_matcher() -> &'static str;
+}
+
+pub trait NetworkMetricsServiceEvent<C>: for<'a> Deserialize<'a> + Send + Sync + NetworkEvent
 where C: Component
 {
-    fn topic_matcher() -> &'static str;
     fn metric_name(&self) -> &str;
     fn get_shape(&self) -> &Vec<usize>;
     fn get_data(&self) -> Vec<f32>;
@@ -49,10 +52,13 @@ macro_rules! network_events {
                 pub(crate) columns: Option<HashMap<String, usize>>
             }
 
-            impl NetworkMetricsServiceEvent<$event_component> for $event_type {
+            impl NetworkEvent for $event_type {
                 fn topic_matcher() -> &'static str {
                     $event_lit
                 }
+            }
+
+            impl NetworkMetricsServiceEvent<$event_component> for $event_type {
                 fn metric_name<'a>(&'a self) -> &'a str {
                     self.metric_name.as_str()
                 }

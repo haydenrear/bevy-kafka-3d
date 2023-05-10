@@ -19,6 +19,7 @@ use bevy_prototype_lyon::prelude::{FillOptions, Path};
 use bevy_prototype_lyon::prelude::tess::{BuffersBuilder, FillTessellator, FillVertex, VertexBuffers};
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 use crate::menu::{DataType, MetricsConfigurationOption};
+use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
 use crate::menu::menu_resource::VARIANCE;
 use crate::network::{Layer, LayerType, Network, NetworkId, Node};
 
@@ -34,6 +35,7 @@ pub const CONNECTION_THICKNESS: f32 = 20.0;
 ///    types of neural networks.
 pub(crate) fn create_network(
     mut commands: Commands,
+    mut context: ResMut<ConfigOptionContext>,
     mut layer_query: Query<(&mut Transform, &mut Layer, Entity)>,
     mut network_query: Query<&Network>
 ) {
@@ -60,12 +62,17 @@ pub(crate) fn create_network(
         }
     }
 
+    if network.len() > 1 {
+        panic!("too many networks!");
+    }
+
     for network_to_create in network.into_iter() {
-        commands.spawn(Network::new(
+        context.network_entity = Some(commands.spawn(Network::new(
             network_to_create.1,
             network_to_create.0
-        ));
+        )).id());
     }
+
 
 }
 
@@ -173,8 +180,6 @@ fn draw_layers_and_nodes<'a>(
 
     commands.entity(layer_entity)
         .insert((layer_tuple.0.layer_type.create_mesh(layer_tuple.0, meshes, materials, color)));
-
-
 
 
     for node in layer_tuple.0.nodes.iter() {

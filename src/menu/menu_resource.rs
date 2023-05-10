@@ -5,7 +5,7 @@ use bevy::ui::{Size, Val};
 use bevy::utils::default;
 use crate::graph::Graph;
 use crate::graph::graph_plugin::GraphPlugin;
-use crate::menu::{MetricsConfigurationOption, DataType, MenuData, MenuOption, MenuInputType, MenuItemMetadata, MenuOptionType, Position, ConfigurationOptionEnum, Menu};
+use crate::menu::{MetricsConfigurationOption, DataType, MenuData, MenuOption, MenuInputType, MenuItemMetadata, MenuOptionType, Position, ConfigurationOptionEnum, Menu, MenuType};
 use crate::menu::config_menu_event::config_menu_event_plugin::ConfigMenuEventPlugin;
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, Network, Node};
@@ -59,6 +59,7 @@ impl Default for MenuResource {
                                                                     id: 9.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                             // variance
                                                             MenuOption {
@@ -80,6 +81,7 @@ impl Default for MenuResource {
                                                                     id: 10.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                         ],
                                                         metadata: MenuItemMetadata {
@@ -122,6 +124,7 @@ impl Default for MenuResource {
                                                     description: "Options for metrics for layers.".to_string(),
                                                     ..default()
                                                 },
+                                                swing_out: true,
                                             },
 
                                             // layer
@@ -148,6 +151,7 @@ impl Default for MenuResource {
                                                                     id: 11.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                             // variance
                                                             MenuOption {
@@ -168,6 +172,7 @@ impl Default for MenuResource {
                                                                     id: 12.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                         ],
                                                         metadata: MenuItemMetadata {
@@ -208,6 +213,7 @@ impl Default for MenuResource {
                                                     description: "Options for metrics for layers.".to_string(),
                                                     ..default()
                                                 },
+                                                swing_out: true,
                                             },
 
                                             // node
@@ -234,6 +240,7 @@ impl Default for MenuResource {
                                                                     id: 13.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                             // variance
                                                             MenuOption {
@@ -254,6 +261,7 @@ impl Default for MenuResource {
                                                                     id: 14.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                         ],
                                                         metadata: MenuItemMetadata {
@@ -294,6 +302,7 @@ impl Default for MenuResource {
                                                     description: "Options for metrics for layers.".to_string(),
                                                     ..default()
                                                 },
+                                                swing_out: true,
                                             },
 
                                         ],
@@ -330,7 +339,8 @@ impl Default for MenuResource {
                                         MetricsConfigurationOption::Menu(
                                             PhantomData::<Menu>::default(),
                                             DataType::Selected,
-                                                MENU
+                                                MENU,
+                                            MenuType::Menu
                                         )
                                     ),
                                 },
@@ -345,6 +355,7 @@ impl Default for MenuResource {
                                     description: "".to_string(),
                                     id: 101.0,
                                 },
+                                swing_out: true,
                             },
                             MenuOption {
                                 data_type: MenuOptionType::SubMenu {
@@ -376,6 +387,7 @@ impl Default for MenuResource {
                                                                     id: 9.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                             // variance
                                                             MenuOption {
@@ -396,6 +408,7 @@ impl Default for MenuResource {
                                                                     id: 10.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                         ],
                                                         metadata: MenuItemMetadata {
@@ -438,6 +451,7 @@ impl Default for MenuResource {
                                                     description: "Options for metrics for layers.".to_string(),
                                                     ..default()
                                                 },
+                                                swing_out: true,
                                             },
 
                                             // layer
@@ -464,6 +478,7 @@ impl Default for MenuResource {
                                                                     id: 11.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                             // variance
                                                             MenuOption {
@@ -484,6 +499,7 @@ impl Default for MenuResource {
                                                                     id: 12.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                         ],
                                                         metadata: MenuItemMetadata {
@@ -524,6 +540,7 @@ impl Default for MenuResource {
                                                     description: "Options for metrics for layers.".to_string(),
                                                     ..default()
                                                 },
+                                                swing_out: true,
                                             },
 
                                             // node
@@ -550,6 +567,7 @@ impl Default for MenuResource {
                                                                     id: 13.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                             // variance
                                                             MenuOption {
@@ -570,6 +588,7 @@ impl Default for MenuResource {
                                                                     id: 14.0,
                                                                     ..default()
                                                                 },
+                                                                swing_out: true,
                                                             },
                                                         ],
                                                         metadata: MenuItemMetadata {
@@ -610,6 +629,7 @@ impl Default for MenuResource {
                                                     description: "Options for metrics for layers.".to_string(),
                                                     ..default()
                                                 },
+                                                swing_out: true,
                                             },
 
                                         ],
@@ -646,7 +666,8 @@ impl Default for MenuResource {
                                         MetricsConfigurationOption::Menu(
                                             PhantomData::<Menu>::default(),
                                             DataType::Selected,
-                                            MENU
+                                            MENU,
+                                            MenuType::Menu
                                         )
                                     ),
                                 },
@@ -661,6 +682,7 @@ impl Default for MenuResource {
                                     description: "".to_string(),
                                     id: 101.0,
                                 },
+                                swing_out: true,
                             }
                         ],
                         metadata: MenuItemMetadata {
@@ -677,7 +699,8 @@ impl Default for MenuResource {
                             MetricsConfigurationOption::Menu(
                                 PhantomData::<Menu>::default(),
                                 DataType::Selected,
-                                MENU
+                                MENU,
+                                MenuType::Menu
                             )
                         ),
                     },
@@ -687,9 +710,13 @@ impl Default for MenuResource {
 
                             MenuOption {
                                 data_type: MenuOptionType::Primitive(
-                                    ConfigurationOptionEnum::DisplayGraph(
-                                        MetricsConfigurationOption::Menu(PhantomData::<Menu>::default(), DataType::Selected, MENU)
-                                    )
+                                    ConfigurationOptionEnum::GraphingMenu(
+                                        MetricsConfigurationOption::Menu(
+                                            PhantomData::<Menu>::default(),
+                                            DataType::Selected,
+                                            MENU,
+                                            MenuType::Graph
+                                        ))
                                 ),
                                 index: 0,
                                 metadata: MenuItemMetadata {
@@ -702,17 +729,17 @@ impl Default for MenuResource {
                                     description: "".to_string(),
                                     id: 101.0,
                                 },
+                                swing_out: false,
                             },
-
                             MenuOption {
                                 data_type: MenuOptionType::Primitive(
-                                    ConfigurationOptionEnum::DisplayNetwork(
+                                    ConfigurationOptionEnum::GraphingMenu(
                                         MetricsConfigurationOption::Menu(
-                                            PhantomData::<Graph<Network>>::default(),
+                                            PhantomData::<Menu>::default(),
                                             DataType::Selected,
-                                            MENU
-                                        )
-                                    )
+                                            MENU,
+                                            MenuType::Network
+                                        ))
                                 ),
                                 index: 0,
                                 metadata: MenuItemMetadata {
@@ -725,13 +752,14 @@ impl Default for MenuResource {
                                     description: "".to_string(),
                                     id: 101.0,
                                 },
+                                swing_out: false,
                             },
 
                         ],
                         metadata: MenuItemMetadata {
                             icon: "".to_string(),
                             font: Default::default(),
-                            name: "Metrics".to_string(),
+                            name: "Display".to_string(),
                             icon_pos: Default::default(),
                             size: None,
                             color: Default::default(),
@@ -742,11 +770,11 @@ impl Default for MenuResource {
                             MetricsConfigurationOption::Menu(
                                 PhantomData::<Menu>::default(),
                                 DataType::Selected,
-                                MENU
+                                MENU,
+                                MenuType::Menu
                             )
                         ),
                     },
-
                 ],
             }
         }

@@ -18,9 +18,13 @@ use lines::line_list::LineMaterial;
 use metrics::network_metrics::{publish_metrics, update_metrics};
 use crate::config::ConfigurationProperties;
 use crate::data_subscriber::data_subscriber_plugin::DataSubscriberPlugin;
+use crate::event::event_propagation::{component_propagation_system, PropagateComponentEvent};
 use crate::graph::draw_graph_points::draw_graph_points;
 use crate::graph::graph_plugin::GraphPlugin;
 use crate::graph::setup_graph::setup_graph;
+use crate::menu::config_menu_event::config_menu_event_plugin::ConfigMenuEventPlugin;
+use crate::menu::config_menu_event::interaction_config_event_reader::read_item;
+use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::menu_resource::MenuResource;
 
@@ -52,6 +56,7 @@ async fn main() {
            ..default()
         })
         .insert_resource(MenuResource::default())
+        .insert_resource(ConfigOptionContext::default())
         .insert_resource(ConfigurationProperties::default())
         .add_plugins(DefaultPlugins)
         .add_plugins(DefaultPickingPlugins)
@@ -60,9 +65,11 @@ async fn main() {
         .add_plugin(UiEventPlugin)
         .add_plugin(GraphPlugin)
         .add_plugin(DataSubscriberPlugin)
+        .add_plugin(ConfigMenuEventPlugin)
         .add_plugin(MaterialPlugin::<LineMaterial>::default())
         .add_startup_system(setup_camera)
         .add_startup_system(add_node_entities)
+        .add_system(read_item)
         .add_system(update_network)
         .add_system(camera_control)
         .add_system(draw_node_connections)
@@ -70,5 +77,7 @@ async fn main() {
         .add_system(draw_network_initial)
         .add_system(update_metrics)
         .add_system(publish_metrics)
+        .add_system(component_propagation_system)
+        .add_event::<PropagateComponentEvent>()
         .run();
 }

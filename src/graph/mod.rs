@@ -15,6 +15,8 @@ use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 pub(crate) mod setup_graph;
 pub(crate) mod draw_graph_points;
 pub(crate) mod graph_plugin;
+pub(crate) mod radial;
+pub(crate) mod graph_menu;
 
 
 pub const GRID_SIZE: f32 = 10000.0;
@@ -29,8 +31,7 @@ pub const NUM_GRIDLINES: usize = 1000;
 #[derive(Component, Clone, Default, Debug)]
 pub struct Graph<T>
     where
-        T: Component
-{
+        T: Component {
     component: PhantomData<T>
 }
 
@@ -47,15 +48,21 @@ pub struct Grid {
     z_axis: Entity
 }
 
-#[derive(Component, Default)]
+#[derive(Component, Default, Clone)]
 pub enum GraphDimType {
-    Colored, Sized, #[default] Location, Time
+    #[default]
+    Location,
+    Combination(HashMap<usize, GraphDimType>),
+    Colored,
+    Sized,
+    Time
 }
 
 pub struct GraphDim {
     dim_type: GraphDimType,
     name: String,
-    grid_axis: Option<GridAxis>
+    grid_axis: GridAxis,
+    index: usize
 }
 
 #[derive(Component)]
@@ -135,6 +142,7 @@ pub(crate) fn estimate_convergence_time(
     // Calculate the exponential moving average of the first derivatives
     let mut ema_first_derivative = first_derivative[0];
     for i in 1..n {
+        //TODO: generic over # of deriv and # of moments of  std dev
         ema_first_derivative = ema_alpha * first_derivative[i] + (1.0 - ema_alpha) * ema_first_derivative;
     }
 

@@ -35,17 +35,25 @@ impl ChangeStyleTypes {
         }));
     }
 
-    fn do_create_updates<T: Clone + Debug + Default + Send + Sync>(entities: &HashMap<Entity, StyleNode>,
-                                   component: &T,
-                                   get_component: &dyn Fn(&StyleNode) -> T) -> (HashMap<Entity, Update<T>>, HashMap<Entity, T>) {
+    fn do_create_updates<T: Clone + Debug + Default + Send + Sync>(
+        entities: HashMap<&Entity, &StyleNode>,
+        to_update: HashMap<Entity, Style>,
+        get_component: &dyn Fn(&StyleNode) -> T,
+        get_next_state_component: &dyn Fn(&Style) -> Option<T>,
+    ) -> (HashMap<Entity, Update<T>>, HashMap<Entity, T>) {
         let update_display = entities.keys()
-            .map(|entity| {
-                (entity.clone(), Update {update_to: Some(component.clone())})
+            .flat_map(|entity| {
+                to_update.get(entity)
+                    .iter()
+                    .flat_map(|component| get_next_state_component(*component)
+                            .map(|component| (**entity, Update {update_to: Some(component)}))
+                    )
+                    .collect::<Vec<(Entity, Update<T>)>>()
             })
             .collect::<HashMap<Entity, Update<T>>>();
         let current_display = entities.iter()
             .map(|(entity, node)| {
-                (entity.clone(), get_component(node))
+                (**entity, get_component(node))
             })
             .collect::<HashMap<Entity, T>>();
         (update_display, current_display)
@@ -178,45 +186,84 @@ pub enum ChangeStyleTypes {
         width_2: f32,
         filters: Option<UiComponentFilters>
     },
+    UpdateSize {
+        height_1: f32,
+        width_1: f32,
+        filters: Option<UiComponentFilters>
+    },
 }
 
 impl ChangeStyleTypes {
-    pub(crate) fn do_change(&self, starting_state: &Style, entities: HashMap<Entity, StyleNode>) -> Option<UiEventArgs> {
+    pub(crate) fn do_change(&self, starting_state: HashMap<Entity, Style>, entities: HashMap<&Entity, &StyleNode>) -> Option<UiEventArgs> {
         info!("Creating UI event for {:?}.", &entities);
         match self {
             ChangeStyleTypes::RemoveVisible(_) => {
-                let values = Self::do_create_updates(&entities, &Display::None, &|node| node.get_style().display);
+                let values = Self::do_create_updates(
+                    entities,
+                    starting_state,
+                    &|node| node.get_style().display,
+                        &|style| {
+                        if style.display == Display::Flex {
+                            return Some(Display::None);
+                        }
+                        None
+                    }
+                );
                 Self::do_create_display_ui_event(values.0)
             }
             ChangeStyleTypes::AddVisible(_) => {
-                let values = Self::do_create_updates(&entities, &Display::Flex, &|node| node.get_style().display);
+                let values = Self::do_create_updates(
+                    entities,
+                    starting_state,
+                    &|node| node.get_style().display,
+                    &|style| {
+                        if style.display == Display::None {
+                            return Some(Display::Flex);
+                        }
+                        None
+                    }
+                );
                 Self::do_create_display_ui_event(values.0)
             }
             ChangeStyleTypes::ChangeVisible(_) => {
-                let display = Self::get_change_display(starting_state);
-                let values = Self::do_create_updates(&entities, &display, &|node| node.get_style().display);
+                let values = Self::do_create_updates(
+                    entities,
+                    starting_state,
+                    &|node| node.get_style().display,
+                    &|style| {
+                        if style.display == Display::Flex {
+                            return Some(Display::None);
+                        }
+                        Some(Display::Flex)
+                    }
+                );
                 info!("Found values: {:?} for changin visible.", values);
                 Self::do_create_display_ui_event(values.0)
             }
             ChangeStyleTypes::ChangeSize { width_1,width_2, height_1,height_2, .. } => {
-                let size = Self::size(height_1, height_2, width_1, width_2, starting_state);
-                size.map(|new_size| {
-                    Self::do_create_updates(&entities, &new_size, &|node| node.get_style().size)
-                })
-                    .map(|created| Self::do_create_change_size_ui_event(created.0))
-                    .flatten()
-                    .or_else(|| {
-                        info!("Sizes did not match.");
-                        None
-                    })
+                let created = Self::do_create_updates(
+                        entities,
+                        starting_state,
+                        &|node| node.get_style().size,
+                        &|style| Self::size(height_1, height_2, width_1, width_2, style)
+                );
+                Self::do_create_change_size_ui_event(created.0)
+            }
+            ChangeStyleTypes::UpdateSize { width_1, height_1, .. } => {
+                let size = Size::new(Val::Percent(*width_1), Val::Percent(*height_1));
+                let created = Self::do_create_updates(
+                    entities,
+                    starting_state,
+                    &|node| node.get_style().size,
+                    &|style| Some(size)
+                );
+                Self::do_create_change_size_ui_event(created.0)
             }
         }
     }
 
 
-    pub(crate) fn filter_entities(&self,
-                                  entities: HashMap<Entity, StyleNode>
-    ) ->  HashMap<Entity, StyleNode> {
+    pub(crate) fn filter_entities<'a>(&'a self, entities: &'a HashMap<Entity, StyleNode>) ->  HashMap<&Entity, &StyleNode> {
         match self {
             ChangeStyleTypes::RemoveVisible(remove_visible) => {
                 Self::get_filter(entities, remove_visible)
@@ -230,7 +277,7 @@ impl ChangeStyleTypes {
             ChangeStyleTypes::ChangeSize { filters, .. } => {
                 Self::get_filter(entities, filters)
             }
-            _ => { entities }
+            _ => { entities.into_iter().collect() }
         }
     }
 
@@ -271,130 +318,124 @@ impl ChangeStyleTypes {
         size
     }
 
+    fn get_style(style: Option<Style>, entities: &HashMap<Entity, StyleNode>) -> HashMap<Entity, Style> {
+        style
+            .map(|style| {
+                entities.iter()
+                    .map(|(entity, _)| (*entity, style.clone()))
+                    .collect()
+            })
+            .or(Some(HashMap::new()))
+            .unwrap()
+    }
+
     /// Get the state of the node that will determine what the next state will be.
     pub(crate) fn get_current_state(
         &self,
         entities: &HashMap<Entity, StyleNode>,
-        propagation: &ChangePropagation
-    ) -> Option<Style> {
-        match propagation.get_starting_state() {
+        propagation: &StartingState
+    ) -> HashMap<Entity, Style> {
+        match propagation {
             StartingState::SelfState => {
-                Self::get_self_style(entities)
-                    .or_else(|| {
-                        info!("Failed to fetch style.");
-                        None
-                    })
+                Self::get_style(
+                    Self::get_this_style(entities, &|node| matches!(node, StyleNode::SelfNode(_, _)))
+                            .or_else(|| {
+                                info!("Failed to fetch style.");
+                                None
+                            }),
+                    entities
+                )
             }
             StartingState::Child => {
-                Self::get_child_style(entities)
-                    .or_else(|| {
-                        info!("Failed to fetch child style.");
-                        None
-                    })
+                Self::get_style(
+                    Self::get_this_style(entities, &|node| matches!(node, StyleNode::Child(_, _)))
+                        .or_else(|| {
+                            info!("Failed to fetch child style.");
+                            None
+                        }),
+                    entities
+                )
             }
             StartingState::Parent => {
-                Self::get_parent_style(entities)
-                    .or_else(|| {
-                        info!("Failed to fetch parent style.");
-                        None
-                    })
+                Self::get_style(
+                    Self::get_this_style(entities, &|node| matches!(node, StyleNode::Parent(_, _)))
+                        .or_else(|| {
+                            info!("Failed to fetch parent style.");
+                            None
+                        }),
+                    entities
+                )
             }
             StartingState::Other(val) => {
-                entities.iter()
-                    .filter(|(entity, node_val)| {
-                        node_val.id() == *val
-                    })
-                    .map(|(entity, val)| {
-                        val.get_style()
-                    })
-                    .next()
+                Self::get_style(
+                    entities.iter()
+                        .filter(|(entity, node_val)| {
+                            node_val.id() == *val
+                        })
+                        .map(|(entity, val)| {
+                            val.get_style()
+                        })
+                        .next(),
+                    entities
+                )
             }
             StartingState::Sibling => {
-                Self::get_sibling_style(entities)
-                    .or_else(|| {
-                        info!("Failed to fetch sibling style.");
-                        None
-                    })
+                Self::get_style(
+                    Self::get_this_style(entities, &|node| matches!(node, StyleNode::Sibling(_, _)))
+                        .or_else(|| {
+                            info!("Failed to fetch sibling style.");
+                            None
+                        }),
+                    entities
+                )
             }
             StartingState::SiblingChild => {
-                Self::get_sibling_child_style(entities)
-                    .or_else(|| {
-                        info!("Failed to fetch sibling style.");
-                        None
+                Self::get_style(
+                    Self::get_this_style(entities, &|node| matches!(node, StyleNode::SiblingChild(_, _)))
+                        .or_else(|| {
+                            info!("Failed to fetch sibling style.");
+                            None
+                        }),
+                    entities
+                )
+            }
+            StartingState::VisibleState(visible) => {
+                let mut style = Style::default();
+                style.display = visible.clone();
+                Self::get_style(
+                    Some(style),
+                    entities
+                )
+            }
+            StartingState::EachSelfState => {
+                entities.iter()
+                    .map(|entity| {
+                        (*entity.0, entity.1.get_style())
                     })
+                    .collect()
             }
         }
     }
 
-    fn get_sibling_child_style(entities: &HashMap<Entity, StyleNode>) -> Option<Style> {
+    fn get_this_style(entities: &HashMap<Entity, StyleNode>, filter: &dyn Fn(&StyleNode) -> bool) -> Option<Style> {
         entities.iter()
             .flat_map(|(entity, node)| {
-                if let StyleNode::SiblingChild(style, _) = node {
-                    return vec![style.clone()]
+                if filter(node) {
+                    return vec!(node.get_style());
                 }
                 vec![]
             })
             .next()
     }
 
-    fn get_sibling_style(entities: &HashMap<Entity, StyleNode>) -> Option<Style> {
-        entities.iter()
-            .flat_map(|(entity, node)| {
-                if let StyleNode::Sibling(style, _) = node {
-                    return vec![style.clone()]
-                }
-                vec![]
-            })
-            .next()
-    }
-
-    fn get_parent_style(entities: &HashMap<Entity, StyleNode>) -> Option<Style> {
-        entities.iter()
-            .flat_map(|(entity, node)| {
-                if let StyleNode::Parent(style, _) = node {
-                    return vec![style.clone()]
-                }
-                vec![]
-            })
-            .next()
-    }
-
-    fn get_child_style(entities: &HashMap<Entity, StyleNode>) -> Option<Style> {
-        entities.iter()
-            .flat_map(|(entity, node)| {
-                info!("Checking style for {:?}.", node);
-                if let StyleNode::Child(style, _) = node {
-                    info!("Found child style.");
-                    return vec![style.clone()]
-                }
-                vec![]
-            })
-            .next()
-    }
-
-    fn get_self_style(entities: &HashMap<Entity, StyleNode>) -> Option<Style> {
-        entities.iter()
-            .flat_map(|(entity, node)| {
-                if let StyleNode::SelfNode(style, _) = node {
-                    return vec![style.clone()]
-                }
-                vec![]
-            })
-            .next()
-            .or_else(|| {
-                info!("Could not find self style.");
-                None
-            })
-    }
-
-    fn get_filter(
-        entities: HashMap<Entity, StyleNode>,
+    fn get_filter<'a>(
+        entities: &'a HashMap<Entity, StyleNode>,
         remove_visible: &Option<UiComponentFilters>,
-    ) -> HashMap<Entity, StyleNode> {
+    ) -> HashMap<&'a Entity, &'a StyleNode> {
         if remove_visible.is_none() || (remove_visible.is_some() && remove_visible.as_ref().unwrap().exclude.is_none()) {
             let entities_id = entities.values().map(|n| n.id()).collect::<Vec<f32>>();
             info!("Including entities: {:?}.", &entities_id);
-            return entities;
+            return entities.into_iter().collect();
         }
         remove_visible
             .as_ref()
@@ -402,7 +443,7 @@ impl ChangeStyleTypes {
                 exclude.exclude.as_ref().map(|excluded| {
                     entities.into_iter()
                         .filter(|(entity, node)| !excluded.contains(&node.id()))
-                        .collect::<HashMap<Entity, StyleNode>>()
+                        .collect::<HashMap<&Entity, &StyleNode>>()
                 })
             })
             .flatten()
@@ -411,9 +452,6 @@ impl ChangeStyleTypes {
 
 }
 
-/// May consider adding a flag to signify that the state of that node should be the one to determine
-/// the state of the others. For instance, if switching from visible to invisible, which node determines?
-/// So you can use a flag here.
 #[derive(Clone)]
 pub enum StyleNode {
     Child(Style, f32),

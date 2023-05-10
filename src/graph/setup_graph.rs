@@ -6,12 +6,14 @@ use bevy::pbr::{MaterialMeshBundle, PbrBundle};
 use bevy::hierarchy::BuildChildren;
 use crate::graph::{Graph, Grid, GRID_AXES_THICKNESS, GRID_LINES_THICKNESS, GRID_SIZE, GridAxis, DataSeries, NUM_GRIDLINES};
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
+use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
 use crate::metrics::network_metrics::Metric;
 use crate::network::Network;
 
 pub(crate) fn graph_generator<T>
 (
     mut commands: Commands,
+    mut context: &mut ResMut<ConfigOptionContext>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LineMaterial>>,
     metric_added_event: Query<
@@ -27,6 +29,7 @@ pub(crate) fn graph_generator<T>
         commands.get_entity(graph)
             .as_mut()
             .map(|entity_cmd| entity_cmd.add_child(metric_entity));
+        context.graph_entity = Some(graph);
     }
 }
 

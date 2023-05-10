@@ -14,13 +14,13 @@ pub trait StateChangeFactory<T, A, C, UpdateComponent, Ctx, U: UpdateStateInPlac
         UpdateComponent: Component,
         Ctx: Context
 {
-    fn current_state(current: &EventDescriptor<T, A, C>) -> Vec<NextStateChange<U, UpdateComponent, Ctx>>;
+    fn current_state(current: &EventDescriptor<T, A, C>, ctx: &mut ResMut<Ctx>) -> Vec<NextStateChange<U, UpdateComponent, Ctx>>;
 }
 
 /// If the UpdateStateInPlace contains a struct that converts from certain components to other
 /// components
 pub trait UpdateStateInPlace<T, Ctx: Context> {
-    fn update_state(&self, commands: &mut Commands, value: &mut T, ctx: &mut Option<ResMut<Ctx>>);
+    fn update_state(&self, commands: &mut Commands, value: &mut T, ctx: &mut ResMut<Ctx>);
 }
 
 /// Modularizes the state change.
@@ -34,7 +34,7 @@ pub struct NextStateChange<T: UpdateStateInPlace<U, Ctx>, U: Component + Send + 
 /// The action of updating the component. The next state can delegate further, for instance if
 /// the state being updated is not a component.
 impl <T: UpdateStateInPlace<U, Ctx>, U: Component + Send + Sync + 'static, Ctx: Context> NextStateChange<T, U, Ctx> {
-    pub(crate) fn update_state(&self, commands: &mut Commands, value: &mut U, ctx: &mut Option<ResMut<Ctx>>) {
+    pub(crate) fn update_state(&self, commands: &mut Commands, value: &mut U, ctx: &mut ResMut<Ctx>) {
         self.next_state.update_state(commands, value, ctx);
     }
 }
@@ -52,8 +52,8 @@ pub trait Context: Resource {
 
 #[derive(Clone, Debug)]
 pub enum StateChange {
-    ChangeComponentColor(Color, ChangePropagation),
-    ChangeComponentStyle(ChangeStyleTypes, ChangePropagation),
+    ChangeComponentColor(Color),
+    ChangeComponentStyle(ChangeStyleTypes),
     None,
 }
 
@@ -68,7 +68,7 @@ impl <T, Ctx> UpdateStateInPlace<T, Ctx> for Update<T>
     where T: Clone + Debug + Send + Sync + Default,
         Ctx: Context
 {
-    fn update_state(&self, commands: &mut Commands, value: &mut T, ctx: &mut Option<ResMut<Ctx>>) {
+    fn update_state(&self, commands: &mut Commands, value: &mut T, ctx: &mut ResMut<Ctx>) {
         *value = self.update_to.as_ref().unwrap().clone();
     }
 }

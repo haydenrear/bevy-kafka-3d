@@ -1,14 +1,15 @@
-use bevy::prelude::{AlignSelf, BackgroundColor, ButtonBundle, Color, ColorMaterial, Commands, Component, default, Display, Entity, FlexDirection, JustifyContent, Label, Mesh, NodeBundle, Res, ResMut, Size, Style, Text, TextBundle, TextStyle, UiRect, Val};
+use std::marker::PhantomData;
+use bevy::prelude::{AlignSelf, BackgroundColor, ButtonBundle, Color, ColorMaterial, Commands, Component, default, Display, Entity, FlexDirection, JustifyContent, Label, Mesh, NodeBundle, Res, ResMut, Size, Style, Text, TextBundle, TextStyle, UiRect, Val, Visibility};
 use bevy::asset::{Assets, AssetServer};
 use bevy::log::info;
 use bevy::hierarchy::BuildChildren;
 use crate::event::event_propagation::{ChangePropagation, StartingState};
-use crate::event::event_state::HoverStateChange;
+use crate::event::event_state::{HoverStateChange, StateChange};
 use crate::event::event_state::StateChange::ChangeComponentStyle;
-use crate::menu::{CollapsableMenu, ConfigurationOptionEnum, Dropdown, DropdownOption, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionType};
-use crate::menu::menu_resource::MenuResource;
+use crate::menu::{CollapsableMenu, ConfigurationOptionEnum, DataType, Dropdown, DropdownOption, Menu, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionType, MenuType, MetricsConfigurationOption};
+use crate::menu::menu_resource::{MENU, MenuResource};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, UiComponent};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{DisplayState, SizeState, StateChangeActionType, UiComponent, UiComponentState, UiComponentStateTransition, UiComponentStateTransitions};
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponent::CollapsableMenuComponent;
 use crate::ui_components::ui_menu_component;
 use bevy::ecs::system::EntityCommands;
@@ -87,30 +88,88 @@ fn collapsable_menu(
             },
             background_color: BackgroundColor(Color::BLACK),
             ..default()
-        }, CollapsableMenuComponent(CollapsableMenu::default(), vec![
-            StateChangeActionType {
-                hover: HoverStateChange::None,
-                clicked: ChangeComponentStyle(
-                    ChangeStyleTypes::ChangeVisible(None),
-                    ChangePropagation::Children(StartingState::Child),
-                ),
-            },
-            StateChangeActionType {
-                hover: HoverStateChange::None,
-                clicked: ChangeComponentStyle(
-                    ChangeStyleTypes::ChangeSize {
-                        height_1: 100.0,
-                        height_2: 100.0,
-                        width_1: 20.0,
-                        width_2: 4.0,
-                        filters: None
-                    },
-                    ChangePropagation::SelfChange(
+        },
+        UiComponentStateTransitions {
+            transitions: vec![
+                UiComponentStateTransition{
+                    filter_state: UiComponentState::StateSize(SizeState::Minimized{
+                        height: 100,
+                        width: 4
+                    }),
+                    state_change: vec![
+                        StateChangeActionType::Clicked(
+                            ChangeComponentStyle(
+                                ChangeStyleTypes::UpdateSize {
+                                    height_1: 100.0,
+                                    width_1: 20.0,
+                                    filters: None,
+                                }
+                            ))
+                    ],
+                    propagation: ChangePropagation::SelfChange(
                         StartingState::SelfState
-                    )
-                ),
-            },
-        ]),
+                    ),
+                    current_state_filter: UiComponentState::StateSize(SizeState::Expanded {
+                        height: 100,
+                        width: 4
+                    }),
+                },
+                UiComponentStateTransition{
+                    filter_state: UiComponentState::StateSize(SizeState::Expanded {
+                        height: 100,
+                        width: 20
+                    }),
+                    state_change: vec![
+                        StateChangeActionType::Clicked(
+                            ChangeComponentStyle(
+                                ChangeStyleTypes::UpdateSize {
+                                    height_1: 100.0,
+                                    width_1: 4.0,
+                                    filters: None,
+                                }
+                            ))
+                    ],
+                    propagation: ChangePropagation::SelfChange(
+                        StartingState::SelfState
+                    ),
+                    current_state_filter: UiComponentState::StateSize(SizeState::Expanded {
+                        height: 100,
+                        width: 20
+                    }),
+                },
+                UiComponentStateTransition{
+                    filter_state: UiComponentState::StateSize(SizeState::Expanded{
+                        height: 100,
+                        width: 20
+                    }),
+                    state_change: vec![
+                        StateChangeActionType::Clicked(StateChange::ChangeComponentStyle(
+                            ChangeStyleTypes::RemoveVisible(None)
+                        ))
+                    ],
+                    propagation: ChangePropagation::Children(
+                        StartingState::EachSelfState
+                    ),
+                    current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                },
+                UiComponentStateTransition{
+                    filter_state: UiComponentState::StateSize(SizeState::Minimized {
+                        height: 100,
+                        width: 4
+                    }),
+                    state_change: vec![
+                        StateChangeActionType::Clicked(StateChange::ChangeComponentStyle(
+                            ChangeStyleTypes::AddVisible(None)
+                        ))
+                    ],
+                    propagation: ChangePropagation::Children(
+                        StartingState::EachSelfState
+                    ),
+                    current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayNone),
+                }
+            ],
+        },
+        CollapsableMenuComponent(CollapsableMenu::default()),
         UiIdentifiableComponent(metadata.id),
     ));
 
@@ -175,7 +234,7 @@ fn root_collapsable_menu(mut commands: &mut Commands) -> Entity {
             UiIdentifiableComponent(0.0),
         ));
     let root_entity = node_bundle
-        .insert(UiComponent::Node(vec![]));
+        .insert(UiComponent::Node);
 
     root_entity.id()
 }
@@ -314,27 +373,50 @@ fn draw_dropdown_components(
                 Dropdown {
                     options: options.clone(),
                     selected_index: 0,
-                }, vec![
-                    StateChangeActionType {
-                        hover: HoverStateChange::None,
-                        clicked: ChangeComponentStyle(
-                            ChangeStyleTypes::ChangeVisible(None),
-                            ChangePropagation::Children(
-                                StartingState::Child
-                            ),
+                }),
+            UiComponentStateTransitions {
+                transitions: vec![
+                    UiComponentStateTransition {
+                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                        state_change: vec![
+                            StateChangeActionType::Clicked(
+                                ChangeComponentStyle(
+                                    ChangeStyleTypes::RemoveVisible(None)
+                                ))
+                        ],
+                        propagation: ChangePropagation::Children(
+                            StartingState::EachSelfState
                         ),
+                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
                     },
-                    StateChangeActionType {
-                        hover: HoverStateChange::None,
-                        clicked: ChangeComponentStyle(
-                            ChangeStyleTypes::RemoveVisible(None),
-                            ChangePropagation::SiblingsChildren(
-                                StartingState::SiblingChild
-                            ),
+                    UiComponentStateTransition {
+                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayNone),
+                        state_change: vec![
+                            StateChangeActionType::Clicked(
+                                ChangeComponentStyle(
+                                    ChangeStyleTypes::AddVisible(None)
+                                ))
+                        ],
+                        propagation: ChangePropagation::Children(
+                            StartingState::EachSelfState
                         ),
+                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                    },
+                    UiComponentStateTransition {
+                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                        state_change: vec![
+                            StateChangeActionType::Clicked(
+                                ChangeComponentStyle(
+                                    ChangeStyleTypes::RemoveVisible(None)
+                                ))
+                        ],
+                        propagation: ChangePropagation::SiblingsChildren(
+                            StartingState::EachSelfState
+                        ),
+                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
                     }
-                ],
-            )
+                ]
+            }
         ));
 
     let commands = insert_dropdown
@@ -385,7 +467,7 @@ fn draw_menu_option(
                 style: Style {
                     display: Display::None,
                     size: Size::new(Val::Percent(100.0), Val::Px(30.0)),
-                    position: UiRect::new(Val::Percent(100.0), Val::Percent(0.0), Val::Percent(0.0), Val::Percent(0.0)),
+                    position: UiRect::new(Val::Percent(get_swing_out(menu_option)), Val::Percent(0.0), Val::Percent(0.0), Val::Percent(0.0)),
                     ..default()
                 },
                 background_color: BackgroundColor(Color::GREEN),
@@ -401,7 +483,7 @@ fn draw_menu_option(
                 DropdownOption {
                     index: menu_option.index,
                     option_name: option.clone(),
-                }, vec![]
+                }
             )
         ));
 
@@ -447,6 +529,14 @@ fn draw_menu_option(
 
 }
 
+fn get_swing_out(menu_option: &MenuOption) -> f32 {
+    let mut swing_out_percentage = 0.0;
+    if menu_option.swing_out {
+        swing_out_percentage = 100.0;
+    }
+    swing_out_percentage
+}
+
 macro_rules! insert_config_option {
     ($($name:ident),*) => {
         fn insert_config_option(config_option: &ConfigurationOptionEnum, menu_option: &mut EntityCommands) {
@@ -456,25 +546,25 @@ macro_rules! insert_config_option {
                         menu_option.insert(metrics.clone());
                     }
                 )*
-                _ => {
-
-                }
             }
         }
     }
 }
 
 insert_config_option!(
-        Metrics,
-        NetworkMetrics,
-        NetworkVariance,
-        NetworkConcavity,
-        LayerMetrics,
-        LayerVariance,
-        LayerConcavity,
-        NodeMetrics,
-        NodeVariance,
-        NodeConcavity,
-        Menu
+    Metrics,
+    NetworkMetrics,
+    NetworkVariance,
+    NetworkConcavity,
+    LayerMetrics,
+    LayerVariance,
+    LayerConcavity,
+    NodeMetrics,
+    NodeVariance,
+    NodeConcavity,
+    Menu,
+    GraphingMenu,
+    GraphMenu,
+    DisplayNetwork
 );
 

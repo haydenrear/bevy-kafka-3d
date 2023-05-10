@@ -6,6 +6,7 @@ use std::path::Path;
 use bevy::log::error;
 use bevy::prelude::Resource;
 use serde::Deserialize;
+use crate::data_subscriber::network_metadata_event::LayerTypes;
 use crate::menu::Menu;
 use crate::metrics::network_metrics::{MetricType, MetricTypeMatcher};
 
@@ -13,7 +14,8 @@ use crate::metrics::network_metrics::{MetricType, MetricTypeMatcher};
 #[derive(Deserialize, Resource)]
 pub struct ConfigurationProperties {
     pub(crate) kafka: KafkaConfiguration,
-    pub(crate) metrics: MetricsConfiguration
+    pub(crate) metrics: MetricsConfiguration,
+    pub(crate) network: LayerTypeConfiguration
 }
 
 impl Default for ConfigurationProperties {
@@ -51,6 +53,11 @@ pub struct KafkaConfiguration {
 #[derive(Deserialize, Default)]
 pub struct MetricsConfiguration {
     pub(crate) metric_type: HashMap<MetricTypeMatcher, String>,
+}
+
+#[derive(Deserialize)]
+pub struct LayerTypeConfiguration {
+    pub(crate) layer_type: HashMap<LayerTypes, Vec<String>>
 }
 
 impl Default for KafkaConfiguration {

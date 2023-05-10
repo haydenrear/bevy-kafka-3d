@@ -17,7 +17,7 @@ where T: Component + Send + Sync + Clone + Default + Debug + 'static
 #[derive(Debug, Clone, Default)]
 pub struct ConfigurationOptionChange<T>
 where T: Component + Send + Sync + Clone + Default + Debug + 'static {
-    config_option: Option<HashMap<Entity, MetricsConfigurationOption<T>>>,
+    pub(crate) config_option: HashMap<Entity, MetricsConfigurationOption<T>>,
 }
 
 impl <T> ConfigurationOptionChange<T>
@@ -26,10 +26,9 @@ where T: Component + Send + Sync + Clone + Default + Debug + 'static
 
     pub(crate) fn to_config_option_states(&self) -> Vec<NextConfigurationOptionState<T>>  {
 
-        let mut to_replace: Option<HashMap<Entity, MetricsConfigurationOption<T>>> = self.config_option.clone();
+        let mut to_replace: HashMap<Entity, MetricsConfigurationOption<T>> = self.config_option.clone();
 
         to_replace.into_iter()
-            .flat_map(|i| i.into_iter())
             .flat_map(|(entity, option)| {
                 if matches!(option, MetricsConfigurationOption::Variance(..)) {
                     return vec![NextConfigurationOptionState::UpdateVariance(option)];
@@ -65,7 +64,7 @@ where
     T : Component + Send + Sync + 'static + Clone + Debug + Default,
     Ctx: Context
 {
-    fn update_state(&self, commands: &mut Commands, value: &mut MetricsConfigurationOption<T>, ctx: &mut Option<ResMut<Ctx>>) {
+    fn update_state(&self, commands: &mut Commands, value: &mut MetricsConfigurationOption<T>, ctx: &mut ResMut<Ctx>) {
         if let NextConfigurationOptionState::UpdateConcavity(node) = self {
             node.update_state(commands, value, ctx);
         }
@@ -86,7 +85,7 @@ StateChangeFactory<
     MetricsConfigurationOption<T>, ConfigCtx, NextConfigurationOptionState<T>
 >
 for ConfigEventStateFactory {
-    fn current_state(current: &EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>)
+    fn current_state(current: &EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>, context: &mut ResMut<ConfigCtx>)
         -> Vec<NextStateChange<NextConfigurationOptionState<T>, MetricsConfigurationOption<T>, ConfigCtx>>
     {
         if let ConfigurationOptionEventArgs::Event(
@@ -106,3 +105,4 @@ for ConfigEventStateFactory {
         vec![]
     }
 }
+

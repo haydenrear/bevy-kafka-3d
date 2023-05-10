@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use bevy::ecs::component::TableStorage;
-use bevy::prelude::{Color, Commands, Component, Entity, ResMut};
+use bevy::prelude::{Color, Commands, Component, Entity, FromReflect, Reflect, ResMut};
 use bevy::ui::{Size, Val};
 use bevy::utils::petgraph::visit::Data;
 use bevy_mod_picking::Selection;
@@ -100,7 +100,12 @@ pub enum MetricsConfigurationOption<T: Component + Send + Sync + Clone + Debug +
     Variance(PhantomData<T>, DataType, &'static str),
     Concavity(PhantomData<T>, DataType, &'static str),
     Metrics(PhantomData<T>, DataType, &'static str),
-    Menu(PhantomData<T>, DataType, &'static str)
+    Menu(PhantomData<T>, DataType, &'static str, MenuType)
+}
+
+#[derive(Debug, Clone)]
+pub enum MenuType {
+    Graph, Network, Metrics, Menu
 }
 
 impl <T, Ctx> UpdateStateInPlace<MetricsConfigurationOption<T>, Ctx>
@@ -108,7 +113,7 @@ for MetricsConfigurationOption<T>
 where T: Component + Send + Sync + Clone + Debug + Default + 'static,
     Ctx: Context
 {
-    fn update_state(&self,commands: &mut Commands, value: &mut MetricsConfigurationOption<T>, ctx: &mut Option<ResMut<Ctx>>) {
+    fn update_state(&self,commands: &mut Commands, value: &mut MetricsConfigurationOption<T>, ctx: &mut ResMut<Ctx>) {
         *value = self.clone()
     }
 }
@@ -119,7 +124,7 @@ impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> MetricsCon
             MetricsConfigurationOption::Variance(_, data, _) => { data }
             MetricsConfigurationOption::Concavity(_, data, _) => { data }
             MetricsConfigurationOption::Metrics(_, data, _) => { data }
-            MetricsConfigurationOption::Menu(_, data, _) => { data }
+            MetricsConfigurationOption::Menu(_, data, _, _) => { data }
         }
     }
 }
@@ -136,7 +141,7 @@ impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> MetricsCon
             MetricsConfigurationOption::Metrics(_, _, id) => {
                 id
             }
-            MetricsConfigurationOption::Menu(_, _, id) => {
+            MetricsConfigurationOption::Menu(_, _, id, _) => {
                 id
             }
         }
@@ -183,7 +188,8 @@ impl AcceptConfigurationOption<Vec<Node>> for MetricChildNodes {
 pub struct MenuOption {
     pub(crate) data_type: MenuOptionType,
     pub(crate) index: usize,
-    pub(crate) metadata: MenuItemMetadata
+    pub(crate) metadata: MenuItemMetadata,
+    pub(crate) swing_out: bool
 }
 
 #[derive(Clone, Debug, Component, Default, Deserialize, Ord, PartialOrd, PartialEq, Eq, Hash)]
@@ -192,6 +198,7 @@ pub struct Menu;
 #[derive(Clone, Debug, Component)]
 pub enum ConfigurationOptionEnum {
     Menu(MetricsConfigurationOption<Menu>),
+    GraphMenu(MetricsConfigurationOption<Graph<Menu>>),
     Metrics(MetricsConfigurationOption<Metric<Network>>),
     NetworkMetrics(MetricsConfigurationOption<Network>),
     NetworkVariance(MetricsConfigurationOption<Network>),
@@ -202,14 +209,14 @@ pub enum ConfigurationOptionEnum {
     NodeMetrics(MetricsConfigurationOption<Node>),
     NodeVariance(MetricsConfigurationOption<Node>),
     NodeConcavity(MetricsConfigurationOption<Node>),
-    DisplayGraph(MetricsConfigurationOption<Menu>),
+    GraphingMenu(MetricsConfigurationOption<Menu>),
     DisplayNetwork(MetricsConfigurationOption<Graph<Network>>),
 }
 
 impl ConfigurationOptionEnum {
     pub(crate) fn update_data(&mut self, data: DataType) {
         match self {
-            ConfigurationOptionEnum::Menu(MetricsConfigurationOption::Menu(_, a, _)) => {
+            ConfigurationOptionEnum::Menu(MetricsConfigurationOption::Menu(_, a, _, menu_type)) => {
                 *a = data;
             }
             ConfigurationOptionEnum::Metrics(_) => {}
@@ -229,7 +236,7 @@ impl ConfigurationOptionEnum {
 
 impl Default for ConfigurationOptionEnum {
     fn default() -> Self {
-        ConfigurationOptionEnum::Menu(MetricsConfigurationOption::Menu(PhantomData::default(), DataType::Selected, MENU))
+        ConfigurationOptionEnum::Menu(MetricsConfigurationOption::Menu(PhantomData::default(), DataType::Selected, MENU, MenuType::Menu))
     }
 }
 
@@ -250,7 +257,7 @@ pub enum DataType {
     Number(Option<f32>),
     String(Option<String>),
     Selected,
-    Deselect
+    Deselected
 }
 
 impl Default for DataType {

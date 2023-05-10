@@ -25,7 +25,8 @@ fn test_serialize_config() {
         .ok()
         .flatten();
     assert!(config.is_some());
-    assert_ne!(config.unwrap().metrics.metric_type.len(), 0);
+    assert_ne!(config.as_ref().unwrap().metrics.metric_type.len(), 0);
+    assert_ne!(config.as_ref().unwrap().network.layer_type.len(), 0);
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
