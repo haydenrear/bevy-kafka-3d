@@ -52,75 +52,119 @@ for ConfigOptionActionStateRetriever
             (Entity, &Children, &MetricsConfigurationOption<T>),
             (With<Children>, With<MetricsConfigurationOption<T>>)
         >
-    ) -> (Vec<(
-        EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>,
-        Option<PropagateComponentEvent>
-    )>)
+    ) -> (
+        Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
+        Vec<PropagateComponentEvent>
+    )
     {
-        info!("Found 2");
-        let event_descriptors = self_query.iter()
-            .flat_map(|(entity, config)| {
+        let mut event_descriptors = vec![];
+        let mut propagate_events = vec![];
+
+        self_query.iter()
+            .for_each(|(entity, config)| {
                 info!("Found {:?}", config);
                 match config {
                     MetricsConfigurationOption::Menu(_, data_type, _, MenuType::Graph) => {
                         if let DataType::Selected = data_type {
-                            let event_descriptor = create_graph_menu_event(entity, DataType::Deselected, MenuType::Graph, config.clone());
-                            return create_event_tuple(event_descriptor, &|entity|
-                                Some(PropagateComponentEvent::Visible(entity, Visibility::Visible)), context.network_entity,
+                            create_add_events(
+                                &mut event_descriptors,
+                                &mut propagate_events,
+                                entity,
+                                config,
+                                DataType::Deselected,
+                                MenuType::Graph,
+                                Visibility::Hidden,
+                                context.network_entity
                             );
                         } else if let DataType::Deselected = data_type {
-                            let event_descriptor = create_graph_menu_event(entity, DataType::Selected, MenuType::Graph, config.clone());
-                            return create_event_tuple(event_descriptor, &|entity|
-                                Some(PropagateComponentEvent::Visible(entity, Visibility::Hidden)), context.network_entity,
+                            create_add_events(&mut event_descriptors,
+                                              &mut propagate_events,
+                                              entity,
+                                              config,
+                                              DataType::Selected,
+                                              MenuType::Graph,
+                                              Visibility::Visible,
+                                              context.network_entity
                             );
                         }
-                        error!("Config option for menu was something other than selected or deselcted.");
-                        vec![]
                     }
                     MetricsConfigurationOption::Menu(_, data_type, _, MenuType::Network) => {
                         if let DataType::Selected = data_type {
-                            let event_descriptor = create_graph_menu_event(entity, DataType::Deselected, MenuType::Network, config.clone());
-                            return create_event_tuple(event_descriptor, &|entity|
-                                Some(PropagateComponentEvent::Visible(entity, Visibility::Visible)), context.graph_entity,
+                            create_add_events(&mut event_descriptors,
+                                              &mut propagate_events,
+                                              entity,
+                                              config,
+                                              DataType::Deselected,
+                                              MenuType::Network,
+                                              Visibility::Hidden,
+                                              context.graph_entity
                             );
                         } else if let DataType::Deselected = data_type {
-                            let event_descriptor = create_graph_menu_event(entity, DataType::Selected, MenuType::Network, config.clone());
-                            return create_event_tuple(event_descriptor, &|entity|
-                                Some(PropagateComponentEvent::Visible(entity, Visibility::Hidden)), context.graph_entity,
+                            create_add_events(&mut event_descriptors,
+                                              &mut propagate_events,
+                                              entity,
+                                              config,
+                                              DataType::Selected,
+                                              MenuType::Network,
+                                              Visibility::Visible,
+                                              context.graph_entity
                             );
                         }
-                        error!("Config option for menu was something other than selected or deselcted.");
-                        vec![]
                     }
-                    val => {
-                        info!("{:?} was config option", val);
-                        vec![]
-                    }
+                    _ => {}
                 }
-            })
-            .map(|(e, p)| {
-                info!("{:?} is propagation event.", p);
-                (e,p)
-            })
-            .collect::<Vec<(
-                EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>,
-                Option<PropagateComponentEvent>
-            )>>();
-        event_descriptors
+            });
+        (event_descriptors, propagate_events)
     }
+}
+
+fn create_add_events<T>(
+    mut event_descriptors: &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
+    mut propagate_events: &mut Vec<PropagateComponentEvent>,
+    entity: Entity,
+    config: &MetricsConfigurationOption<T>,
+    data_type: DataType,
+    menu_type: MenuType,
+    visible: Visibility,
+    other_entity: Option<Entity>
+)
+    where
+        T: Component + Send + Sync + Default + Clone + Debug + 'static
+{
+    let event_descriptor = create_graph_menu_event(entity, data_type, menu_type, config.clone());
+    let event = create_event_tuple(
+        event_descriptor,
+        &|entity| Some(PropagateComponentEvent::ChangeVisible(entity, visible)),
+        other_entity,
+    );
+    add_to_events(&mut event_descriptors, &mut propagate_events, event);
+}
+
+fn add_to_events<T>(mut event_descriptors:
+                 &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
+                 mut propagate_events: &mut Vec<PropagateComponentEvent>,
+                 event: Vec<(EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>, Vec<PropagateComponentEvent>)>
+)
+    where
+        T: Component + Send + Sync + Default + Clone + Debug + 'static
+{
+    event.into_iter().for_each(|(event, prop)| {
+        event_descriptors.push(event);
+        prop.into_iter().for_each(|prop| propagate_events.push(prop));
+    });
 }
 
 fn create_event_tuple<T>(
     event_descriptor: EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>,
     option: &dyn Fn(Entity) -> Option<PropagateComponentEvent>,
     entity: Option<Entity>
-) -> Vec<(EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>, Option<PropagateComponentEvent>)>
+) -> Vec<(EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>, Vec<PropagateComponentEvent>)>
 where
     T: Component + Send + Sync + Default + Clone + Debug + 'static
 {
-    let mut event_tuple = (event_descriptor, None);
+    let mut event_tuple = (event_descriptor, vec![]);
     if entity.is_some() {
-        event_tuple.1 = option(entity.unwrap());
+        event_tuple.1 = option(entity.unwrap()).map(|p| vec![p]).or(Some(vec![])).unwrap();
     }
     vec![event_tuple]
 }

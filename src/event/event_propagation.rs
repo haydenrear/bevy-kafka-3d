@@ -1,5 +1,5 @@
 use bevy::prelude::{Commands, Component, Entity, error, EventReader, info, Visibility};
-use bevy::ui::Display;
+use bevy::ui::{Display, Style};
 use crate::event::event_state::StateChange;
 
 // macro_rules! component_propagation {
@@ -36,18 +36,23 @@ use crate::event::event_state::StateChange;
 
 #[derive(Debug)]
 pub enum PropagateComponentEvent {
-    Visible(Entity, Visibility)
+    ChangeVisible(Entity, Visibility),
+    ChangeStyle(Entity, Style)
 }
 
 pub fn component_propagation_system(
     mut commands: Commands,
     mut propagation_reader: EventReader<PropagateComponentEvent>
 ) {
-    for event in propagation_reader.iter() {
+    for event in propagation_reader.into_iter() {
         match event {
-            PropagateComponentEvent::Visible(entity, component) => {
+            PropagateComponentEvent::ChangeVisible(entity, component) => {
                 info!("Adding propagation event: {:?}", component);
                 add_component(&mut commands, entity, *component)
+            }
+            PropagateComponentEvent::ChangeStyle(entity, component) => {
+                info!("Adding propagation event: {:?}", component);
+                add_component(&mut commands, entity, component.clone())
             }
         }
     }
@@ -87,6 +92,8 @@ pub enum ChangePropagation {
     // propagate event to siblings children
     SiblingsChildren(StartingState),
     // Propagate event to specific Id's
+    SiblingsChildrenRecursive(StartingState),
+    // Propagate event to specific Id's
     CustomPropagation {
         to: Vec<f32>,
         // starting state
@@ -123,6 +130,9 @@ impl ChangePropagation {
             }
             ChangePropagation::SiblingsChildren(starting) => {
                starting
+            }
+            ChangePropagation::SiblingsChildrenRecursive(starting) => {
+                starting
             }
         }
     }
@@ -215,6 +225,9 @@ impl ChangePropagation {
             ChangePropagation::CustomPropagation { to, from } => {
                 from.includes_parent()
             }
+            ChangePropagation::SiblingsChildrenRecursive(state) => {
+                state.includes_parent()
+            }
         }
     }
 
@@ -246,6 +259,9 @@ impl ChangePropagation {
             }
             ChangePropagation::CustomPropagation { to, from } => {
                 from.includes_self()
+            }
+            ChangePropagation::SiblingsChildrenRecursive(state) => {
+                state.includes_self()
             }
         }
     }
@@ -279,6 +295,9 @@ impl ChangePropagation {
             ChangePropagation::CustomPropagation { to, from } => {
                 from.includes_children()
             }
+            ChangePropagation::SiblingsChildrenRecursive(state) => {
+                state.includes_children()
+            }
         }
     }
 
@@ -310,6 +329,9 @@ impl ChangePropagation {
             }
             ChangePropagation::CustomPropagation { to, from } => {
                 from.includes_sibling()
+            }
+            ChangePropagation::SiblingsChildrenRecursive(state) => {
+                state.includes_sibling()
             }
         }
     }
@@ -343,8 +365,47 @@ impl ChangePropagation {
             ChangePropagation::CustomPropagation { to, from  } => {
                 from.includes_siblings_children()
             }
+            ChangePropagation::SiblingsChildrenRecursive(state) => {
+                true
+            }
         }
     }
+
+    pub(crate) fn includes_siblings_children_recursive(&self) -> bool {
+        match self {
+            ChangePropagation::ParentToChild(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::ChildToParent(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::SelfChange(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::Children(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::Siblings(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::SelfToSiblings(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::Parent(state) => {
+                state.includes_siblings_children()
+            }
+            ChangePropagation::SiblingsChildren(state) => {
+                true
+            }
+            ChangePropagation::CustomPropagation { to, from  } => {
+                from.includes_siblings_children()
+            }
+            ChangePropagation::SiblingsChildrenRecursive(state) => {
+                true
+            }
+        }
+    }
+
 }
 
 /// Determines where to get the starting state from, which determines the next state. For instance,

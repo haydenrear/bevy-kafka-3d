@@ -62,7 +62,7 @@ async fn main() {
         .add_plugins(DefaultPlugins)
         .add_plugins(DefaultPickingPlugins)
         .add_plugin(ShapePlugin)
-        .add_plugin(WorldInspectorPlugin::new())
+        // .add_plugin(WorldInspectorPlugin::new())
         .add_plugin(UiEventPlugin)
         .add_plugin(GraphPlugin)
         .add_plugin(DataSubscriberPlugin)

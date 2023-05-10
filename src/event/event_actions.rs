@@ -50,12 +50,10 @@ pub fn click_write_events<
                     &with_parent_query,
                     &with_child_query
                 );
-                events
-                    .into_iter()
-                    .for_each(|(event, prop_event)| {
-                        event_write.send(event);
-                        prop_event.map(|prop_event| propagation_write.send(prop_event));
-                    });
+                events.0.into_iter()
+                    .for_each(|(event)| event_write.send(event));
+                events.1.into_iter()
+                    .for_each(|(event)| propagation_write.send(event));
             }
         });
 }
@@ -150,5 +148,5 @@ pub trait RetrieveState<
         self_query: &Query<SelfQuery, SelfFilterQuery>,
         with_parent_query: &Query<ParentQuery, ParentFilterQuery>,
         with_child_query: &Query<ChildQuery, ChildFilterQuery>
-    ) ->  Vec<(EventDescriptor<EventDataT, EventArgsT, ComponentT>, Option<PropagateComponentEvent>)>;
+    ) ->  (Vec<EventDescriptor<EventDataT, EventArgsT, ComponentT>>, Vec<PropagateComponentEvent>);
 }

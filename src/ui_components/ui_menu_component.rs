@@ -390,19 +390,19 @@ fn draw_dropdown_components(
                         ),
                         current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
                     },
-                    // UiComponentStateTransition {
-                    //     filter_state: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                    //     state_change: vec![
-                    //         StateChangeActionType::Clicked(
-                    //             ChangeComponentStyle(
-                    //                 ChangeStyleTypes::RemoveVisible(None)
-                    //             ))
-                    //     ],
-                    //     propagation: ChangePropagation::SiblingsChildren(
-                    //         StartingState::EachSelfState
-                    //     ),
-                    //     current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                    // }
+                    UiComponentStateTransition {
+                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
+                        state_change: vec![
+                            StateChangeActionType::Clicked(
+                                ChangeComponentStyle(
+                                    ChangeStyleTypes::RemoveVisible(None)
+                                ))
+                        ],
+                        propagation: ChangePropagation::SiblingsChildrenRecursive(
+                            StartingState::EachSelfState
+                        ),
+                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                    }
                 ]
             }
         ));

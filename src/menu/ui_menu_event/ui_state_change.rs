@@ -1,10 +1,10 @@
 use bevy::utils::HashMap;
-use bevy::prelude::{BackgroundColor, Button, Changed, Color, Display, Entity, Interaction, Query, Size, Style, With};
+use bevy::prelude::{BackgroundColor, Button, Changed, Color, Display, Entity, Interaction, Query, ResMut, Size, Style, With};
 use bevy::log::info;
 use crate::event::event_state::{StateChange, Update};
 use crate::event::event_propagation::{ChangePropagation, StartingState};
 use crate::menu::ui_menu_event::change_style::{ChangeStyleTypes, StyleNode};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{DisplayState, UiComponent, UiComponentState, UiComponentStateFilter, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{DisplayState, StyleContext, UiComponent, UiComponentState, UiComponentStateFilter, UiEventArgs};
 
 /// Contains the state data needed in order to generate the UIEvents from the state change required.
 #[derive(Clone, Debug)]
@@ -28,14 +28,9 @@ impl StateChange {
         &self,
         args: &HashMap<Entity, StyleNode>,
         start_state: StartingState,
-        filter_state: &UiComponentState,
         current_state_filter: &UiComponentState,
-        propagation: &ChangePropagation
-    ) -> Option<UiEventArgs> {
+        style_context: &mut ResMut<StyleContext>) -> Option<UiEventArgs> {
         if let StateChange::ChangeComponentStyle(change_style) = self {
-            // here we translate to the UiComponentFilters, from the change_style, and then
-            // pass the UiComponentFilter to a method that executes
-
             let starting = change_style.get_current_state(args, &start_state);
             info!("{} is size of starting and {} is size of args..", starting.len(), args.len());
 
@@ -54,8 +49,12 @@ impl StateChange {
     }
 
 
-    fn filter_entities<'a>(args: &'a HashMap<Entity, StyleNode>, current_state_filter: &UiComponentState, change_style: &'a ChangeStyleTypes, starting: HashMap<Entity, Style>)
-        -> (HashMap<Entity, Style>, HashMap<&'a Entity, &'a StyleNode>) {
+    fn filter_entities<'a>(
+        args: &'a HashMap<Entity, StyleNode>,
+        current_state_filter: &UiComponentState,
+        change_style: &'a ChangeStyleTypes,
+        starting: HashMap<Entity, Style>
+    ) -> (HashMap<Entity, Style>, HashMap<&'a Entity, &'a StyleNode>) {
         let starting = starting.into_iter()
             .filter(|(entity, state)| {
                 match current_state_filter {

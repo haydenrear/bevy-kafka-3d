@@ -2,11 +2,11 @@ use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use bevy::log::info;
 use bevy::utils::HashMap;
-use bevy::prelude::{BackgroundColor, Component, Display, Entity, Size, Style, Val};
+use bevy::prelude::{BackgroundColor, Component, Display, Entity, ResMut, Size, Style, Val};
 use crate::event::event_state::Update;
 use crate::event::event_propagation::{ChangePropagation, StartingState};
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentFilters, UiComponentState, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{StyleContext, UiComponentFilters, UiComponentState, UiEventArgs};
 use crate::Node;
 
 /// Need to translate StyleChangeType to UiComponentFilters, and then pass the UiComponentFilters to
@@ -224,6 +224,7 @@ impl ChangeStyleTypes {
                         None
                     }
                 );
+
                 Self::do_create_display_ui_event(values.0)
             }
             ChangeStyleTypes::ChangeVisible(_) => {
@@ -238,6 +239,7 @@ impl ChangeStyleTypes {
                         Some(Display::Flex)
                     }
                 );
+
                 info!("Found values: {:?} for changin visible.", values);
                 Self::do_create_display_ui_event(values.0)
             }
@@ -468,6 +470,7 @@ pub enum StyleNode {
     Parent(Style, f32),
     Sibling(Style, f32),
     SiblingChild(Style, f32),
+    SiblingChildRecursive(Style, f32),
     Other(Style, f32)
 }
 
@@ -493,6 +496,9 @@ impl Debug for StyleNode {
             StyleNode::SiblingChild(..) => {
                 f.write_str(" Sibling Child ");
             }
+            StyleNode::SiblingChildRecursive(..) => {
+                f.write_str(" Sibling Child Recursive ");
+            }
         }
         f.write_str(self.id().to_string().as_str())
     }
@@ -516,13 +522,15 @@ impl StyleNode {
             StyleNode::Sibling(_, id) => {
                 *id
             }
-            StyleNode::SiblingChild(_, id) => *id
+            StyleNode::SiblingChild(_, id) => *id,
+            StyleNode::SiblingChildRecursive(_, id) => *id
         }
     }
 
     pub(crate) fn get_style(&self) -> Style {
         match self {
             StyleNode::SiblingChild(style, ..) => style.clone(),
+            StyleNode::SiblingChildRecursive(style, ..) => style.clone(),
             StyleNode::Child(style, _) => {
                 style.clone()
             }

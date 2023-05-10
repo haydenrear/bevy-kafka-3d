@@ -3,11 +3,13 @@ use bevy::app::{App, Plugin};
 use bevy::hierarchy::{Children, Parent};
 use std::fmt::{Debug, Formatter};
 use bevy::time::TimerMode;
+use bevy::utils::{HashMap, HashSet};
 use crate::event::event_actions::{InteractionEventReader, StateChangeEventReader};
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::ChangePropagation;
 use crate::event::event_state::{Context, HoverStateChange, NextStateChange, StateChange, StateChangeFactory, Update, UpdateStateInPlace};
 use crate::menu::{CollapsableMenu, Dropdown, DropdownOption, ui_menu_event};
+use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::ui_menu_event::ui_state_change;
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
@@ -89,6 +91,7 @@ pub enum NextUiState {
 
 #[derive(Resource, Default, Clone)]
 pub struct StyleContext {
+    pub(crate) visible: HashMap<Entity, Style>
 }
 
 impl Context for StyleContext {

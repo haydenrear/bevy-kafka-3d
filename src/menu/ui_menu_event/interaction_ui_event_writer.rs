@@ -1,8 +1,8 @@
 use std::marker::PhantomData;
 use std::os::macos::raw::stat;
-use bevy::prelude::{Button, Changed, Commands, Entity, EventWriter, Interaction, Query, ResMut, Resource, Style, With};
+use bevy::prelude::{Button, Changed, Commands, Display, Entity, EventWriter, Interaction, Query, ResMut, Resource, Style, Visibility, With};
 use bevy::hierarchy::{Children, Parent};
-use bevy::utils::HashMap;
+use bevy::utils::{HashMap, HashSet};
 use bevy::log::info;
 use bevy::ecs::query::QueryEntityError;
 use bevy::ui::Size;
@@ -10,7 +10,7 @@ use crate::event::event_descriptor::EventDescriptor;
 use crate::event::event_propagation::{ChangePropagation, PropagateComponentEvent, StartingState};
 use crate::event::event_actions::RetrieveState;
 use crate::event::event_state::StateChange;
-use crate::menu::ui_menu_event::change_style::StyleNode;
+use crate::menu::ui_menu_event::change_style::{ChangeStyleTypes, StyleNode};
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, StyleContext, UiComponent, UiComponentState, UiComponentStateFilter, UiComponentStateTransition, UiComponentStateTransitions, UiEventArgs};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
@@ -44,10 +44,12 @@ for StateChangeActionTypeStateRetriever
             (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
             (With<UiComponent>, With<Children>, With<Style>)
         >
-    ) -> Vec<(EventDescriptor<StateChangeActionType, UiEventArgs, Style>,
-          Option<PropagateComponentEvent>)>
+    ) -> (Vec<EventDescriptor<StateChangeActionType, UiEventArgs, Style>>, Vec<PropagateComponentEvent>)
     {
-        let events = entity_query.get(entity.clone())
+        let mut event_descriptors = vec![];
+        let mut propagate_events = vec![];
+
+        entity_query.get(entity.clone())
             .iter()
             .flat_map(|(_, ui_component, state_transitions, style, updateable_value)|
                 state_transitions.transitions.iter()
@@ -56,17 +58,21 @@ for StateChangeActionTypeStateRetriever
                         (entity, ui_component, style, updateable_value, state_change_action)
                     })
             )
-            .flat_map(|(entity, ui_component, style, updateable_value, state_change_action)|
-                Self::create_ui_event(&entity_query, &with_parent_query, &with_children_query, entity, style, updateable_value, &state_change_action)
+            .for_each(|(entity, ui_component, style, updateable_value, state_change_action)| {
+                Self::create_ui_event(
+                    &entity_query, &with_parent_query, &with_children_query,
+                    entity, style, updateable_value,
+                    &state_change_action, style_context,
+                    )
                     .into_iter()
-                    .map(|event| (event, None))
-            )
-            .collect::<Vec<(EventDescriptor<StateChangeActionType, UiEventArgs, Style>, Option<PropagateComponentEvent>)>>();
+                    .for_each(|prop| event_descriptors.push(prop));
+            });
 
-        events
+        (event_descriptors, propagate_events)
 
     }
 }
+
 
 impl StateChangeActionTypeStateRetriever {
     fn create_ui_event(
@@ -85,7 +91,8 @@ impl StateChangeActionTypeStateRetriever {
         entity: Entity,
         style: &Style,
         updateable_value: &UiIdentifiableComponent,
-        state_transition: &UiComponentStateTransition
+        state_transition: &UiComponentStateTransition,
+        mut style_context: &mut ResMut<StyleContext>
     ) -> Vec<EventDescriptor<StateChangeActionType, UiEventArgs, Style>> {
 
         info!("found state change action: {:?}", &state_transition);
@@ -127,9 +134,13 @@ impl StateChangeActionTypeStateRetriever {
             siblings_children_entities(&with_children_query, &with_parent_query, entity, &mut entities);
         }
 
+        if propagation.includes_siblings_children_recursive() {
+            info!("Including siblings.");
+            siblings_children_recursive(&entity_query, &with_children_query, &with_parent_query,  entity, &mut entities);
+        }
+
         if let ChangePropagation::CustomPropagation { to, from } = propagation {
             custom_propagation_entities(&entity_query, &with_children_query, &with_parent_query, entity, style, updateable_value, &mut entities, &to, &from);
-
             info!("Custom propagation event with {:?}.", entities);
         }
 
@@ -141,12 +152,11 @@ impl StateChangeActionTypeStateRetriever {
                     }
                     StateChangeActionType::Clicked(clicked) => {
                         clicked.get_ui_event(
-                            &entities,
-                            state_transition.propagation.get_starting_state().clone(),
-                            &state_transition.filter_state,
-                            &state_transition.current_state_filter,
-                            &state_transition.propagation
-                            )
+                                &entities,
+                                state_transition.propagation.get_starting_state().clone(),
+                                &state_transition.current_state_filter,
+                                &mut style_context
+                             )
                             .map(|args| {
                                 EventDescriptor {
                                     component: PhantomData::default(),
@@ -270,6 +280,102 @@ fn siblings_children_entities(
             None
         });
 }
+
+fn siblings_children_recursive(
+    entity_query: &Query<
+        (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
+        (With<UiComponent>, With<Style>)
+    >,
+    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
+    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
+    entity: Entity,
+    mut entities: &mut HashMap<Entity, StyleNode>
+) {
+    let parent = with_parent_query.get(entity.clone())
+        .map(|(_, _, parent, updateable, style)| parent.get())
+        .ok();
+
+    parent.map(|parent| {
+        with_children_query.get(parent.clone())
+            .map(|(_, _, children, update, style)| {
+                info!("Found parent with id {}.", update.0);
+                children.iter().for_each(|child| {
+                    with_parent_query.get(child.clone())
+                        .into_iter()
+                        .filter(|(this_entity, _, _, _, _)| entity != *this_entity)
+                        .for_each(|(sibling, _, _, _, _)| {
+                            let sibling_children = entities.iter().filter(|entity| matches!(entity.1, StyleNode::SiblingChild(_, _)))
+                                .map(|entity| *entity.0)
+                                .collect::<Vec<Entity>>();
+                            info!("Including sibling: {}.", update.0);
+                            add_child_recursive(entities, sibling_children, entity_query, with_children_query, with_parent_query);
+                        });
+                });
+            })
+            .or_else(|_| {
+                info!("Failed to fetch parent when parent was included in fetch.");
+                Ok::<(), QueryEntityError>(())
+            })
+            .unwrap()
+    })
+        .or_else(|| {
+            info!("Failed to fetch parent when parent was included in fetch.");
+            None
+        });
+}
+
+fn add_child_recursive(
+    entities: &mut HashMap<Entity, StyleNode>,
+    sibling_children: Vec<Entity>,
+    entity_query: &Query<
+        (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
+        (With<UiComponent>, With<Style>)
+    >,
+    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
+    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
+) {
+    let mut added_inner = HashSet::new();
+
+    for entity in sibling_children.iter() {
+        let _ = with_children_query.get(*entity)
+            .map(|has_children| {
+                let _ = with_parent_query.get(has_children.0)
+                    .map(|to_add| {
+                        entities.insert(to_add.0, StyleNode::SiblingChildRecursive(to_add.4.clone(), has_children.3.0));
+                        added_inner.insert(to_add.0);
+                        add_child_recursive_inner(entities, to_add.0, entity_query, with_children_query, with_parent_query, &mut added_inner);
+                    });
+            });
+    }
+}
+
+fn add_child_recursive_inner(
+    entities: &mut HashMap<Entity, StyleNode>,
+    next_entities: Entity,
+    entity_query: &Query<
+        (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
+        (With<UiComponent>, With<Style>)
+    >,
+    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
+    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
+    mut added_inner: &mut HashSet<Entity>
+) {
+    let _ = with_children_query.get(next_entities)
+        .map(|has_children| {
+            has_children.2.iter().for_each(|child| {
+                let _ = with_parent_query.get(*child)
+                    .map(|to_add| {
+                        if !added_inner.contains(&to_add.0) {
+                            info!("Including sibling child recursive: {:?}", to_add.0);
+                            entities.insert(to_add.0, StyleNode::SiblingChildRecursive(to_add.4.clone(), to_add.3.0));
+                            added_inner.insert(to_add.0);
+                            add_child_recursive_inner(entities, to_add.0, entity_query, with_children_query, with_parent_query, added_inner);
+                        }
+                    });
+            });
+        });
+}
+
 
 fn child_entities(
     entity_query: &Query<
