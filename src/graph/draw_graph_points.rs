@@ -5,7 +5,7 @@ use std::marker::PhantomData;
 use bevy::prelude::{Assets, BuildChildren, Changed, Children, Color, Commands, Component, Entity, info, MaterialMeshBundle, Mesh, Mut, Query, ResMut, Vec3, With, Without};
 use bevy_mod_picking::PickableBundle;
 use ndarray::{Array1, s, SliceInfoElem};
-use crate::graph::{calculate_convergence_time, DataSeries, Graph, GraphDimType, SeriesStep};
+use crate::graph::{calculate_convergence_time, DataSeries, GraphParent, GraphDimType, SeriesStep, Graph};
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 use crate::metrics::network_metrics::{HistoricalData, Metric};
 

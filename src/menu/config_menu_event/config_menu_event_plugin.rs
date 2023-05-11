@@ -2,7 +2,7 @@ use bevy::prelude::*;
 use crate::event::event_actions::{ClickWriteEvents, InteractionEventReader};
 use crate::event::event_descriptor::EventDescriptor;
 use crate::event::event_state::NextStateChange;
-use crate::graph::Graph;
+use crate::graph::GraphParent;
 use crate::menu::config_menu_event::config_event::{ConfigEventStateFactory, ConfigurationOptionChange, ConfigurationOptionEventArgs, NextConfigurationOptionState};
 use crate::menu::config_menu_event::interaction_config_event_writer::{ConfigOptionActionStateRetriever, ConfigOptionContext};
 use crate::menu::{DataType, Menu, MetricsConfigurationOption};

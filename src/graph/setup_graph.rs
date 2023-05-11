@@ -4,7 +4,8 @@ use bevy::asset::Assets;
 use bevy::math::Vec3;
 use bevy::pbr::{MaterialMeshBundle, PbrBundle};
 use bevy::hierarchy::BuildChildren;
-use crate::graph::{Graph, Grid, GRID_AXES_THICKNESS, GRID_LINES_THICKNESS, GRID_SIZE, GridAxis, DataSeries, NUM_GRIDLINES};
+use bevy::log::error;
+use crate::graph::{GraphParent, Grid, GRID_AXES_THICKNESS, GRID_LINES_THICKNESS, GRID_SIZE, GridAxis, DataSeries, NUM_GRIDLINES, Graph};
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
 use crate::metrics::network_metrics::Metric;
@@ -20,15 +21,27 @@ pub(crate) fn graph_points_generator<T>
         (Entity, &Metric<T>),
         (Added<Metric<T>>)
     >,
-    mut context: ResMut<ConfigOptionContext>,
+    graph_parent_query: Query<
+        (Entity, &GraphParent)
+    >,
 )
     where
         T: Component
 {
     for (metric_entity, metric) in metric_added_event.iter() {
-        commands.get_entity(graph)
-            .as_mut()
-            .map(|entity_cmd| entity_cmd.add_child(metric_entity));
+        let graph = Graph {
+            component: PhantomData::<T>::default(),
+        };
+        let mut graph = commands.spawn((graph, PbrBundle::default()));
+        let _ = graph_parent_query.get_single()
+            .map(|(graph_parent_entity, _)| graph.set_parent(graph_parent_entity))
+            .or_else(|e| {
+                error!("Could not set parent for graph parent: {:?}", e);
+                panic!("Could not set parent for graph parent. Graph parent did not exist. Bevy initialization system not\
+                in initialization.");
+                Err(e)
+            });
+        graph.add_child(metric_entity);
     }
 }
 
@@ -38,29 +51,29 @@ pub(crate) fn setup_graph(
     mut materials: ResMut<Assets<LineMaterial>>,
     mut context: ResMut<ConfigOptionContext>,
 ) {
-    draw_graph::<Network>(&mut commands, &mut meshes, &mut materials, &mut context);
+    draw_graph(&mut commands, &mut meshes, &mut materials, &mut context);
 }
 
-fn draw_graph<T>(
+fn draw_graph(
     mut commands: &mut Commands,
     mut meshes: &mut ResMut<Assets<Mesh>>,
     mut materials: &mut ResMut<Assets<LineMaterial>>,
     context: &mut ResMut<ConfigOptionContext>,
 ) -> Entity
-where T: Component
 {
     let grid = draw_axes(&mut commands, &mut materials, &mut meshes, GRID_SIZE);
     draw_gridlines(&mut commands, &mut materials, &mut meshes, GRID_SIZE, &grid);
-    let mut graph_component = commands.spawn((Graph {
-        component: PhantomData::<T>::default()
-    }, PbrBundle::default()));
+    let mut graph_component = commands.spawn((
+        GraphParent::default(),
+        PbrBundle::default()
+    ));
     graph_component.add_child(grid.x_axis);
     graph_component.add_child(grid.y_axis);
     graph_component.add_child(grid.z_axis);
     graph_component.insert(Visibility::Hidden);
     let graph = graph_component.id();
     info!("Made {:?} visible.", graph);
-    context.graph_entity = Some(graph);
+    context.graph_parent_entity = Some(graph);
     graph
 }
 

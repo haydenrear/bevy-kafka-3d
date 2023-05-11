@@ -9,4 +9,3 @@ pub(crate) mod event_descriptor;
 pub(crate) mod event_actions;
 pub(crate) mod event_state;
 pub(crate) mod event_propagation;
-pub(crate) mod event_provider;

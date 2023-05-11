@@ -9,6 +9,7 @@ use bevy_prototype_lyon::geometry::GeometryBuilder;
 use bevy_prototype_lyon::prelude::{Fill, Stroke};
 use bevy_prototype_lyon::shapes;
 use ndarray::{Array, Array1, Array2, ArrayBase, Ix1, OwnedRepr};
+use serde::Deserialize;
 use statrs::distribution::{ContinuousCDF, Normal};
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 
@@ -28,6 +29,10 @@ pub const NUM_GRIDLINES: usize = 1000;
 /// Graph Parent
 /// - > GridAxis Child: for each grid axis and plain
 /// - > Metric: Graph has metric, DataSeries, which are pickable
+#[derive(Component, Clone, Default, Debug)]
+pub struct GraphParent {
+}
+
 #[derive(Component, Clone, Default, Debug)]
 pub struct Graph<T>
     where
@@ -53,7 +58,7 @@ pub struct Grid {
     z_axis: Entity
 }
 
-#[derive(Component, Default, Clone)]
+#[derive(Component, Default, Clone, Deserialize, Ord, PartialOrd, PartialEq, Eq, Hash)]
 pub enum GraphDimType {
     /// For each metric, there can be multiple pieces of data. For instance, one column provides
     /// the location and another column could provide a classifier that would be the color. Additionally,

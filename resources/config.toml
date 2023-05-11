@@ -9,7 +9,7 @@ WeightVariance = "*-weight-variance-*"
 Concavity = "*-concavity-*"
 Loss = "*-loss-*"
 [metrics.dim_type]
-Coordinate = "*-"
+Coordinate = ["*-"]
 
 [network]
 [network.layer_type]

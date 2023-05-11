@@ -8,7 +8,7 @@ use bevy::utils::petgraph::visit::Data;
 use bevy_mod_picking::Selection;
 use serde::Deserialize;
 use crate::event::event_state::{Context, UpdateStateInPlace};
-use crate::graph::Graph;
+use crate::graph::GraphParent;
 use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
 use crate::menu::menu_resource::{MENU, VARIANCE};
 use crate::metrics::network_metrics::{Metric, MetricChildNodes};

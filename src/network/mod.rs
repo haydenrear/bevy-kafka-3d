@@ -7,8 +7,10 @@ use bevy_prototype_lyon::draw::{Fill, Stroke};
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::prelude::GeometryBuilder;
 use bevy_prototype_lyon::shapes;
-use crate::draw_network::{LAYER_SPACING, NODE_RADIUS, NODE_SPACING};
+use draw_network::{LAYER_SPACING, NODE_RADIUS, NODE_SPACING};
 use crate::metrics::network_metrics::Metric;
+
+pub mod draw_network;
 
 #[derive(Default, Component, Clone, Debug)]
 pub struct Node {

@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use bevy::prelude::Component;
-use bevy::utils::HashMap;
 
+use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
 use std::env;
 use std::env::VarError;
@@ -15,9 +15,6 @@ use std::time::Duration;
 use bevy::prelude::{Commands, Condition, error, Events, EventWriter, Res, ResMut, Resource, World};
 use bevy::tasks::AsyncComputeTaskPool;
 use bevy::utils::petgraph::visit::Walker;
-use kafka::client::{FetchOffset, KafkaClient};
-use kafka::consumer::Consumer;
-use kafka::producer::Producer;
 use tokio::sync::mpsc::Receiver;
 use tokio::sync::Semaphore;
 use tokio::time::timeout;
@@ -91,7 +88,7 @@ macro_rules! network_events {
 }
 
 network_events!(
-    NodeMetricEvent, Node, "node_metric_*",
+    NodeMetricEvent, Node, "node_metric_one",
     LayerMetricEvent, Layer, "layer_metric_*",
     NetworkMetricEvent, Network, "network_metric_*",
     NodeChildrenMetricEvent, MetricChildNodes, "node_as_children_metric_*",

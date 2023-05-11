@@ -19,7 +19,7 @@ pub struct ConfigOptionActionStateRetriever<T: Component> {
 
 #[derive(Default, Resource, Debug)]
 pub struct ConfigOptionContext {
-    pub(crate) graph_entity: Option<Entity>,
+    pub(crate) graph_parent_entity: Option<Entity>,
     pub(crate) network_entity: Option<Entity>,
 }
 
@@ -87,7 +87,9 @@ for ConfigOptionActionStateRetriever<T>
     }
 }
 
-impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> ConfigOptionActionStateRetriever<T> {
+impl<T> ConfigOptionActionStateRetriever<T>
+where T: Component + Send + Sync + Default + Clone + Debug + 'static
+{
     fn set_menu_events(entity: Entity, mut context: &mut ResMut<ConfigOptionContext>, self_query: &Query<(Entity, &MetricsConfigurationOption<T>), With<MetricsConfigurationOption<T>>>, mut event_descriptors: &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>, mut propagate_events: &mut Vec<PropagateComponentEvent>) {
         let _ = self_query.get(entity)
             .map(|(entity, config)| {
@@ -108,7 +110,7 @@ impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> ConfigOptio
                                 config_menu,
                                 DataType::Deselected,
                                 Visibility::Hidden,
-                                context.graph_entity,
+                                context.graph_parent_entity,
                             );
                         } else if let DataType::Deselected = data_type {
                             let config_menu = MetricsConfigurationOption::GraphMenu(
@@ -123,7 +125,7 @@ impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> ConfigOptio
                                               config_menu,
                                               DataType::Selected,
                                               Visibility::Visible,
-                                              context.graph_entity,
+                                              context.graph_parent_entity,
                             );
                         }
                     }

@@ -1,5 +1,5 @@
 use bevy::prelude::*;
-use crate::graph::{Graph, GraphData, setup_graph};
+use crate::graph::{GraphParent, GraphData, setup_graph};
 use crate::graph::draw_graph_points::draw_graph_points;
 use crate::graph::radial::RadialGraphPoints;
 

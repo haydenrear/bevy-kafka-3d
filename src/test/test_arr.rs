@@ -1,6 +1,6 @@
+use std::collections::HashMap;
 use bevy::ecs::system::CommandQueue;
 use bevy::prelude::{Commands, World};
-use bevy::utils::hashbrown::HashMap;
 use ndarray::{arr1, arr2, arr3, array, Array2, Array3, Ix2, s};
 use crate::data_subscriber::data_event_reader::MetricsState;
 use crate::metrics::network_metrics::HistoricalData;

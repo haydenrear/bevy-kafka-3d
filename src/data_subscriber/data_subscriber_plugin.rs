@@ -1,6 +1,5 @@
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
-use kafka::client::fetch::Data;
 
 use crate::data_subscriber::kafka_data_subscriber::{KafkaClientProvider, write_events, EventReceiver, KafkaMessageSubscriber};
 use crate::data_subscriber::metric_event::{LayerMetricEvent, NodeChildrenMetricEvent, NetworkMetricEvent, NodeMetricEvent, NetworkEvent};

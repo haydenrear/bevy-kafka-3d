@@ -1,6 +1,6 @@
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use bevy::prelude::{Commands, Component, Entity, error, Query, ResMut, Resource};
-use bevy::utils::HashMap;
 use ndarray::{Array, Array1, Array2, ArrayBase, ArrayD, ArrayView, ArrayView1, Axis, Dim, Ix, Ix0, Ix1, Ix2, IxDyn, OwnedRepr, s, Shape, ShapeBuilder, Slice, SliceArg, SliceInfoElem, ViewRepr};
 use serde::{Deserialize, Deserializer};
 use serde::de::EnumAccess;
@@ -37,13 +37,14 @@ where T: Component
     Loss(PhantomData<T>)
 }
 
+
 impl <T> MetricType<T>
 where T: Component {
     pub(crate) fn get_dims(&self, columns: Vec<String>) -> HashMap<String, GraphDim> {
         // provide default
         let mut dims = HashMap::new();
         match self {
-            MetricType::<Node>::WeightVariance(_) => {
+            MetricType::<T>::WeightVariance(_) => {
                 columns.iter().for_each(|c| {
                     dims.insert(c.clone(), GraphDim {
                         dim_type: GraphDimType::Coordinate,
@@ -54,14 +55,14 @@ where T: Component {
                 });
                 dims
             }
-            MetricType::<Layer>::Concavity(_) => {
+            MetricType::<T>::Concavity(_) => {
                 HashMap::new()
             }
-            MetricType::<Network>::Loss(_) => {
+            MetricType::<T>::Loss(_) => {
 
                 HashMap::new()
             }
-            MetricType::<Layer>::Loss(_) => {
+            MetricType::<T>::Loss(_) => {
                 HashMap::new()
             }
             _ => {
@@ -71,10 +72,11 @@ where T: Component {
     }
 
     pub(crate) fn get_graph_dim_type(column_name: String) -> GraphDimType {
-        match column_name.as_str() {
-            "loss" => GraphDimType::Coordinate,
-            .. => GraphDimType::Coordinate
-        }
+        // match column_name.as_str() {
+        //     "loss" => GraphDimType::Coordinate,
+            // .. => GraphDimType::Coordinate
+        // }
+        GraphDimType::Coordinate
     }
 }
 

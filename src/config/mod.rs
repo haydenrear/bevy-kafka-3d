@@ -7,6 +7,7 @@ use bevy::log::error;
 use bevy::prelude::Resource;
 use serde::Deserialize;
 use crate::data_subscriber::network_metadata_event::LayerTypes;
+use crate::graph::GraphDimType;
 use crate::menu::Menu;
 use crate::metrics::network_metrics::{MetricType, MetricTypeMatcher};
 
@@ -53,6 +54,7 @@ pub struct KafkaConfiguration {
 #[derive(Deserialize, Default)]
 pub struct MetricsConfiguration {
     pub(crate) metric_type: HashMap<MetricTypeMatcher, String>,
+    pub(crate) dim_type: HashMap<GraphDimType, Vec<String>>
 }
 
 #[derive(Deserialize)]

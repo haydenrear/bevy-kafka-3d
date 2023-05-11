@@ -1,29 +1,19 @@
-use std::hash::Hash;
-use std::intrinsics::{caller_location, ceilf32, fabsf32, powf32, sqrtf32};
-use std::marker::PhantomData;
-use bevy::prelude::{BuildChildren, Changed, Children, ClearColor, Color, ColorMaterial, Commands, default, Entity, GlobalTransform, Mesh, Parent, PbrBundle, Query, Res, ResMut, shape, SpriteBundle, StandardMaterial, Transform, Visibility, Without};
+use bevy::prelude::{Changed, ClearColor, Commands, default, Entity, Mesh, Query, Res, ResMut, SpriteBundle, Visibility};
 use bevy::asset::Assets;
-use bevy::utils::{HashMap, HashSet, Uuid};
-use bevy::sprite::{Material2d, MaterialMesh2dBundle};
+use bevy::pbr::{MaterialMeshBundle, PbrBundle, StandardMaterial};
+use bevy_transform::components::{GlobalTransform, Transform};
+use bevy::log::info;
 use bevy_mod_picking::PickableBundle;
-use bevy::log::{error, info};
-use bevy_prototype_lyon::geometry::GeometryBuilder;
-use bevy_prototype_lyon::shapes;
-use bevy::math::{Quat, Vec2, Vec3};
-use bevy::pbr::{MaterialMeshBundle, PointLightBundle};
-use bevy::prelude::shape::Quad;
-use bevy::prelude::system_adapter::new;
-use bevy::render::mesh::PrimitiveTopology;
-use bevy_prototype_lyon::entity::ShapeBundle;
-use bevy_prototype_lyon::draw::{Fill, Stroke};
-use bevy_prototype_lyon::path::PathBuilder;
-use bevy_prototype_lyon::prelude::{FillOptions, Path};
-use bevy_prototype_lyon::prelude::tess::{BuffersBuilder, FillTessellator, FillVertex, VertexBuffers};
+use std::marker::PhantomData;
+use bevy::hierarchy::{BuildChildren, Parent};
+use bevy::math::Vec3;
+use bevy::utils::HashSet;
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 use crate::menu::{DataType, MetricsConfigurationOption};
 use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
 use crate::menu::menu_resource::VARIANCE;
-use crate::network::{Layer, LayerType, Network, NetworkId, Node};
+use crate::network::{Layer, Network, Node};
+use crate::util;
 
 pub const NODE_RADIUS: f32 = 5.0;
 pub const LAYER_SPACING: f32 = 200.0;
@@ -42,7 +32,12 @@ pub(crate) fn create_network(
     mut network_query: Query<&mut Network>
 ) {
 
-    let grouped_by_network_id = group_by_key(
+    if !layer_query.is_empty() {
+        info!("Adding layer to network.");
+    } else {
+        return;
+    }
+    let grouped_by_network_id = util::group_by_key(
         layer_query.iter()
             .map(|(entity, layer, transform)| {
                 (layer.network_id.clone(), transform)
@@ -62,6 +57,8 @@ pub(crate) fn create_network(
         }
     }
 
+    info!("{:?} are existing networks and {:?} are grouped by network id.", &existing, &grouped_by_network_id);
+
     for (network_id, layers) in grouped_by_network_id.into_iter() {
         if !existing.contains(&network_id) {
             let new_network = Network::new(layers.clone(), network_id);
@@ -71,6 +68,7 @@ pub(crate) fn create_network(
             let network = hidden_network
                 .push_children(layers.into_iter().collect::<Vec<Entity>>().as_slice());
             let network = network.id();
+            info!("Setting network entity.");
             context.network_entity = Some(network);
         }
     }
@@ -93,26 +91,6 @@ pub(crate) fn draw_network_initial(
     for layer_tuple in layer_query.iter() {
         draw_layers_and_nodes(&mut commands, &mut materials, &mut meshes, &(layer_tuple.1, layer_tuple.2, layer_tuple.0), &color);
     }
-
-
-}
-
-fn group_by_key<K, V>(map: Vec<(K, V)>) -> HashMap<K, HashSet<V>>
-    where
-        K: Eq + Hash,
-        V: Clone + Hash + Eq
-{
-    let mut result: HashMap<K, HashSet<V>> = HashMap::new();
-    for (key, value) in map.into_iter() {
-        result.entry(key)
-            .and_modify(|vec| { vec.insert(value.clone()); })
-            .or_insert_with(|| {
-                let mut v = HashSet::new();
-                v.insert(value);
-                v
-            });
-    }
-    result
 }
 
 

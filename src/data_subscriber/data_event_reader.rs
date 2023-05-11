@@ -1,8 +1,8 @@
+use std::collections::HashMap;
 use std::marker::PhantomData;
 use std::os::unix::raw::time_t;
 use bevy::pbr::PbrBundle;
 use bevy::prelude::{Commands, Component, Entity, EventReader, Query, Res, ResMut, Resource};
-use bevy::utils::HashMap;
 use bevy_mod_picking::PickableBundle;
 use crate::config::ConfigurationProperties;
 use crate::data_subscriber::metric_event::NetworkMetricsServiceEvent;
@@ -44,8 +44,8 @@ pub fn read_metric_events<T, U>(
     mut component_query: Query<(Entity, &mut Metric<U>)>
 )
 where
-    T: NetworkMetricsServiceEvent<U> + Send + Sync + 'static,
-    U: Component + Send + Sync + 'static
+    T: NetworkMetricsServiceEvent<U> + 'static,
+    U: Component + 'static
 {
 
     for mut event in event_read.iter() {

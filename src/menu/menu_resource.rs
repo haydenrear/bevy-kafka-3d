@@ -3,7 +3,7 @@ use bevy::ecs::component::TableStorage;
 use bevy::prelude::{Component, Resource};
 use bevy::ui::{Size, Val};
 use bevy::utils::default;
-use crate::graph::Graph;
+use crate::graph::GraphParent;
 use crate::graph::graph_plugin::GraphPlugin;
 use crate::menu::{MetricsConfigurationOption, DataType, MenuData, MenuOption, MenuInputType, MenuItemMetadata, MenuOptionType, Position, ConfigurationOptionEnum, Menu, MenuType};
 use crate::menu::config_menu_event::config_menu_event_plugin::ConfigMenuEventPlugin;
