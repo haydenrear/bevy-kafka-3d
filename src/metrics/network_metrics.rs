@@ -4,8 +4,9 @@ use bevy::utils::HashMap;
 use ndarray::{Array, Array1, Array2, ArrayBase, ArrayD, ArrayView, ArrayView1, Axis, Dim, Ix, Ix0, Ix1, Ix2, IxDyn, OwnedRepr, s, Shape, ShapeBuilder, Slice, SliceArg, SliceInfoElem, ViewRepr};
 use serde::{Deserialize, Deserializer};
 use serde::de::EnumAccess;
+use crate::graph::{GraphDim, GraphDimType, GridAxis};
 use crate::menu::Menu;
-use crate::network::{ Node};
+use crate::network::{Layer, Network, Node};
 
 #[derive(Component, Clone, Debug, Default)]
 pub struct Metric <T>
@@ -34,6 +35,47 @@ where T: Component
     WeightVariance(PhantomData<T>),
     Concavity(PhantomData<T>),
     Loss(PhantomData<T>)
+}
+
+impl <T> MetricType<T>
+where T: Component {
+    pub(crate) fn get_dims(&self, columns: Vec<String>) -> HashMap<String, GraphDim> {
+        // provide default
+        let mut dims = HashMap::new();
+        match self {
+            MetricType::<Node>::WeightVariance(_) => {
+                columns.iter().for_each(|c| {
+                    dims.insert(c.clone(), GraphDim {
+                        dim_type: GraphDimType::Coordinate,
+                        name: c.clone(),
+                        grid_axis: GridAxis::XGridY,
+                        index: 0,
+                    });
+                });
+                dims
+            }
+            MetricType::<Layer>::Concavity(_) => {
+                HashMap::new()
+            }
+            MetricType::<Network>::Loss(_) => {
+
+                HashMap::new()
+            }
+            MetricType::<Layer>::Loss(_) => {
+                HashMap::new()
+            }
+            _ => {
+                HashMap::new()
+            }
+        }
+    }
+
+    pub(crate) fn get_graph_dim_type(column_name: String) -> GraphDimType {
+        match column_name.as_str() {
+            "loss" => GraphDimType::Coordinate,
+            .. => GraphDimType::Coordinate
+        }
+    }
 }
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Deserialize)]

@@ -8,6 +8,8 @@ client_id = "nn-fe"
 WeightVariance = "*-weight-variance-*"
 Concavity = "*-concavity-*"
 Loss = "*-loss-*"
+[metrics.dim_type]
+Coordinate = "*-"
 
 [network]
 [network.layer_type]

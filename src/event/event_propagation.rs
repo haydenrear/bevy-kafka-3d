@@ -1,6 +1,7 @@
 use bevy::prelude::{Commands, Component, Entity, error, EventReader, info, Visibility};
 use bevy::ui::{Display, Style};
 use crate::event::event_state::StateChange;
+use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 // macro_rules! component_propagation {
 //
@@ -47,11 +48,11 @@ pub fn component_propagation_system(
     for event in propagation_reader.into_iter() {
         match event {
             PropagateComponentEvent::ChangeVisible(entity, component) => {
-                info!("Adding propagation event: {:?}", component);
+                info!("Adding propagation visibility event: {:?} with entity {:?}", component, entity);
                 add_component(&mut commands, entity, *component)
             }
             PropagateComponentEvent::ChangeStyle(entity, component) => {
-                info!("Adding propagation event: {:?}", component);
+                info!("Adding propagation style event: {:?} with entity {:?}", component, entity);
                 add_component(&mut commands, entity, component.clone())
             }
         }

@@ -19,11 +19,12 @@ pub trait StateChangeFactory<T, A, C, UpdateComponent, Ctx, U: UpdateStateInPlac
 
 /// If the UpdateStateInPlace contains a struct that converts from certain components to other
 /// components
-pub trait UpdateStateInPlace<T, Ctx: Context> {
+pub trait UpdateStateInPlace<T, Ctx: Context>: Debug {
     fn update_state(&self, commands: &mut Commands, value: &mut T, ctx: &mut ResMut<Ctx>);
 }
 
-/// Modularizes the state change.
+
+#[derive(Debug)]/// Modularizes the state change.
 pub struct NextStateChange<T: UpdateStateInPlace<U, Ctx>, U: Component + Send + Sync + 'static, Ctx: Context> {
     pub(crate) entity: Entity,
     pub(crate) next_state: T,

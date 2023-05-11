@@ -1,8 +1,13 @@
 use bevy::prelude::*;
+use crate::event::event_actions::{ClickWriteEvents, InteractionEventReader};
 use crate::event::event_descriptor::EventDescriptor;
-use crate::menu::config_menu_event::config_event::ConfigurationOptionEventArgs;
+use crate::event::event_state::NextStateChange;
+use crate::graph::Graph;
+use crate::menu::config_menu_event::config_event::{ConfigEventStateFactory, ConfigurationOptionChange, ConfigurationOptionEventArgs, NextConfigurationOptionState};
 use crate::menu::config_menu_event::interaction_config_event_writer::{ConfigOptionActionStateRetriever, ConfigOptionContext};
 use crate::menu::{DataType, Menu, MetricsConfigurationOption};
+use crate::menu::config_menu_event::config_event_reader::ConfigEventReader;
+use crate::network::Network;
 
 
 pub struct ConfigMenuEventPlugin;
@@ -11,25 +16,10 @@ impl Plugin for ConfigMenuEventPlugin {
     fn build(&self, app: &mut App) {
         app
             .add_event::<ConfigurationOptionEventArgs<Node>>()
-            .insert_resource(ConfigOptionActionStateRetriever::default())
-            .add_system(crate::event::event_actions::click_write_events::<
-                ConfigOptionActionStateRetriever, ConfigurationOptionEventArgs<Menu>,
-                DataType, MetricsConfigurationOption<Menu>, ConfigOptionContext,
-                // self query
-                (Entity, &MetricsConfigurationOption<Menu>),
-                // self filter
-                (With<MetricsConfigurationOption<Menu>>),
-                // parent query
-                (Entity, &Parent, &MetricsConfigurationOption<Menu>),
-                // parent filter
-                (With<Parent>, With<MetricsConfigurationOption<Menu>>),
-                // child query
-                (Entity, &Children, &MetricsConfigurationOption<Menu>),
-                // child filter
-                (With<Children>, With<MetricsConfigurationOption<Menu>>),
-                // interaction filter
-                (With<MetricsConfigurationOption<Menu>>, With<Button>, Changed<Interaction>)
-            >)
-            .add_event::<EventDescriptor<DataType, ConfigurationOptionEventArgs<Menu>, MetricsConfigurationOption<Menu>>>();
+            .insert_resource(ConfigOptionActionStateRetriever::<Menu>::default())
+            .add_system(ConfigOptionActionStateRetriever::<Menu>::click_write_events)
+            .add_system(ConfigEventReader::<Menu>::read_events)
+            .add_event::<EventDescriptor<DataType, ConfigurationOptionEventArgs<Menu>, MetricsConfigurationOption<Menu>>>()
+        ;
     }
 }

@@ -3,6 +3,7 @@ use std::default::default;
 use std::f32::consts::PI;
 use std::marker::PhantomData;
 use bevy::prelude::{Assets, BuildChildren, Changed, Children, Color, Commands, Component, Entity, info, MaterialMeshBundle, Mesh, Mut, Query, ResMut, Vec3, With, Without};
+use bevy_mod_picking::PickableBundle;
 use ndarray::{Array1, s, SliceInfoElem};
 use crate::graph::{calculate_convergence_time, DataSeries, Graph, GraphDimType, SeriesStep};
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
@@ -28,7 +29,7 @@ pub(crate) fn draw_graph_points<T, P>(
     >,
     mut metrics: Query<
         (Entity, &Metric<T>, &mut DataSeries),
-        (Changed<Metric<T>>, Without<Graph<T>>)
+        (Changed<Metric<T>>, Without<Graph<T>>, With<DataSeries>)
     >,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LineMaterial>>,
@@ -42,7 +43,7 @@ where
         .collect::<HashMap<Entity, Entity>>();
 
     for (metric_entity, metric, mut series) in metrics.iter_mut() {
-        let parent_entity = graph_children.get(&metric_entity).unwrap();
+        let parent_metric = graph_children.get(&metric_entity).unwrap();
         let last = *series.drawn
             .last().or(Some(&0))
             .unwrap();
@@ -55,6 +56,7 @@ where
                         .into_iter()
                         .for_each(|(start, end, dim_type)| {
 
+                            /// need to match up the layer
                             let next_segment = create_data_segment(
                                 &mut commands,
                                 start,
@@ -65,7 +67,7 @@ where
                                 1.0
                             );
 
-                            commands.get_entity(*parent_entity)
+                            commands.get_entity(*parent_metric)
                                 .as_mut()
                                 .map(|parent| parent.add_child(next_segment));
                         });
@@ -106,7 +108,8 @@ pub(crate) fn create_data_segment(
                 mesh: meshes.add(line_mesh.0),
                 material: materials.add(line_mesh.1),
                 ..default()
-            }
+            },
+            PickableBundle::default()
         ))
         .id()
 

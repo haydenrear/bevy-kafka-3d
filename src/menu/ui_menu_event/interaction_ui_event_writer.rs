@@ -1,21 +1,42 @@
 use std::marker::PhantomData;
 use std::os::macos::raw::stat;
-use bevy::prelude::{Button, Changed, Commands, Display, Entity, EventWriter, Interaction, Query, ResMut, Resource, Style, Visibility, With};
+use bevy::prelude::{Button, Changed, Commands, Component, Display, Entity, EventWriter, Interaction, Query, ResMut, Resource, Style, Visibility, With};
 use bevy::hierarchy::{Children, Parent};
 use bevy::utils::{HashMap, HashSet};
 use bevy::log::info;
-use bevy::ecs::query::QueryEntityError;
+use bevy::ecs::query::{QueryEntityError, ReadOnlyWorldQuery, WorldQuery};
 use bevy::ui::Size;
-use crate::event::event_descriptor::EventDescriptor;
+use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::{ChangePropagation, PropagateComponentEvent, StartingState};
-use crate::event::event_actions::RetrieveState;
-use crate::event::event_state::StateChange;
+use crate::event::event_actions::{ClickWriteEvents, RetrieveState};
+use crate::event::event_state::{Context, StateChange};
 use crate::menu::ui_menu_event::change_style::{ChangeStyleTypes, StyleNode};
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, StyleContext, UiComponent, UiComponentState, UiComponentStateFilter, UiComponentStateTransition, UiComponentStateTransitions, UiEventArgs};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
+
+
 #[derive(Default, Resource, Debug)]
 pub struct StateChangeActionTypeStateRetriever;
+
+impl ClickWriteEvents<
+    StateChangeActionTypeStateRetriever, UiEventArgs, StateChangeActionType, Style, StyleContext,
+                // self query
+                (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
+                // self filter
+                (With<UiComponent>, With<Style>),
+                // parent query
+                (Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style),
+                // parent filter
+                (With<UiComponent>, With<Parent>, With<Style>),
+                // child query
+                (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
+                // child filter
+                (With<UiComponent>, With<Children>, With<Style>),
+                // interaction filter
+                (With<UiComponent>, With<Button>, Changed<Interaction>)
+> for StateChangeActionTypeStateRetriever {
+}
 
 impl RetrieveState<
     UiEventArgs, StateChangeActionType, Style, StyleContext,

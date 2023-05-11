@@ -45,7 +45,7 @@ impl Default for MenuResource {
                                                                     ConfigurationOptionEnum::NetworkConcavity(
                                                                         MetricsConfigurationOption::Concavity(
                                                                             PhantomData::<Network>::default(),
-                                                                            DataType::Selected,
+                                                                            DataType::Deselected,
                                                                             CONCAVITY
                                                                         ))),
                                                                 index: 0,
@@ -67,7 +67,7 @@ impl Default for MenuResource {
                                                                     ConfigurationOptionEnum::NetworkVariance(
                                                                         MetricsConfigurationOption::Variance(
                                                                         PhantomData::<Network>::default(),
-                                                                        DataType::Selected,
+                                                                        DataType::Deselected,
                                                                             VARIANCE
                                                                     ))),
                                                                 index: 1,
@@ -94,7 +94,7 @@ impl Default for MenuResource {
                                                         },
                                                         option: ConfigurationOptionEnum::NetworkMetrics(MetricsConfigurationOption::Metrics(
                                                             PhantomData::<Network>::default(),
-                                                            DataType::Selected,
+                                                            DataType::Deselected,
                                                             METRICS
                                                         )),
                                                     },
@@ -109,7 +109,7 @@ impl Default for MenuResource {
                                                     config_option: ConfigurationOptionEnum::NetworkMetrics(
                                                         MetricsConfigurationOption::Metrics(
                                                             PhantomData::<Network>::default(),
-                                                            DataType::Selected,
+                                                            DataType::Deselected,
                                                             METRICS
                                                         )),
                                                 },
@@ -137,7 +137,7 @@ impl Default for MenuResource {
                                                                 data_type: MenuOptionType::Primitive(
                                                                     ConfigurationOptionEnum::LayerConcavity(MetricsConfigurationOption::Concavity(
                                                                         PhantomData::<Layer>::default(),
-                                                                        DataType::Selected,
+                                                                        DataType::Deselected,
                                                                         CONCAVITY
                                                                     ))),
                                                                 index: 0,
@@ -158,7 +158,7 @@ impl Default for MenuResource {
                                                                 data_type: MenuOptionType::Primitive(
                                                                     ConfigurationOptionEnum::LayerVariance(MetricsConfigurationOption::Variance(
                                                                         PhantomData::<Layer>::default(),
-                                                                        DataType::Selected,
+                                                                        DataType::Deselected,
                                                                         VARIANCE
                                                                     ))),
                                                                 index: 1,
@@ -185,7 +185,7 @@ impl Default for MenuResource {
                                                         },
                                                         option: ConfigurationOptionEnum::LayerMetrics(MetricsConfigurationOption::Metrics(
                                                             PhantomData::<Layer>::default(),
-                                                            DataType::Selected,
+                                                            DataType::Deselected,
                                                                 METRICS
                                                         )),
                                                     },
@@ -199,7 +199,7 @@ impl Default for MenuResource {
                                                     },
                                                     config_option: ConfigurationOptionEnum::LayerMetrics(MetricsConfigurationOption::Metrics(
                                                         PhantomData::<Layer>::default(),
-                                                        DataType::Selected,
+                                                        DataType::Deselected,
                                                         METRICS
                                                     )),
                                                 },
@@ -226,7 +226,7 @@ impl Default for MenuResource {
                                                                 data_type: MenuOptionType::Primitive(
                                                                     ConfigurationOptionEnum::NodeConcavity(MetricsConfigurationOption::Concavity(
                                                                         PhantomData::<Node>::default(),
-                                                                        DataType::Selected,
+                                                                        DataType::Deselected,
                                                                         CONCAVITY
                                                                     ))),
                                                                 index: 0,
@@ -247,7 +247,7 @@ impl Default for MenuResource {
                                                                 data_type: MenuOptionType::Primitive(
                                                                     ConfigurationOptionEnum::NodeVariance(MetricsConfigurationOption::Variance(
                                                                         PhantomData::<Node>::default(),
-                                                                        DataType::Selected,
+                                                                        DataType::Deselected,
                                                                         VARIANCE
                                                                     ))),
                                                                 index: 1,
@@ -274,7 +274,7 @@ impl Default for MenuResource {
                                                         },
                                                         option: ConfigurationOptionEnum::NodeMetrics(MetricsConfigurationOption::Metrics(
                                                             PhantomData::<Node>::default(),
-                                                            DataType::Selected,
+                                                            DataType::Deselected,
                                                             METRICS
                                                         )),
                                                     },
@@ -288,7 +288,7 @@ impl Default for MenuResource {
                                                     },
                                                     config_option: ConfigurationOptionEnum::NodeMetrics(MetricsConfigurationOption::Metrics(
                                                         PhantomData::<Node>::default(),
-                                                        DataType::Selected,
+                                                        DataType::Deselected,
                                                         METRICS
                                                     )),
                                                 },
@@ -320,7 +320,7 @@ impl Default for MenuResource {
                                         option: ConfigurationOptionEnum::Metrics(
                                             MetricsConfigurationOption::Metrics(
                                                 PhantomData::<Metric<Network>>::default(),
-                                                DataType::Selected,
+                                                DataType::Deselected,
                                                 METRICS
                                             )
                                         ),
@@ -336,9 +336,9 @@ impl Default for MenuResource {
                                         id: 101.0,
                                     },
                                     config_option: ConfigurationOptionEnum::Menu(
-                                        MetricsConfigurationOption::Menu(
+                                        MetricsConfigurationOption::GraphMenu(
                                             PhantomData::<Menu>::default(),
-                                            DataType::Selected,
+                                            DataType::Deselected,
                                                 MENU,
                                             MenuType::Menu
                                         )
@@ -373,7 +373,7 @@ impl Default for MenuResource {
                                                                     ConfigurationOptionEnum::NetworkConcavity(
                                                                         MetricsConfigurationOption::Concavity(
                                                                             PhantomData::<Network>::default(),
-                                                                            DataType::Selected,
+                                                                            DataType::Deselected,
                                                                             CONCAVITY
                                                                         ))),
                                                                 index: 0,
@@ -394,7 +394,7 @@ impl Default for MenuResource {
                                                                 data_type: MenuOptionType::Primitive(
                                                                     ConfigurationOptionEnum::NetworkVariance(MetricsConfigurationOption::Variance(
                                                                         PhantomData::<Network>::default(),
-                                                                        DataType::Selected,
+                                                                        DataType::Deselected,
                                                                         VARIANCE
                                                                     ))),
                                                                 index: 1,
@@ -421,7 +421,7 @@ impl Default for MenuResource {
                                                         },
                                                         option: ConfigurationOptionEnum::NetworkMetrics(MetricsConfigurationOption::Metrics(
                                                             PhantomData::<Network>::default(),
-                                                            DataType::Selected,
+                                                            DataType::Deselected,
                                                             METRICS
                                                         )),
                                                     },
@@ -436,7 +436,7 @@ impl Default for MenuResource {
                                                     config_option: ConfigurationOptionEnum::NetworkMetrics(
                                                         MetricsConfigurationOption::Metrics(
                                                             PhantomData::<Network>::default(),
-                                                            DataType::Selected,
+                                                            DataType::Deselected,
                                                             METRICS
                                                         )),
                                                 },
@@ -464,7 +464,7 @@ impl Default for MenuResource {
                                                                 data_type: MenuOptionType::Primitive(
                                                                     ConfigurationOptionEnum::LayerConcavity(MetricsConfigurationOption::Concavity(
                                                                         PhantomData::<Layer>::default(),
-                                                                        DataType::Selected,
+                                                                        DataType::Deselected,
                                                                         CONCAVITY
                                                                     ))),
                                                                 index: 0,
@@ -485,7 +485,7 @@ impl Default for MenuResource {
                                                                 data_type: MenuOptionType::Primitive(
                                                                     ConfigurationOptionEnum::LayerVariance(MetricsConfigurationOption::Variance(
                                                                         PhantomData::<Layer>::default(),
-                                                                        DataType::Selected,
+                                                                        DataType::Deselected,
                                                                         VARIANCE
                                                                     ))),
                                                                 index: 1,
@@ -512,7 +512,7 @@ impl Default for MenuResource {
                                                         },
                                                         option: ConfigurationOptionEnum::LayerMetrics(MetricsConfigurationOption::Metrics(
                                                             PhantomData::<Layer>::default(),
-                                                            DataType::Selected,
+                                                            DataType::Deselected,
                                                             METRICS
                                                         )),
                                                     },
@@ -526,7 +526,7 @@ impl Default for MenuResource {
                                                     },
                                                     config_option: ConfigurationOptionEnum::LayerMetrics(MetricsConfigurationOption::Metrics(
                                                         PhantomData::<Layer>::default(),
-                                                        DataType::Selected,
+                                                        DataType::Deselected,
                                                         METRICS
                                                     )),
                                                 },
@@ -553,7 +553,7 @@ impl Default for MenuResource {
                                                                 data_type: MenuOptionType::Primitive(
                                                                     ConfigurationOptionEnum::NodeConcavity(MetricsConfigurationOption::Concavity(
                                                                         PhantomData::<Node>::default(),
-                                                                        DataType::Selected,
+                                                                        DataType::Deselected,
                                                                         CONCAVITY
                                                                     ))),
                                                                 index: 0,
@@ -574,7 +574,7 @@ impl Default for MenuResource {
                                                                 data_type: MenuOptionType::Primitive(
                                                                     ConfigurationOptionEnum::NodeVariance(MetricsConfigurationOption::Variance(
                                                                         PhantomData::<Node>::default(),
-                                                                        DataType::Selected,
+                                                                        DataType::Deselected,
                                                                         VARIANCE
                                                                     ))),
                                                                 index: 1,
@@ -601,7 +601,7 @@ impl Default for MenuResource {
                                                         },
                                                         option: ConfigurationOptionEnum::NodeMetrics(MetricsConfigurationOption::Metrics(
                                                             PhantomData::<Node>::default(),
-                                                            DataType::Selected,
+                                                            DataType::Deselected,
                                                             METRICS
                                                         )),
                                                     },
@@ -615,7 +615,7 @@ impl Default for MenuResource {
                                                     },
                                                     config_option: ConfigurationOptionEnum::NodeMetrics(MetricsConfigurationOption::Metrics(
                                                         PhantomData::<Node>::default(),
-                                                        DataType::Selected,
+                                                        DataType::Deselected,
                                                         METRICS
                                                     )),
                                                 },
@@ -647,7 +647,7 @@ impl Default for MenuResource {
                                         option: ConfigurationOptionEnum::Metrics(
                                             MetricsConfigurationOption::Metrics(
                                                 PhantomData::<Metric<Network>>::default(),
-                                                DataType::Selected,
+                                                DataType::Deselected,
                                                 METRICS
                                             )
                                         ),
@@ -663,9 +663,9 @@ impl Default for MenuResource {
                                         id: 101.0,
                                     },
                                     config_option: ConfigurationOptionEnum::Menu(
-                                        MetricsConfigurationOption::Menu(
+                                        MetricsConfigurationOption::GraphMenu(
                                             PhantomData::<Menu>::default(),
-                                            DataType::Selected,
+                                            DataType::Deselected,
                                             MENU,
                                             MenuType::Menu
                                         )
@@ -696,9 +696,9 @@ impl Default for MenuResource {
                             id: 0.0,
                         },
                         option: ConfigurationOptionEnum::Menu(
-                            MetricsConfigurationOption::Menu(
+                            MetricsConfigurationOption::GraphMenu(
                                 PhantomData::<Menu>::default(),
-                                DataType::Selected,
+                                DataType::Deselected,
                                 MENU,
                                 MenuType::Menu
                             )
@@ -710,10 +710,10 @@ impl Default for MenuResource {
 
                             MenuOption {
                                 data_type: MenuOptionType::Primitive(
-                                    ConfigurationOptionEnum::GraphingMenu(
-                                        MetricsConfigurationOption::Menu(
+                                    ConfigurationOptionEnum::Menu(
+                                        MetricsConfigurationOption::GraphMenu(
                                             PhantomData::<Menu>::default(),
-                                            DataType::Selected,
+                                            DataType::Deselected,
                                             MENU,
                                             MenuType::Graph
                                         ))
@@ -733,10 +733,10 @@ impl Default for MenuResource {
                             },
                             MenuOption {
                                 data_type: MenuOptionType::Primitive(
-                                    ConfigurationOptionEnum::GraphingMenu(
-                                        MetricsConfigurationOption::Menu(
+                                    ConfigurationOptionEnum::Menu(
+                                        MetricsConfigurationOption::NetworkMenu(
                                             PhantomData::<Menu>::default(),
-                                            DataType::Selected,
+                                            DataType::Deselected,
                                             MENU,
                                             MenuType::Network
                                         ))
@@ -767,9 +767,9 @@ impl Default for MenuResource {
                             id: 0.0,
                         },
                         option: ConfigurationOptionEnum::Menu(
-                            MetricsConfigurationOption::Menu(
+                            MetricsConfigurationOption::GraphMenu(
                                 PhantomData::<Menu>::default(),
-                                DataType::Selected,
+                                DataType::Deselected,
                                 MENU,
                                 MenuType::Menu
                             )

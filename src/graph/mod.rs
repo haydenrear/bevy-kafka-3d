@@ -27,13 +27,18 @@ pub const NUM_GRIDLINES: usize = 1000;
 
 /// Graph Parent
 /// - > GridAxis Child: for each grid axis and plain
-/// - ->
+/// - > Metric: Graph has metric, DataSeries, which are pickable
 #[derive(Component, Clone, Default, Debug)]
 pub struct Graph<T>
     where
         T: Component {
     component: PhantomData<T>
 }
+
+#[derive(Component, Clone, Default, Debug)]
+pub struct GraphConfigurationResource {
+}
+
 
 #[derive(Resource, Default)]
 struct GraphData {
@@ -50,19 +55,21 @@ pub struct Grid {
 
 #[derive(Component, Default, Clone)]
 pub enum GraphDimType {
+    /// For each metric, there can be multiple pieces of data. For instance, one column provides
+    /// the location and another column could provide a classifier that would be the color. Additionally,
+    /// another column could be another continuous variable that determines the size.
     #[default]
-    Location,
-    Combination(HashMap<usize, GraphDimType>),
+    Coordinate,
     Colored,
     Sized,
     Time
 }
 
 pub struct GraphDim {
-    dim_type: GraphDimType,
-    name: String,
-    grid_axis: GridAxis,
-    index: usize
+    pub(crate) dim_type: GraphDimType,
+    pub(crate) name: String,
+    pub(crate) grid_axis: GridAxis,
+    pub(crate) index: usize
 }
 
 #[derive(Component)]

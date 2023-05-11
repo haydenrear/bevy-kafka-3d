@@ -24,7 +24,6 @@ use crate::graph::draw_graph_points::draw_graph_points;
 use crate::graph::graph_plugin::GraphPlugin;
 use crate::graph::setup_graph::setup_graph;
 use crate::menu::config_menu_event::config_menu_event_plugin::ConfigMenuEventPlugin;
-use crate::menu::config_menu_event::interaction_config_event_reader::read_item;
 use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::menu_resource::MenuResource;
@@ -70,7 +69,6 @@ async fn main() {
         .add_plugin(MaterialPlugin::<LineMaterial>::default())
         .add_startup_system(setup_camera)
         .add_startup_system(add_node_entities)
-        .add_system(read_item)
         .add_system(update_network)
         .add_system(camera_control)
         .add_system(draw_node_connections)
@@ -82,3 +80,5 @@ async fn main() {
         .add_event::<PropagateComponentEvent>()
         .run();
 }
+
+

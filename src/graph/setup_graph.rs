@@ -1,5 +1,5 @@
 use std::marker::PhantomData;
-use bevy::prelude::{Added, Color, Commands, Component, default, Entity, Mesh, Query, ResMut, Visibility};
+use bevy::prelude::{Added, Color, Commands, Component, default, Entity, info, Mesh, Query, ResMut, Visibility, Without};
 use bevy::asset::Assets;
 use bevy::math::Vec3;
 use bevy::pbr::{MaterialMeshBundle, PbrBundle};
@@ -10,26 +10,25 @@ use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptio
 use crate::metrics::network_metrics::Metric;
 use crate::network::Network;
 
-pub(crate) fn graph_generator<T>
+/// When a metric is added to the world, a graph is created for this metric, which has a series.
+pub(crate) fn graph_points_generator<T>
 (
     mut commands: Commands,
-    mut context: &mut ResMut<ConfigOptionContext>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LineMaterial>>,
     metric_added_event: Query<
         (Entity, &Metric<T>),
         (Added<Metric<T>>)
-    >
+    >,
+    mut context: ResMut<ConfigOptionContext>,
 )
     where
         T: Component
 {
     for (metric_entity, metric) in metric_added_event.iter() {
-        let graph = draw_graph::<T>(&mut commands, &mut meshes, &mut materials);
         commands.get_entity(graph)
             .as_mut()
             .map(|entity_cmd| entity_cmd.add_child(metric_entity));
-        context.graph_entity = Some(graph);
     }
 }
 
@@ -37,14 +36,16 @@ pub(crate) fn setup_graph(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LineMaterial>>,
+    mut context: ResMut<ConfigOptionContext>,
 ) {
-    draw_graph::<Network>(&mut commands, &mut meshes, &mut materials);
+    draw_graph::<Network>(&mut commands, &mut meshes, &mut materials, &mut context);
 }
 
 fn draw_graph<T>(
     mut commands: &mut Commands,
     mut meshes: &mut ResMut<Assets<Mesh>>,
-    mut materials: &mut ResMut<Assets<LineMaterial>>
+    mut materials: &mut ResMut<Assets<LineMaterial>>,
+    context: &mut ResMut<ConfigOptionContext>,
 ) -> Entity
 where T: Component
 {
@@ -56,7 +57,11 @@ where T: Component
     graph_component.add_child(grid.x_axis);
     graph_component.add_child(grid.y_axis);
     graph_component.add_child(grid.z_axis);
-    graph_component.id()
+    graph_component.insert(Visibility::Hidden);
+    let graph = graph_component.id();
+    info!("Made {:?} visible.", graph);
+    context.graph_entity = Some(graph);
+    graph
 }
 
 fn draw_axes(

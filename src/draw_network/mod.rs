@@ -1,8 +1,9 @@
-use std::intrinsics::{caller_location, fabsf32, powf32, sqrtf32};
+use std::hash::Hash;
+use std::intrinsics::{caller_location, ceilf32, fabsf32, powf32, sqrtf32};
 use std::marker::PhantomData;
-use bevy::prelude::{BuildChildren, Changed, Children, ClearColor, Color, ColorMaterial, Commands, default, Entity, GlobalTransform, Mesh, Parent, PbrBundle, Query, Res, ResMut, shape, SpriteBundle, StandardMaterial, Transform, Without};
+use bevy::prelude::{BuildChildren, Changed, Children, ClearColor, Color, ColorMaterial, Commands, default, Entity, GlobalTransform, Mesh, Parent, PbrBundle, Query, Res, ResMut, shape, SpriteBundle, StandardMaterial, Transform, Visibility, Without};
 use bevy::asset::Assets;
-use bevy::utils::{HashMap, Uuid};
+use bevy::utils::{HashMap, HashSet, Uuid};
 use bevy::sprite::{Material2d, MaterialMesh2dBundle};
 use bevy_mod_picking::PickableBundle;
 use bevy::log::{error, info};
@@ -11,6 +12,7 @@ use bevy_prototype_lyon::shapes;
 use bevy::math::{Quat, Vec2, Vec3};
 use bevy::pbr::{MaterialMeshBundle, PointLightBundle};
 use bevy::prelude::shape::Quad;
+use bevy::prelude::system_adapter::new;
 use bevy::render::mesh::PrimitiveTopology;
 use bevy_prototype_lyon::entity::ShapeBundle;
 use bevy_prototype_lyon::draw::{Fill, Stroke};
@@ -36,41 +38,41 @@ pub const CONNECTION_THICKNESS: f32 = 20.0;
 pub(crate) fn create_network(
     mut commands: Commands,
     mut context: ResMut<ConfigOptionContext>,
-    mut layer_query: Query<(&mut Transform, &mut Layer, Entity)>,
-    mut network_query: Query<&Network>
+    mut layer_query: Query<(&mut Transform, &mut Layer, Entity), Changed<Layer>>,
+    mut network_query: Query<&mut Network>
 ) {
 
-    let layers = layer_query.iter()
-        .filter(|layer| {
-            network_query.iter().all(|n| n.network_id != layer.1.network_id)
-        })
-        .map(|layer| (layer.1.network_id.clone(), layer))
-        .collect::<HashMap<NetworkId, (&Transform, &Layer, Entity)>>();
+    let grouped_by_network_id = group_by_key(
+        layer_query.iter()
+            .map(|(entity, layer, transform)| {
+                (layer.network_id.clone(), transform)
+            }).collect()
+    );
 
-    if layers.len() == 0 {
-        return;
-    }
+    let mut existing = HashSet::new();
 
-    let mut network: HashMap<NetworkId, Vec<Entity>> = HashMap::new();
-
-    for layer in layers.iter() {
-        info!("Creating network {:?}.", layer.0);
-        if network.contains_key(layer.0) {
-            network.get_mut(layer.0).map(|vec| vec.push(layer.1.2));
-        } else {
-            network.insert(layer.0.clone(), vec![layer.1.2]);
+    for (network_id, layer) in grouped_by_network_id.iter() {
+        for mut network in network_query.iter_mut() {
+            if network.network_id.network_id == network_id.network_id {
+                for layer in layer.iter() {
+                    network.layers.insert(*layer);
+                    existing.insert(network_id.clone());
+                }
+            }
         }
     }
 
-    if network.len() > 1 {
-        panic!("too many networks!");
-    }
-
-    for network_to_create in network.into_iter() {
-        context.network_entity = Some(commands.spawn(Network::new(
-            network_to_create.1,
-            network_to_create.0
-        )).id());
+    for (network_id, layers) in grouped_by_network_id.into_iter() {
+        if !existing.contains(&network_id) {
+            let new_network = Network::new(layers.clone(), network_id);
+            let mut created_network = commands.spawn((new_network, PbrBundle::default()));
+            let hidden_network = created_network
+                .insert(Visibility::Hidden);
+            let network = hidden_network
+                .push_children(layers.into_iter().collect::<Vec<Entity>>().as_slice());
+            let network = network.id();
+            context.network_entity = Some(network);
+        }
     }
 
 
@@ -82,7 +84,7 @@ pub(crate) fn draw_network_initial(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut layer_query: Query<(Entity, &mut Layer, &mut Transform), Changed<Layer>>,
-    color: Res<ClearColor>
+    color: Res<ClearColor>,
 ) {
     if layer_query.is_empty() {
         return;
@@ -91,7 +93,28 @@ pub(crate) fn draw_network_initial(
     for layer_tuple in layer_query.iter() {
         draw_layers_and_nodes(&mut commands, &mut materials, &mut meshes, &(layer_tuple.1, layer_tuple.2, layer_tuple.0), &color);
     }
+
+
 }
+
+fn group_by_key<K, V>(map: Vec<(K, V)>) -> HashMap<K, HashSet<V>>
+    where
+        K: Eq + Hash,
+        V: Clone + Hash + Eq
+{
+    let mut result: HashMap<K, HashSet<V>> = HashMap::new();
+    for (key, value) in map.into_iter() {
+        result.entry(key)
+            .and_modify(|vec| { vec.insert(value.clone()); })
+            .or_insert_with(|| {
+                let mut v = HashSet::new();
+                v.insert(value);
+                v
+            });
+    }
+    result
+}
+
 
 /// Draws fully connected layers.
 pub(crate) fn update_network(

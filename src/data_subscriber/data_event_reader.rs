@@ -1,7 +1,9 @@
 use std::marker::PhantomData;
 use std::os::unix::raw::time_t;
+use bevy::pbr::PbrBundle;
 use bevy::prelude::{Commands, Component, Entity, EventReader, Query, Res, ResMut, Resource};
 use bevy::utils::HashMap;
+use bevy_mod_picking::PickableBundle;
 use crate::config::ConfigurationProperties;
 use crate::data_subscriber::metric_event::NetworkMetricsServiceEvent;
 use crate::graph::DataSeries;
@@ -30,6 +32,10 @@ impl MetricsState {
 
 }
 
+/// When messages are received from Kafka, the are sent as NetworkMetricsServiceEvents. They are
+/// retrieved here and the data is added to the historical data. The data is then available in memory
+/// to be displayed. It will therefore show up in the menu, and the user sets how to display the data.
+/// There will be a default for the various metrics.
 pub fn read_metric_events<T, U>(
     mut commands: Commands,
     mut event_read: EventReader<T>,
@@ -56,6 +62,7 @@ where
                 });
         } else {
             for (matcher, to_match) in config_properties.metrics.metric_type.iter() {
+                let to_match = to_match.as_str();
                 if matches!(metric_name, to_match) {
 
                     let metric_type = matcher.get_metric::<U>();
@@ -70,14 +77,22 @@ where
                     );
 
                     get_arr_from_vec( event.get_data(), event.get_shape())
-                        .map(|arr| metric.historical.extend(arr, 0));
+                        .map(|arr| metric.historical.extend(arr, 1));
 
                     // TODO: this should wait and the series is created based on changes in menu
-                    commands.spawn((metric, DataSeries{
-                        drawn: vec![],
-                        prev_convergence_times: Default::default(),
-                        columns: vec![]
-                    }));
+                    let metric_id = commands.spawn((
+                            metric,
+                            DataSeries {
+                                drawn: vec![],
+                                prev_convergence_times: Default::default(),
+                                columns: vec![],
+                            },
+                            PbrBundle::default(),
+                            PickableBundle::default()
+                        ))
+                        .id();
+
+                    metrics_lookup.entities.insert(metric_name.to_string(), (metric_id, 0));
 
                     break;
                 }

@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::marker::PhantomData;
 use bevy::ecs::query::{QueryEntityError, ReadOnlyWorldQuery, WorldQuery};
 use bevy::prelude::{Commands, Component, Entity, EventReader, EventWriter, Interaction, Query, Res, ResMut, Resource};
@@ -6,8 +7,9 @@ use bevy::time::Time;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::PropagateComponentEvent;
 use crate::event::event_state::{Context, StateChangeFactory, Update, UpdateStateInPlace};
+use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
-pub fn click_write_events<
+pub trait ClickWriteEvents <
     RetrieveStateT,
     EventArgsT: EventArgs + 'static,
     EventDataT: EventData + 'static,
@@ -20,74 +22,53 @@ pub fn click_write_events<
     ChildQuery: WorldQuery,
     ChildFilterQuery: ReadOnlyWorldQuery,
     InteractionFilterQuery: ReadOnlyWorldQuery,
->(
-    mut commands: Commands,
-    retrieve: ResMut<RetrieveStateT>,
-    mut context: ResMut<Ctx>,
-    mut event_write: EventWriter<EventDescriptor<EventDataT, EventArgsT, ComponentT>>,
-    self_query: Query<SelfQuery, SelfFilterQuery>,
-    with_parent_query: Query<ParentQuery, ParentFilterQuery>,
-    with_child_query: Query<ChildQuery, ChildFilterQuery>,
-    interaction_query: Query<(Entity, &Interaction), InteractionFilterQuery>,
-    mut propagation_write: EventWriter<PropagateComponentEvent>
-)
-    where
-        RetrieveStateT: RetrieveState<
+>
+    where RetrieveStateT: RetrieveState<
             EventArgsT, EventDataT, ComponentT, Ctx, SelfQuery,
             ParentQuery, ChildQuery, SelfFilterQuery,
             ParentFilterQuery, ChildFilterQuery
-        >
-{
+        > {
+    fn click_write_events(
+        mut commands: Commands,
+        retrieve: ResMut<RetrieveStateT>,
+        mut context: ResMut<Ctx>,
+        mut event_write: EventWriter<EventDescriptor<EventDataT, EventArgsT, ComponentT>>,
+        self_query: Query<SelfQuery, SelfFilterQuery>,
+        with_parent_query: Query<ParentQuery, ParentFilterQuery>,
+        with_child_query: Query<ChildQuery, ChildFilterQuery>,
+        interaction_query: Query<(Entity, &Interaction, &UiIdentifiableComponent), InteractionFilterQuery>,
+        mut propagation_write: EventWriter<PropagateComponentEvent>
+    )
+    {
+        let _ = interaction_query
+            .iter()
+            .for_each(|(entity, interaction, component)| {
+                if let Interaction::Clicked = interaction {
+                    info!("Had interaction with: {:?}", component);
+                    let events = RetrieveStateT::create_event(
+                        &mut commands,
+                        entity, &mut context,
+                        &self_query,
+                        &with_parent_query,
+                        &with_child_query
+                    );
 
-    let _ = interaction_query
-        .iter()
-        .for_each(|(entity, interaction)| {
-            if let Interaction::Clicked = interaction {
-                let events = RetrieveStateT::create_event(
-                    &mut commands,
-                    entity, &mut context,
-                    &self_query,
-                    &with_parent_query,
-                    &with_child_query
-                );
-                events.0.into_iter()
-                    .for_each(|(event)| event_write.send(event));
-                events.1.into_iter()
-                    .for_each(|(event)| propagation_write.send(event));
-            }
-        });
+                    events.0.into_iter()
+                        .for_each(|(event)| event_write.send(event));
+                    events.1.into_iter()
+                        .for_each(|(event)| propagation_write.send(event));
+                }
+            });
+
+    }
 }
 
-pub trait InteractionEventReader<T, A, StateComponent, UpdateComponent, StateChangeFactoryI, StateUpdateI, Ctx: Context, QF: ReadOnlyWorldQuery = ()>
+pub trait InteractionEventReader<EventDataT, EventArgsT, StateComponent, UpdateComponent, StateChangeFactoryT, StateUpdateI, Ctx: Context + Debug, QF: ReadOnlyWorldQuery>
     where
-        T: EventData + 'static,
-        A: EventArgs + 'static,
-        StateComponent: Component + Send + Sync + 'static,
-        UpdateComponent: Component + Send + Sync + 'static,
-        StateChangeFactoryI: StateChangeFactory<T, A, StateComponent, UpdateComponent, Ctx, StateUpdateI>,
-        StateUpdateI: UpdateStateInPlace<UpdateComponent, Ctx>
-{
-    fn read_events(
-        commands: Commands,
-        ctx_resource: ResMut<Ctx>,
-        update_state: PhantomData<StateChangeFactoryI>,
-        read_events: EventReader<EventDescriptor<T, A, StateComponent>>,
-        query: Query<(Entity, &mut UpdateComponent), QF>
-    );
-}
-
-
-
-pub struct StateChangeEventReader;
-
-impl <EventDataT, EventArgsT, StateComponent, UpdateComponent, StateChangeFactoryT, StateUpdateI, Ctx: Context, QF: ReadOnlyWorldQuery>
-InteractionEventReader<EventDataT, EventArgsT, StateComponent, UpdateComponent, StateChangeFactoryT, StateUpdateI, Ctx, QF>
-for StateChangeEventReader
-    where
-        EventDataT: EventData + 'static,
-        EventArgsT: EventArgs + 'static,
-        StateComponent: Component + Send + Sync + 'static,
-        UpdateComponent: Component + Send + Sync + 'static,
+        EventDataT: EventData + 'static + Debug,
+        EventArgsT: EventArgs + 'static + Debug,
+        StateComponent: Component + Send + Sync + 'static + Debug,
+        UpdateComponent: Component + Send + Sync + 'static + Debug,
         StateChangeFactoryT: StateChangeFactory<EventDataT, EventArgsT, StateComponent, UpdateComponent, Ctx, StateUpdateI>,
         StateUpdateI: UpdateStateInPlace<UpdateComponent, Ctx>
 {
@@ -99,9 +80,11 @@ for StateChangeEventReader
         mut query: Query<(Entity, &mut UpdateComponent), QF>
     ) {
         for event in read_events.iter() {
+            info!("Reading next event: {:?}", event);
             StateChangeFactoryT::current_state(event, &mut ctx_resource)
                 .iter()
                 .for_each(|state| {
+                    info!("Reading next state change: {:?}", state);
                     let _ = query.get_mut(state.entity)
                         // fetches a different component on the same entity for updating.
                         .map(|(entity, mut component)| {

@@ -4,12 +4,13 @@ use bevy::hierarchy::{Children, Parent};
 use std::fmt::{Debug, Formatter};
 use bevy::time::TimerMode;
 use bevy::utils::{HashMap, HashSet};
-use crate::event::event_actions::{InteractionEventReader, StateChangeEventReader};
+use crate::event::event_actions::{ClickWriteEvents, InteractionEventReader};
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::ChangePropagation;
 use crate::event::event_state::{Context, HoverStateChange, NextStateChange, StateChange, StateChangeFactory, Update, UpdateStateInPlace};
 use crate::menu::{CollapsableMenu, Dropdown, DropdownOption, ui_menu_event};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
+use crate::menu::ui_menu_event::interaction_ui_event_reader::UiEventReader;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::ui_menu_event::ui_state_change;
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
@@ -23,35 +24,15 @@ impl Plugin for UiEventPlugin {
             .add_startup_system(create_dropdown)
             .insert_resource(StateChangeActionTypeStateRetriever::default())
             .insert_resource(StyleContext::default())
-            .add_system(crate::event::event_actions::click_write_events::<
-                StateChangeActionTypeStateRetriever, UiEventArgs, StateChangeActionType, Style, StyleContext,
-                // self query
-                (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
-                // self filter
-                (With<UiComponent>, With<Style>),
-                // parent query
-                (Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style),
-                // parent filter
-                (With<UiComponent>, With<Parent>, With<Style>),
-                // child query
-                (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
-                // child filter
-                (With<UiComponent>, With<Children>, With<Style>),
-                // interaction filter
-                (With<UiComponent>, With<Button>, Changed<Interaction>)
-            >)
-            .add_system(<StateChangeEventReader as InteractionEventReader<
-                StateChangeActionType, UiEventArgs, Style, Style,
-                StateChangeActionComponentStateFactory,
-                NextUiState, StyleContext, (With<UiComponent>)
-            >>::read_events)
+            .add_system(StateChangeActionTypeStateRetriever::click_write_events)
+            .add_system(UiEventReader::read_events)
             .add_system(ui_state_change::hover_event)
             .add_event::<UiEventArgs>()
             .add_event::<EventDescriptor<StateChangeActionType, UiEventArgs, Style>>();
     }
 }
 
-#[derive(Resource, Default, Clone)]
+#[derive(Resource, Default, Clone, Debug)]
 pub struct StateChangeActionComponentStateFactory;
 
 impl StateChangeFactory<StateChangeActionType, UiEventArgs, Style, Style, StyleContext, NextUiState>
@@ -84,12 +65,13 @@ for StateChangeActionComponentStateFactory {
     }
 }
 
+#[derive(Debug)]
 pub enum NextUiState {
     ReplaceSize(Update<Size>),
     ReplaceDisplay(Update<Display>),
 }
 
-#[derive(Resource, Default, Clone)]
+#[derive(Resource, Default, Clone, Debug)]
 pub struct StyleContext {
     pub(crate) visible: HashMap<Entity, Style>
 }
@@ -243,6 +225,7 @@ pub enum UiEventArgs {
 
 impl EventArgs for UiEventArgs {}
 
+#[derive(Debug)]
 pub struct ChangeComponentColorUpdate {
     new_color: Color
 }

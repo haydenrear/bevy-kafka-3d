@@ -191,6 +191,7 @@ fn collapsable_menu(
             );
         });
 
+    info!("Inserting {:?} into collapsable menu component.",option);
     insert_config_option(option, entity_commands);
 
     let entity = entity_commands.id().clone();
@@ -429,6 +430,7 @@ fn draw_dropdown_components(
             ));
         });
 
+    info!("Inserting {:?} to dropdown entity.", &config_option);
     insert_config_option(config_option, commands);
 
     let dropdown_entity = commands
@@ -514,6 +516,7 @@ fn draw_menu_option(
         })
         .set_parent(parent_entity);
 
+    info!("Inserting {:?} to menu option.", &config_option);
     insert_config_option(config_option, &mut add_text_style_dropdown_option);
 
     add_text_style_dropdown_option.id()
@@ -553,9 +556,6 @@ insert_config_option!(
     NodeMetrics,
     NodeVariance,
     NodeConcavity,
-    Menu,
-    GraphingMenu,
-    GraphMenu,
-    DisplayNetwork
+    Menu
 );
 

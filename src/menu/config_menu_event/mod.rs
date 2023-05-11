@@ -3,7 +3,7 @@
 /// The event writer will read
 
 pub(crate) mod interaction_config_event_writer;
-pub(crate) mod interaction_config_event_reader;
 pub(crate) mod config_event;
+pub(crate) mod config_event_reader;
 pub(crate) mod network_component_interaction_system;
 pub(crate) mod config_menu_event_plugin;

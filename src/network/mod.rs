@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::prelude::shape::Quad;
 use bevy::sprite::MaterialMesh2dBundle;
-use bevy::utils::HashMap;
+use bevy::utils::{HashMap, HashSet};
 use bevy_mod_picking::PickableBundle;
 use bevy_prototype_lyon::draw::{Fill, Stroke};
 use bevy_prototype_lyon::entity::ShapeBundle;
@@ -31,7 +31,7 @@ pub struct Layer {
 
 #[derive(Default, Ord, PartialOrd, Eq, PartialEq, Clone, Debug, Hash)]
 pub struct NetworkId {
-    pub(crate) network_id: &'static str
+    pub(crate) network_id: &'static str,
 }
 
 impl NetworkId {
@@ -106,12 +106,12 @@ impl LayerType {
 
 #[derive(Default, Component, Clone, Debug)]
 pub struct Network {
-    pub(crate) layers: Vec<Entity>,
+    pub(crate) layers: HashSet<Entity>,
     pub(crate) network_id: NetworkId
 }
 
 impl Network {
-    pub(crate) fn new(layers: Vec<Entity>, network_id: NetworkId) -> Self {
+    pub(crate) fn new(layers: HashSet<Entity>, network_id: NetworkId) -> Self {
         Self {
             layers, network_id
         }
