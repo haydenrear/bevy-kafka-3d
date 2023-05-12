@@ -1,5 +1,6 @@
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::marker::PhantomData;
+use bevy::log::info;
 use bevy::prelude::{Commands, Component, Entity, error, Query, ResMut, Resource};
 use ndarray::{Array, Array1, Array2, ArrayBase, ArrayD, ArrayView, ArrayView1, Axis, Dim, Ix, Ix0, Ix1, Ix2, IxDyn, OwnedRepr, s, Shape, ShapeBuilder, Slice, SliceArg, SliceInfoElem, ViewRepr};
 use serde::{Deserialize, Deserializer};
@@ -15,6 +16,22 @@ where T: Component {
     pub(crate) metric_type: MetricType<T>
 }
 
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
+pub enum MetricType<T>
+    where T: Component
+{
+    WeightVariance(PhantomData<T>),
+    Concavity(PhantomData<T>),
+    Loss(PhantomData<T>)
+}
+
+#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Deserialize)]
+pub enum MetricTypeMatcher {
+    WeightVariance,
+    Concavity,
+    Loss
+}
+
 impl <T> Metric<T> where T: Component {
     pub(crate) fn new(
         size: Vec<usize>,
@@ -26,65 +43,6 @@ impl <T> Metric<T> where T: Component {
             metric_type
         }
     }
-}
-
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
-pub enum MetricType<T>
-where T: Component
-{
-    WeightVariance(PhantomData<T>),
-    Concavity(PhantomData<T>),
-    Loss(PhantomData<T>)
-}
-
-
-impl <T> MetricType<T>
-where T: Component {
-    pub(crate) fn get_dims(&self, columns: Vec<String>) -> HashMap<String, GraphDim> {
-        // provide default
-        let mut dims = HashMap::new();
-        match self {
-            MetricType::<T>::WeightVariance(_) => {
-                columns.iter().for_each(|c| {
-                    dims.insert(c.clone(), GraphDim {
-                        dim_type: GraphDimType::Coordinate,
-                        name: c.clone(),
-                        grid_axis: GridAxis::XGridY,
-                        index: 0,
-                    });
-                });
-                dims
-            }
-            MetricType::<T>::Concavity(_) => {
-                HashMap::new()
-            }
-            MetricType::<T>::Loss(_) => {
-
-                HashMap::new()
-            }
-            MetricType::<T>::Loss(_) => {
-                HashMap::new()
-            }
-            _ => {
-                HashMap::new()
-            }
-        }
-    }
-
-    pub(crate) fn get_graph_dim_type(column_name: String) -> GraphDimType {
-        // match column_name.as_str() {
-        //     "loss" => GraphDimType::Coordinate,
-            // .. => GraphDimType::Coordinate
-        // }
-        GraphDimType::Coordinate
-    }
-}
-
-#[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash, Deserialize)]
-pub enum MetricTypeMatcher {
-    WeightVariance,
-    Concavity,
-    Loss
 }
 
 impl MetricTypeMatcher {
@@ -116,7 +74,7 @@ impl <T> Default for MetricType<T> where T: Component
 pub(crate) struct HistoricalData {
     pub(crate) data: ArrayD<f32>,
     pub(crate) labels: HashMap<String, usize>,
-    pub(crate) timestep: HashMap<u64, (usize, usize)>,
+    pub(crate) timestep: BTreeMap<u64, (usize, usize)>,
     index_to_timestep: HashMap<usize, u64>,
     convergence: HashMap<String, HashMap<u64, f32>>,
     write_index: usize,
@@ -140,41 +98,47 @@ impl HistoricalData {
             labels,
             prev_write_index: 1,
             convergence,
-            timestep: HashMap::new(),
+            timestep: BTreeMap::new(),
             index_to_timestep: Default::default(),
         }
     }
 
-    pub fn retrieve_values_inner(&self, column_name: &str, timestamp: u64) -> Option<ArrayBase<OwnedRepr<f32>, Ix1>>{
-        self.labels.get(column_name)
-            .map(|col| self.timestep.get(&timestamp).map(|t| (col, t)))
-            .flatten()
-            .map(|(label, time)| {
-                self.data.index_axis(Axis(0), time.1)
-                    .into_dimensionality::<Ix2>()
-                    .or_else(|e| {
-                        error!("Could not make dimension 2 array: {:?}", e);
-                        Err(e)
-                    })
-                    .ok()
-                    .map(|d| (d, *label))
+    pub fn retrieve_values_inner(&self, column_name: &str, timestamp: u64) -> Option<(ArrayBase<OwnedRepr<f32>, Ix1>, ArrayBase<OwnedRepr<f32>, Ix1>)> {
+        self.timestep.get(&timestamp)
+            .map(|(prev, next)| {
+                info!("Fetching timestep for {} with time {} with {} and {}", column_name, timestamp, prev, next);
+                let historical_1d = self.retrieve_historical_1d(column_name);
+                let prev = historical_1d.iter().map(|h| {
+                    h[*prev]
+                }).collect::<Vec<f32>>();
+                let next = historical_1d.iter().map(|h| {
+                    h[*next]
+                }).collect::<Vec<f32>>();
+                (Array::from_vec(prev), Array::from_vec(next))
             })
-            .flatten()
-            .map(|(all_data, label)| {
-                    all_data.select(Axis(0), &[label])
-                        .remove_axis(Axis(0))
+
+    }
+
+    fn to_2d_arr(&self, label: &usize, time: &(usize, usize)) -> Option<(ArrayBase<OwnedRepr<f32>, Ix2>, usize)> {
+        // let mut indexed = self.data.index_axis(Axis(0), time.1);
+        let mut indexed = self.data.select(Axis(0), &[time.1]);
+        info!("{:?} is the shape of the indexed axis, supposed to be along one time stamp: {}.", indexed.shape(), time.1);
+        indexed.into_dimensionality::<Ix2>()
+            .or_else(|e| {
+                error!("Could not make dimension 2 array: {:?}. {:?} is the shape.", e, &self.data.shape());
+                Err(e)
             })
+            .ok()
+            .map(|d| (d, *label))
+    }
+
+    fn is_1d(shape: &[usize]) -> bool {
+        shape.len() <= 1 || shape[1] <= 1
     }
 
     pub(crate) fn retrieve_values(&self, column_name: &str, timestamp: u64)
-        -> (Option<ArrayBase<OwnedRepr<f32>, Ix1>>, Option<ArrayBase<OwnedRepr<f32>, Ix1>>) {
-        let prev = self.get_prev_timestamp(timestamp);
-        let prev = self.retrieve_values_inner(column_name, prev);
-        let mut next = self.retrieve_values_inner(column_name, timestamp);
-        if next.is_none() {
-            next = prev.clone() ;
-        }
-        (prev, next)
+                                  -> Option<(ArrayBase<OwnedRepr<f32>, Ix1>, ArrayBase<OwnedRepr<f32>, Ix1>)> {
+        self.retrieve_values_inner(column_name, timestamp)
     }
 
     pub(crate) fn extend(&mut self, mut value: ArrayD<f32>, timestep: u64) {
@@ -189,11 +153,12 @@ impl HistoricalData {
         self.timestep.insert(timestep, (self.prev_write_index, self.write_index));
         self.index_to_timestep.insert(self.write_index, timestep);
 
-        self.write_index += 1;
-
-        if self.prev_write_index != 1 {
+        if self.write_index != 1 {
             self.prev_write_index += 1;
         }
+
+        self.write_index += 1;
+
     }
 
     pub(crate) fn retrieve_historical(&self, column_name: &str) -> Option<ArrayD<f32>> {
@@ -207,6 +172,8 @@ impl HistoricalData {
     pub(crate) fn retrieve_historical_1d(&self, column_name: &str) -> Vec<ArrayBase<OwnedRepr<f32>, Ix1>> {
         let h = self.retrieve_historical(column_name)
             .unwrap();
+
+        info!("Retrieved historical for column: {} with shape: {:?}.", column_name, h.shape());
 
         let mut out = vec![];
 
@@ -244,38 +211,3 @@ impl HistoricalData {
 
 }
 
-
-#[derive(Default, Component, Clone, Debug)]
-pub struct MetricChildNodes {
-    nodes: Vec<Entity>
-}
-
-pub(crate) fn update_metrics(
-    mut commands: Commands,
-    // mut metrics_resource: ResMut<MetricsSubscription>,
-    nodes: Query<(Entity, &mut Node)>,
-) {
-    // for node in nodes.iter() {
-    //     if !metrics_resource.did_update {
-    //         for i in 0..10 {
-    //             commands.spawn(Metric::default())
-    //                 .insert(MetricChildNodes {
-    //                     nodes: vec![node.0],
-    //                 });
-    //         }
-    //     }
-    //     metrics_resource.did_update = true;
-    // }
-}
-
-/// Each metric has it's children
-pub(crate) fn publish_metrics(
-    // metrics: Query<(&Metric, &MetricChildNodes)>,
-    child_nodes: Query<&Node>
-) {
-    // for metric in metrics.iter() {
-    //     if child_nodes.get(metric.1.nodes.get(0).unwrap().clone()).is_ok() {
-            // info!("Successfully added MetricChildNodes.");
-        // }
-    // }
-}

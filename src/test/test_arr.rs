@@ -5,7 +5,7 @@ use ndarray::{arr1, arr2, arr3, array, Array2, Array3, Ix2, s};
 use crate::data_subscriber::data_event_reader::MetricsState;
 use crate::metrics::network_metrics::HistoricalData;
 use crate::ndarray::{get_arr, get_arr_from_vec, get_metric_message};
-use crate::test::test_data_subscriber::get_metric_message_test;
+use crate::test::config_test::get_metric_message_test;
 use crate::test::TestComponent;
 
 const TEST_VALUE: &'static str = "{ \"metric_name\": \"name\",\"included\": [1,2,3], \"shape\": [2, 20, 20], \"data\": [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]}";
@@ -46,12 +46,6 @@ fn test_serialize() {
 }
 
 #[test]
-fn test_get_arr() {
-    let option = get_arr_from_vec(vec![0.0, 1.0], &vec![2]);
-    assert!(option.is_some());
-}
-
-#[test]
 fn test_serialize_two() {
     let arr = get_arr(TEST_VALUE_TWO);
     assert!(arr.is_some());
@@ -64,7 +58,13 @@ fn test_serialize_two() {
 }
 
 #[test]
-fn test_historical_data() {
+fn test_get_arr() {
+    let option = get_arr_from_vec(vec![0.0, 1.0], &vec![2]);
+    assert!(option.is_ok());
+}
+
+#[test]
+fn test_historical_data2x2() {
     let mut historical_data = HistoricalData::new(vec![2, 2], HashMap::from([("1".to_string(), 0), ("2".to_string(), 1)]));
     let array = arr3(&[[[0.0, 0.0], [0.0, 0.0]]]);
     let mut base: &[f32] = array.as_slice().unwrap();
@@ -79,26 +79,44 @@ fn test_historical_data() {
     base = array.unwrap();
     assert_eq!(historical_data.data.as_slice().unwrap(), base);
 
-    // let array = arr2(&[[0.0, 0.0], [0.0, 0.0]]).into_dyn();
-    // let array = array.into_dimensionality::<Ix2>().unwrap();
-    // let array_2 = arr2(&[[0.0, 0.0], [0.0, 0.0]]);
-    // let output = array.dot(&array_2);
-    // println!("{:?} is the output", output);
-
-    let (first, second) = historical_data.retrieve_values("1", 2);
+    let (first, second) = historical_data.retrieve_values("1", 2).unwrap();
     println!("{:?} is first and {:?} is second", &first, &second);
-    assert_eq!(first.unwrap(), arr1(&[1.0, 2.0]));
-    assert_eq!(second.unwrap(), arr1(&[5.0, 6.0]));
+    assert_eq!(first, arr1(&[1.0, 2.0]));
+    assert_eq!(second, arr1(&[5.0, 6.0]));
 
     let out = historical_data.retrieve_historical("1");
-    println!("{:?} is out ", &out);
-
-    let out = historical_data.retrieve_historical_1d("1");
-    println!("{:?} is out ", &out);
+    let out_assert = arr2(&[[0.0, 0.0], [1.0, 2.0], [5.0, 6.0]]);
+    assert_eq!(out.unwrap().as_slice().unwrap(), out_assert.as_slice().unwrap());
 
 }
 
 #[test]
-fn test_calculate_convergence_time() {
+fn test_historical_data1d() {
+    let mut historical_data = HistoricalData::new(vec![2], HashMap::from([("1".to_string(), 0), ("2".to_string(), 1)]));
+    let array = arr1(&[0.0, 0.0]);
+    let mut base: &[f32] = array.as_slice().unwrap();
+    assert_eq!(historical_data.data.as_slice().unwrap(), base);
+    historical_data.extend(arr1(&[1.0, 2.0]).into_dyn(), 1);
+    let array = arr2(&[[0.0, 0.0], [1.0, 2.0]]);
+    base = array.as_slice().unwrap();
+    assert_eq!(historical_data.data.as_slice().unwrap(), base);
+    historical_data.extend(arr1(&[5.0, 6.0]).into_dyn(), 2);
+    let array = arr2(&[[0.0, 0.0], [1.0, 2.0], [5.0, 6.0]]);
+    let array = array.as_slice();
+    base = array.unwrap();
+    assert_eq!(historical_data.data.as_slice().unwrap(), base);
+
+    let (first, second) = historical_data.retrieve_values("1", 2).unwrap();
+    println!("{:?} is first and {:?} is second", &first, &second);
+    assert_eq!(first, arr1(&[1.0]));
+    assert_eq!(second, arr1(&[5.0]));
+
+    let out = historical_data.retrieve_historical("1");
+    let out_assert = arr1(&[0.0, 1.0, 5.0]);
+    assert_eq!(out.unwrap().as_slice().unwrap(), out_assert.as_slice().unwrap());
+    let out = historical_data.retrieve_historical_1d("1");
+    assert_eq!(out.len(), 1);
+    let out_assert = arr1(&[0.0, 1.0, 5.0]);
+    assert_eq!(out.get(0).unwrap().as_slice().unwrap(), out_assert.as_slice().unwrap());
 
 }

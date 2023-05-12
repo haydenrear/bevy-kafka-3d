@@ -1,32 +1,21 @@
-use std::fs::read_to_string;
-use std::path::Path;
+use bevy::log::{error, info};
 use serde::{Deserialize, Serialize};
 use std::sync::Mutex;
 use bevy::utils::HashMap;
-use bevy::log::{error, info};
 use crate::config::ConfigurationProperties;
+use crate::graph::GridAxis;
 
 #[test]
 fn test_serialize_config() {
-    let path = Path::new("resources/config.toml");
-    assert!(path.exists());
-    let config = read_to_string(path)
-        .map(|toml| toml::from_str::<ConfigurationProperties>(toml.as_str())
-            .or_else(|e| {
-                println!("{:?} is error", e);
-                Err(e)
-            })
-            .ok()
-        )
-        .or_else(|e| {
-            println!("{:?} is error", e);
-            Err(e)
-        })
-        .ok()
-        .flatten();
-    assert!(config.is_some());
-    assert_ne!(config.as_ref().unwrap().metrics.metric_type.len(), 0);
-    assert_ne!(config.as_ref().unwrap().network.layer_type.len(), 0);
+    let config = ConfigurationProperties::read_config();
+    assert_ne!(config.metrics.metric_type.len(), 0);
+    assert_ne!(config.network.layer_type.len(), 0);
+}
+
+#[test]
+fn test_serialize_config_matcher() {
+    let read = ConfigurationProperties::read_config();
+    assert_eq!(read.metrics.get_grid_axis("loss-hello"), GridAxis::Y);
 }
 
 #[derive(Serialize, Deserialize, Default, Debug)]
@@ -64,4 +53,3 @@ pub(crate) fn get_metric_message_test(in_value: &str) -> Option<Test> {
         })
         .ok()
 }
-

@@ -28,7 +28,7 @@ pub(crate) fn graph_points_generator<T>
     where
         T: Component
 {
-    for (metric_entity, metric) in metric_added_event.iter() {
+    for (metric_entity, _) in metric_added_event.iter() {
         let graph = Graph {
             component: PhantomData::<T>::default(),
         };
@@ -41,6 +41,7 @@ pub(crate) fn graph_points_generator<T>
                 in initialization.");
                 Err(e)
             });
+        info!("Adding metric entity as child.");
         graph.add_child(metric_entity);
     }
 }

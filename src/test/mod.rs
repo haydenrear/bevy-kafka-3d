@@ -10,10 +10,15 @@ use crate::menu::ui_menu_event::ui_menu_event_plugin::{NextUiState, StyleContext
 use crate::metrics::network_metrics::HistoricalData;
 use crate::network::Node;
 
+#[cfg(test)]
 mod test_arr;
-mod test_data_subscriber;
+#[cfg(test)]
 mod test_convergence;
+#[cfg(test)]
 mod bevy_tests;
+#[cfg(test)]
+mod config_test;
+
 pub(crate) mod test_plugin;
 
 

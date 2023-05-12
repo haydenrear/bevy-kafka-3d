@@ -31,10 +31,9 @@ use crate::config::ConfigurationProperties;
 use crate::data_subscriber::data_subscriber::{DataSubscriber, MessageClientProvider};
 use crate::data_subscriber::kafka_data_subscriber::KafkaClientProvider;
 use crate::data_subscriber::metric_event::{NetworkEvent, NetworkMetricEvent, NetworkMetricsServiceEvent, NodeMetricEvent};
-use crate::metrics::network_metrics::{Metric, MetricChildNodes};
-use crate::network::{Layer, Network, Node};
+use crate::metrics::network_metrics::Metric;
+use crate::network::{Layer, MetricChildNodes, Network, Node};
 use crate::util::{get_create_runtime, run_blocking};
-
 
 pub(crate) fn test_kafka_data<E: NetworkEvent>(
     mut consumer: ResMut<KafkaClientProvider>,

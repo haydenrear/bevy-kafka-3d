@@ -126,3 +126,9 @@ pub struct MetaNetwork {
 }
 
 
+#[derive(Default, Component, Clone, Debug)]
+pub struct MetricChildNodes {
+    nodes: Vec<Entity>
+}
+
+

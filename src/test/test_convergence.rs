@@ -1,5 +1,5 @@
 use ndarray::array;
-use crate::graph::{calculate_convergence_time, calculate_derivatives, estimate_convergence_time};
+use crate::graph::radial::{calculate_derivatives, calculate_radial_time, estimate_radial_time};
 use super::*;
 
 #[test]
@@ -8,7 +8,7 @@ fn test_estimate_convergence_time_exp() {
     let loss_values = array![1.0, 0.8, 0.7, 0.65, 0.64, 0.63, 0.62];
     let (first_derivative, second_derivative) = calculate_derivatives(&loss_values);
 
-    let convergence_time = estimate_convergence_time(
+    let convergence_time = estimate_radial_time(
         &current_time,
         &loss_values,
         &first_derivative,
@@ -28,7 +28,7 @@ fn test_estimate_convergence_time() {
     let first_derivative = array![-0.2, -0.2, -0.2];
     let second_derivative = array![0.0, 0.0];
 
-    let convergence_time = estimate_convergence_time(
+    let convergence_time = estimate_radial_time(
         &current_time,
         &loss_values,
         &first_derivative,
@@ -49,7 +49,7 @@ fn test_calculate_convergence_time() {
         array![2.0, 1.6, 1.2, 0.8],
     ];
 
-    let convergence_time = calculate_convergence_time(&current_time, historical);
+    let convergence_time = calculate_radial_time(&current_time, historical);
 
     assert_eq!(convergence_time.len(), 2);
 

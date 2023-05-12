@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use bevy::prelude::Component;
+use bevy::prelude::{Component, Entity};
 
 use std::collections::HashMap;
 use std::cell::{Cell, RefCell};
@@ -19,8 +19,8 @@ use tokio::sync::mpsc::Receiver;
 use tokio::sync::Semaphore;
 use tokio::time::timeout;
 use crate::config::ConfigurationProperties;
-use crate::metrics::network_metrics::{Metric, MetricChildNodes};
-use crate::network::{Layer, Network, Node};
+use crate::metrics::network_metrics::Metric;
+use crate::network::{Layer, MetricChildNodes, Network, Node};
 
 pub trait NetworkEvent: for<'a> Deserialize<'a> + Send + Sync {
     fn topic_matcher() -> &'static str;
@@ -88,9 +88,29 @@ macro_rules! network_events {
 }
 
 network_events!(
-    NodeMetricEvent, Node, "node_metric_one",
+    NodeMetricEvent, Node, "node_metric_*",
     LayerMetricEvent, Layer, "layer_metric_*",
     NetworkMetricEvent, Network, "network_metric_*",
     NodeChildrenMetricEvent, MetricChildNodes, "node_as_children_metric_*",
     MetricMessage, Metric<Network>, "metric_*"
 );
+
+#[derive(Resource, Debug, Default)]
+pub struct MetricsState {
+    pub(crate) entities: HashMap<String, (Entity, u64)>,
+}
+
+impl MetricsState {
+    pub(crate) fn get_entity(&self, name: &str) -> Option<(Entity, u64)> {
+        self.entities.get(name)
+            .map(|(entity, timestep)| (*entity, *timestep))
+    }
+
+    pub(crate) fn increment_entity(&mut self, name: &str) {
+        self.entities.get_mut(name)
+            .as_mut()
+            .map(|entity_state| {
+                entity_state.1 += 1;
+            });
+    }
+}

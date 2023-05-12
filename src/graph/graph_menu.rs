@@ -19,4 +19,3 @@ pub struct GraphBuilders {
 pub struct GraphMenuResource {
     pub(crate) data: MenuData
 }
-

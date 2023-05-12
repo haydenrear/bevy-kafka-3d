@@ -1,14 +1,13 @@
 use bevy::prelude::*;
 use bevy::tasks::AsyncComputeTaskPool;
 
-use crate::data_subscriber::kafka_data_subscriber::{KafkaClientProvider, write_events, EventReceiver, KafkaMessageSubscriber};
-use crate::data_subscriber::metric_event::{LayerMetricEvent, NodeChildrenMetricEvent, NetworkMetricEvent, NodeMetricEvent, NetworkEvent};
-use crate::metrics::network_metrics::{Metric, MetricChildNodes};
-use crate::network::{Layer, Network, Node};
-use crate::data_subscriber::data_event_reader::MetricsState;
-use crate::data_subscriber::data_subscriber::DataSubscriber;
+use crate::data_subscriber::kafka_data_subscriber::{EventReceiver, KafkaClientProvider, KafkaMessageSubscriber, write_events};
+use crate::data_subscriber::metric_event::{LayerMetricEvent, NetworkEvent, NetworkMetricEvent, NodeChildrenMetricEvent, NodeMetricEvent};
+use crate::metrics::network_metrics::Metric;
+use crate::network::{Layer, MetricChildNodes, Network, Node};
 use crate::data_subscriber::network_metadata_event::NetworkMetadataEvent;
-
+use crate::data_subscriber::metric_event::MetricsState;
+use crate::data_subscriber::data_subscriber::DataSubscriber;
 
 pub struct DataSubscriberPlugin;
 

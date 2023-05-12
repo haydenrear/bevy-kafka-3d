@@ -2,7 +2,7 @@ use std::fmt::Error;
 use bevy::prelude::{error, info};
 use bevy::prelude::KeyCode::P;
 use bevy::reflect::erased_serde::__private::serde::{Deserialize, Serialize};
-use ndarray::{Array, ArrayBase, ArrayD, IxDyn, OwnedRepr};
+use ndarray::{Array, ArrayBase, ArrayD, IxDyn, OwnedRepr, ShapeError};
 use serde_json::Result as JsonResult;
 use crate::data_subscriber::metric_event::MetricMessage;
 
@@ -34,9 +34,8 @@ pub(crate) fn get_arr(in_value: &str) -> Option<ArrayBase<OwnedRepr<f32>, IxDyn>
         .flatten()
 }
 
-pub(crate) fn get_arr_from_vec(data: Vec<f32>, size: &Vec<usize>) -> Option<ArrayD<f32>> {
+pub(crate) fn get_arr_from_vec(data: Vec<f32>, size: &Vec<usize>) -> Result<ArrayBase<OwnedRepr<f32>, IxDyn>, ShapeError> {
     ArrayD::from_shape_vec(size.as_slice(), data)
-        .ok()
 }
 
 pub(crate) fn get_metric_message(in_value: &str) -> Option<MetricMessage> {

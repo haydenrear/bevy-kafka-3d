@@ -11,8 +11,8 @@ use crate::event::event_state::{Context, UpdateStateInPlace};
 use crate::graph::GraphParent;
 use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
 use crate::menu::menu_resource::{MENU, VARIANCE};
-use crate::metrics::network_metrics::{Metric, MetricChildNodes};
-use crate::network::{Layer, Network, Node};
+use crate::metrics::network_metrics::Metric;
+use crate::network::{Layer, MetricChildNodes, Network, Node};
 
 pub(crate) mod ui_menu_event;
 pub(crate) mod config_menu_event;

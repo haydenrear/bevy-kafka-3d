@@ -6,10 +6,17 @@ use std::path::Path;
 use bevy::log::error;
 use bevy::prelude::Resource;
 use serde::Deserialize;
+use kafka::KafkaConfiguration;
+use layer::LayerTypeConfiguration;
+use metrics::MetricsConfiguration;
 use crate::data_subscriber::network_metadata_event::LayerTypes;
 use crate::graph::GraphDimType;
 use crate::menu::Menu;
 use crate::metrics::network_metrics::{MetricType, MetricTypeMatcher};
+
+pub(crate) mod kafka;
+pub(crate) mod metrics;
+pub(crate) mod layer;
 
 
 #[derive(Deserialize, Resource)]
@@ -35,39 +42,12 @@ impl ConfigurationProperties {
             .map(|toml| toml::from_str::<ConfigurationProperties>(toml.as_str()).ok())
             .or_else(|e| {
                 error!("Error reading configuration properties: {:?}.", e);
+                println!("Error reading configuration properties: {:?}.", e);
                 Ok::<Option<ConfigurationProperties>, toml::de::Error>(Some(ConfigurationProperties::default()))
             })
             .ok()
             .flatten()
             .unwrap();
         config
-    }
-}
-
-#[derive(Deserialize)]
-pub struct KafkaConfiguration {
-    pub(crate) hosts: Vec<String>,
-    pub(crate) consumer_group_id: String,
-    pub(crate) client_id: String
-}
-
-#[derive(Deserialize, Default)]
-pub struct MetricsConfiguration {
-    pub(crate) metric_type: HashMap<MetricTypeMatcher, String>,
-    pub(crate) dim_type: HashMap<GraphDimType, Vec<String>>
-}
-
-#[derive(Deserialize)]
-pub struct LayerTypeConfiguration {
-    pub(crate) layer_type: HashMap<LayerTypes, Vec<String>>
-}
-
-impl Default for KafkaConfiguration {
-    fn default() -> Self {
-        Self {
-            hosts: vec!["localhost:9092".to_string()],
-            consumer_group_id: "consumer".to_string(),
-            client_id: "nn-fe".to_string()
-        }
     }
 }

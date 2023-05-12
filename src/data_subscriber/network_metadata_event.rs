@@ -25,3 +25,4 @@ impl NetworkEvent for NetworkMetadataEvent {
         "network_changes"
     }
 }
+

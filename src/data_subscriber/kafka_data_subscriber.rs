@@ -33,8 +33,8 @@ use tokio::time::error::Elapsed;
 use crate::config::ConfigurationProperties;
 use crate::data_subscriber::data_subscriber::{DataSubscriber, MessageClientProvider};
 use crate::data_subscriber::metric_event::{NetworkEvent, NetworkMetricsServiceEvent};
-use crate::metrics::network_metrics::{Metric, MetricChildNodes};
-use crate::network::{Layer, Network, Node};
+use crate::metrics::network_metrics::Metric;
+use crate::network::{Layer, MetricChildNodes, Network, Node};
 use crate::util::{get_create_runtime, run_blocking};
 
 #[derive(Resource, Default)]
@@ -51,21 +51,20 @@ pub struct KafkaClientProvider {
     client_id: String,
     group_id: String,
     num_consumers_per_event: u8,
-    consumers: Vec<StreamConsumer>
+    consumers: KafkaConsumerContainer
+}
+
+#[derive(Default, Clone)]
+pub struct KafkaConsumerContainer {
+    consumers: Arc<Mutex<Vec<(Arc<StreamConsumer>, Vec<String>)>>>
 }
 
 impl MessageClientProvider for KafkaClientProvider {}
 
 impl Default for KafkaClientProvider {
     fn default() -> Self {
-        let config = ConfigurationProperties::read_config();
-        let mut client_config = ClientConfig::new();
-        let hosts = config.kafka.hosts;
-        client_config.set("bootstrap.servers", hosts.clone().join(","));
-        let group_id = config.kafka.consumer_group_id;
-        client_config.set("group.id", group_id.clone());
-        let client_id = config.kafka.client_id;
-        client_config.set("client.id", client_id.clone());
+        let properties = ConfigurationProperties::read_config();
+        let client_config = Self::admin_client_config_properties_set(&properties, properties.kafka.hosts.join(","));
         let mut kc = AdminClient::from_config(&client_config)
             .or_else(|e| {
                 error!("Error connecting to kafka with AdminClient: {:?}", e);
@@ -74,73 +73,88 @@ impl Default for KafkaClientProvider {
             .ok();
         Self {
             kafka_client: kc,
-            group_id,
-            client_id,
-            hosts,
+            group_id: properties.kafka.consumer_group_id,
+            client_id: properties.kafka.client_id,
+            hosts: properties.kafka.hosts,
             num_consumers_per_event: 1,
-            consumers: vec![],
+            consumers: Default::default(),
         }
     }
 }
 
 impl KafkaClientProvider {
-    pub(crate) async fn get_consumer(&self, topics: Vec<&str>) -> Result<StreamConsumer, KafkaError> {
-        let mut client_config = ClientConfig::new();
-        let hosts = self.hosts.clone().join(",");
-        info!("Creating kafka producer with {} as hosts.", hosts);
-        client_config.set("bootstrap.servers", hosts);
-        client_config.set("group.id", self.group_id.to_string());
-        client_config.set("client.id", self.client_id.clone());
+    pub(crate) async fn get_consumer(&mut self, topics: Vec<&str>) -> Result<StreamConsumer, KafkaError> {
+        let client_config = self.admin_client_config_properties();
 
         let consumer: Result<StreamConsumer, KafkaError> =
             client_config.create_with_context(DefaultConsumerContext);
 
+
         let consumer = consumer.map(|consumer| {
+            let topic_to_subcribe = Self::fetch_topic_patterns(&topics, &consumer);
             info!("Subscribing to topics: {:?}.", &topics);
-            let _ = consumer.subscribe(topics.as_slice())
-                .or_else(|e| {
-                    error!("Error subscribing to topics: {:?}.", e);
-                    Err(e)
-                });
-            topics.iter().for_each(|topic| {
-                let mut partitions = TopicPartitionList::new();
-                partitions.add_partition(topic, 0);
-                let _ = partitions.set_all_offsets(Offset::Beginning)
-                    .or_else(|e| {
-                        error!("Error assigning partitions offset {}.", topic);
-                        Err(e)
-                    });
-                let _ =  consumer.assign(&partitions)
-                    .or_else(|e| {
-                        error!("Error assigning partitions for {}.", topic);
-                        Err(e)
-                    });
-            });
+            let subscribe_topics_slice = topic_to_subcribe.iter()
+                .map(|t| t.as_str())
+                .collect::<Vec<&str>>();
+
+            Self::subscribe_to_topics(&consumer, subscribe_topics_slice.as_slice());
+
             consumer
 
         });
         consumer
     }
 
+    fn subscribe_to_topics(consumer: &StreamConsumer, subscribe_topics_slice: &[&str]) {
+        let _ = consumer.subscribe(subscribe_topics_slice)
+            .or_else(|e| {
+                error!("Error subscribing to topics: {:?}.", e);
+                Err(e)
+            });
+
+        subscribe_topics_slice.iter().for_each(|topic| {
+            let mut partitions = TopicPartitionList::new();
+            partitions.add_partition(topic, 0);
+            let _ = partitions.set_all_offsets(Offset::Beginning)
+                .or_else(|e| {
+                    error!("Error assigning partitions offset {}.", topic);
+                    Err(e)
+                });
+            let _ = consumer.assign(&partitions)
+                .or_else(|e| {
+                    error!("Error assigning partitions for {}.", topic);
+                    Err(e)
+                });
+        });
+    }
+
+    fn fetch_topic_patterns(topics: &Vec<&str>, consumer: &StreamConsumer) -> Vec<String> {
+        let mut topic_to_subcribe = vec![];
+        let _ = consumer.client()
+            .fetch_metadata(None, rdkafka::util::Timeout::After(Duration::from_secs(3)))
+            .map(|all_topics_metadata| {
+                all_topics_metadata.topics().iter()
+                    .filter(|topic| topics.iter()
+                        .any(|topic_match| matches!(topic.name(), topic_match))
+                    )
+                    .map(|topic| topic.name().to_string())
+                    .for_each(|topic| topic_to_subcribe.push(topic));
+            })
+            .or_else(|e| {
+                error!("Could not fetch topics to determine which topics to subscribe: {:?}.", e);
+                Err(e)
+            });
+        topic_to_subcribe
+    }
+
     pub(crate) async fn get_producer(&self) -> Result<FutureProducer, KafkaError> {
-        let mut client_config = ClientConfig::new();
-        let hosts = self.hosts.clone().join(",");
-        info!("Creating kafka producer with {} as hosts.", hosts);
-        client_config.set("bootstrap.servers", hosts);
-        client_config.set("group.id", self.group_id.to_string());
-        client_config.set("client.id", self.client_id.clone());
+        let mut client_config = self.admin_client_config_properties();
         FutureProducer::from_config(&client_config)
     }
 
     pub(crate) fn new(port: u16) -> Self {
-        let config = ConfigurationProperties::read_config();
-        let mut client_config = ClientConfig::new();
-        let hosts = vec![format!("localhost:{}", port).to_string()];
-        client_config.set("bootstrap.servers", hosts.join(","));
-        let group_id = config.kafka.consumer_group_id;
-        client_config.set("group.id", group_id.clone());
-        let client_id = config.kafka.client_id;
-        client_config.set("client.id", client_id.clone());
+        let properties = ConfigurationProperties::read_config();
+        let mut client_config = Self::admin_client_config_properties_set(&properties, format!("localhost:{}", port));
         let mut kc = AdminClient::from_config(&client_config)
             .or_else(|e| {
                 error!("Error connecting to kafka with AdminClient: {:?}", e);
@@ -149,16 +163,32 @@ impl KafkaClientProvider {
             .ok();
         Self {
             kafka_client: kc,
-            group_id,
-            client_id,
-            hosts,
+            group_id: properties.kafka.consumer_group_id,
+            client_id: properties.kafka.client_id,
+            hosts: vec![format!("localhost:{}", port)],
             num_consumers_per_event: 1,
-            consumers: vec![],
+            consumers: Default::default(),
         }
     }
 
     pub(crate) fn get_admin_client(&self) -> &Option<AdminClient<DefaultClientContext>> {
         &self.kafka_client
+    }
+
+    fn admin_client_config_properties(&self) -> ClientConfig {
+        let mut client_config = ClientConfig::new();
+        client_config.set("bootstrap.servers", self.hosts.join(","));
+        client_config.set("group.id", self.group_id.clone());
+        client_config.set("client.id", self.client_id.clone());
+        client_config
+    }
+
+    fn admin_client_config_properties_set(config: &ConfigurationProperties, hosts: String) -> ClientConfig {
+        let mut client_config = ClientConfig::new();
+        client_config.set("bootstrap.servers", hosts);
+        client_config.set("group.id", config.kafka.consumer_group_id.clone());
+        client_config.set("client.id", config.kafka.client_id.clone());
+        client_config
     }
 }
 
@@ -190,7 +220,7 @@ where E: NetworkEvent + 'static + Debug
 pub struct KafkaMessageSubscriber<E>
     where E: NetworkEvent + 'static
 {
-    phantom: PhantomData<E>
+    phantom: PhantomData<E>,
 }
 
 impl <E> DataSubscriber<E, KafkaClientProvider> for KafkaMessageSubscriber<E>
@@ -198,8 +228,8 @@ impl <E> DataSubscriber<E, KafkaClientProvider> for KafkaMessageSubscriber<E>
 {
 
     fn subscribe(
-        mut consumer: ResMut<KafkaClientProvider>,
-        mut receiver_handler: ResMut<EventReceiver<E>>
+        mut consumer_config: ResMut<KafkaClientProvider>,
+        mut receiver_handler: ResMut<EventReceiver<E>>,
     )
     {
 
@@ -207,13 +237,13 @@ impl <E> DataSubscriber<E, KafkaClientProvider> for KafkaMessageSubscriber<E>
         let mut consumers = vec![];
         let mut task_pool = AsyncComputeTaskPool::get();
 
-        for _ in 0..consumer.num_consumers_per_event {
+        for _ in 0..consumer_config.num_consumers_per_event {
             run_blocking(async {
-                let _ = consumer.get_consumer(topics.clone())
+                let _ = consumer_config.get_consumer(topics.clone())
                     .await
                     .map(|consumer| {
                         info!("Created consumer for {:?}.", &topics);
-                        consumers.push(consumer);
+                        consumers.push(Arc::new(consumer));
                     })
                     .or_else(|e| {
                         error!("Failed to create Kafka consumer for topic {:?}: {:?}", &topics, e);
@@ -222,6 +252,19 @@ impl <E> DataSubscriber<E, KafkaClientProvider> for KafkaMessageSubscriber<E>
                     .ok();
             })
         }
+
+        let _ = consumer_config.consumers.consumers
+            .lock()
+            .map(|mut c| {
+                let consumer = consumers.iter()
+                    .map(|c| (c.clone(), vec![E::topic_matcher().to_string()]))
+                    .collect::<Vec<(Arc<StreamConsumer>, Vec<String>)>>();
+                c.extend(consumer);
+            })
+            .or_else(|e| {
+                error!("Error saving kafka consumers: {:?}", e);
+                Err(e)
+            });
 
         let (mut tx, mut rx) = tokio::sync::mpsc::channel::<E>(16);
 

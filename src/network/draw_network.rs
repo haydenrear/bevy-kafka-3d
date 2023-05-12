@@ -37,6 +37,7 @@ pub(crate) fn create_network(
     } else {
         return;
     }
+
     let grouped_by_network_id = util::group_by_key(
         layer_query.iter()
             .map(|(entity, layer, transform)| {

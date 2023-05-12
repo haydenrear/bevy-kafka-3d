@@ -14,7 +14,6 @@ use graph::setup_graph;
 use crate::camera::{camera_control, setup_camera, ZoomableDraggableCamera};
 use menu::ui_menu_event::ui_menu_event_plugin::UiEventPlugin;
 use lines::line_list::LineMaterial;
-use metrics::network_metrics::{publish_metrics, update_metrics};
 use network::draw_network::{create_network, draw_network_initial, draw_node_connections, update_network};
 use crate::config::ConfigurationProperties;
 use crate::data_subscriber::data_subscriber_plugin::DataSubscriberPlugin;
@@ -61,7 +60,7 @@ async fn main() {
         // .add_plugin(WorldInspectorPlugin::new())
         .add_plugin(UiEventPlugin)
         .add_plugin(GraphPlugin)
-        .add_plugin(DataSubscriberPlugin)
+        // .add_plugin(DataSubscriberPlugin)
         .add_plugin(ConfigMenuEventPlugin)
         .add_plugin(MaterialPlugin::<LineMaterial>::default())
         .add_startup_system(setup_camera)
@@ -71,8 +70,6 @@ async fn main() {
         .add_system(draw_node_connections)
         .add_system(create_network)
         .add_system(draw_network_initial)
-        .add_system(update_metrics)
-        .add_system(publish_metrics)
         .add_system(component_propagation_system)
         .add_event::<PropagateComponentEvent>()
         .run();
