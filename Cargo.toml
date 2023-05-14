@@ -6,11 +6,13 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-bevy = { version = "0.10.0", features = ["dynamic_linking"]  }
+bevy = { version = "0.10.0" }
 bevy_prototype_lyon = "0.8.0"
 bevy_transform = "0.10.1"
-bevy_mod_picking = {path = "../../../bevy_mod_picking"}
+bevy_mod_picking = { path = "../../../bevy_mod_picking" }
 ndarray = "0.15.6"
+ndarray-stats = "0.5.1"
+approx = "0.5.1"
 serde_json = "1.0.96"
 serde = "1.0.160"
 bevy-inspector-egui = "0.18.3"
@@ -20,14 +22,19 @@ statrs = "0.16.0"
 rdkafka = "0.29.0"
 lazy_static = "1.4.0"
 wait_for = {path = "../../../rust-spring-knockoff/wait_for"}
+#argmin = { version = "0.8.1", default-features = false }
+#argmin-math = { version = "0.3.0", features = ["ndarray_v0_15-nolinalg"] }
+#rand = "0.8.5"
+#linfa-preprocessing = "0.6.1"
+#linfa = "0.6.1"
 
 [dev-dependencies]
 testcontainers = "0.14.0"
 
 # Enable a small amount of optimization in debug mode
-[profile.dev]
-opt-level = 1
+#[profile.dev]
+#opt-level = 1
 
 # Enable high optimizations for dependencies (incl. Bevy), but not for our code:
-[profile.dev.package."*"]
-opt-level = 3
+#[profile.dev.package."*"]
+#opt-level = 3

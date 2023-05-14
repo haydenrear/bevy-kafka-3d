@@ -41,6 +41,9 @@ fn matches(graph_dim_type: &GraphDimType) -> bool {
 
 type WithDataSeriesChangedHistorical = (With<DataSeries>, Or<(Changed<HistoricalUpdated>, Added<HistoricalUpdated>)>);
 
+/// TODO: The layer should be wide, and then the node losses should be set inside of them. So the
+///     layer will be from radians a to b, and the width of the line will be the size of this, and
+///     then each node will take some n fraction. where ((a - b) - epsilon_edge) / n = size_fraction
 pub(crate) fn draw_graph_points<T, P, M>(
     mut commands: Commands,
     mut metrics: Query<

@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use bevy::ecs::system::CommandQueue;
 use bevy::prelude::{Commands, World};
 use ndarray::{arr1, arr2, arr3, array, Array2, Array3, Ix2, s};
-use crate::data_subscriber::data_event_reader::MetricsState;
+use crate::data_subscriber::metric_event::MetricsState;
 use crate::metrics::network_metrics::HistoricalData;
 use crate::ndarray::{get_arr, get_arr_from_vec, get_metric_message};
 use crate::test::config_test::get_metric_message_test;

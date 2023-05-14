@@ -6,7 +6,9 @@ use super::*;
 fn test_estimate_convergence_time_exp() {
     let current_time = Some(0.5);
     let loss_values = array![1.0, 0.8, 0.7, 0.65, 0.64, 0.63, 0.62];
-    let (first_derivative, second_derivative) = calculate_derivatives(&loss_values);
+    let derivs = calculate_derivatives(&loss_values, 2);
+    let first_derivative = derivs.get(0).unwrap();
+    let second_derivative = derivs.get(1).unwrap();
 
     let convergence_time = estimate_radial_time(
         &current_time,

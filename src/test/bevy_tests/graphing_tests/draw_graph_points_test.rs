@@ -32,13 +32,13 @@ use tokio::spawn;
 use tokio::task::{LocalSet, spawn_blocking, spawn_local};
 use crate::config::ConfigurationProperties;
 use crate::config::kafka::KafkaConfiguration;
-use crate::data_subscriber::data_event_reader::{MetricsState, read_metric_events};
 use crate::data_subscriber::data_subscriber::DataSubscriber;
 use crate::data_subscriber::kafka_data_subscriber::{EventReceiver, KafkaClientProvider, KafkaMessageSubscriber, write_events};
-use crate::data_subscriber::metric_event::{NetworkMetricEvent, NodeMetricEvent};
+use crate::data_subscriber::metric_event::{MetricsState, NetworkMetricEvent, NodeMetricEvent};
 use crate::data_subscriber::network_metadata_event::NetworkMetadataEvent;
 use crate::graph::draw_graph_points::draw_graph_points;
-use crate::graph::{GraphConfigurationResource, GraphData, SeriesStep};
+use crate::graph::{GraphConfigurationResource, SeriesStep};
+use crate::graph::graph_data_event_reader::read_metric_events;
 use crate::graph::radial::RadialGraphPoints;
 use crate::graph::setup_graph::{graph_points_generator, setup_graph};
 use crate::lines::line_list::LineMaterial;
@@ -103,7 +103,6 @@ fn create_app<'a>(dim: usize, app: &'a mut App) -> &'a mut App {
     AsyncComputeTaskPool::init(|| { TaskPool::default() });
 
     let mut app = app
-        .insert_resource(GraphData::default())
         .insert_resource(MetricsState::default())
         .insert_resource(config_properties)
         .insert_resource(ConfigOptionContext::default())
