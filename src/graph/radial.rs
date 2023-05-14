@@ -290,9 +290,11 @@ pub(crate) fn calculate_moments(loss_values: &Array1<f32>, m_moments: usize) -> 
         let moments_vec = moments_created.unwrap();
         for (idx, moment_found) in moments_vec.iter().enumerate() {
             let std_pow = std_dev.powf((idx + 1) as f32);
+
             if std_pow == 0.0 || *moment_found == f32::NAN {
                 moments[idx][i-1] = 0.0;
             }
+
             if idx == 0 {
                 moments[idx][i - 1] = from_slice.mean().or(Some(0.0)).unwrap() / std_pow;
             } else if idx == 1 {
@@ -311,10 +313,6 @@ pub(crate) fn calculate_moments(loss_values: &Array1<f32>, m_moments: usize) -> 
 
     for (size, moment) in moments.iter().enumerate() {
         println!("{:?} is the {}nth moment", moment.as_slice().unwrap(), size);
-    }
-
-    for moment in moments.iter_mut() {
-        moment.remove_index(Axis(0), 0);
     }
 
     moments
