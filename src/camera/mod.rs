@@ -8,12 +8,15 @@ use bevy::render::camera::Viewport;
 use bevy::render::primitives::Plane;
 use bevy::sprite::MaterialMesh2dBundle;
 use bevy::window::{CursorGrabMode, WindowRef};
-use bevy_mod_picking::PickingCameraBundle;
+use bevy_mod_picking::{PickingCameraBundle, PickingSystem};
 
-pub const MOUSE_SENSITIVITY: f32 = 0.5;
+pub(crate) mod raycase_select;
+pub(crate) mod lerping_camera;
+
+pub const MOUSE_SENSITIVITY: f32 = 0.2;
 pub const MIN_PITCH: f32 = -89.0;
 pub const MAX_PITCH: f32 = 89.0;
-pub const FORWARD_SENSITIVITY: f32 = 20.0;
+pub const FORWARD_SENSITIVITY: f32 = 16.0;
 
 #[derive(Resource, Default)]
 pub struct ZoomableDraggableCamera {
@@ -27,7 +30,9 @@ pub struct ZoomableDraggableCamera {
     pub(crate) max_distance: f32,
     pub(crate) current_distance: f32,
     pub(crate) zoom_sensitivity: f32,
-    pub(crate) initialized: bool
+    pub(crate) initialized: bool,
+    pub(crate) target_rotation: Option<Quat>,
+    pub(crate) target_translation: Option<Vec3>
 }
 
 pub(crate) fn setup_camera(
@@ -36,7 +41,7 @@ pub(crate) fn setup_camera(
     mut materials: ResMut<Assets<StandardMaterial>>,
     mut cam: ResMut<ZoomableDraggableCamera>
 ) {
-    let initial_position = Vec3::new(500.0, 500.0, 1000.0); // Replace with your desired initial position
+    let initial_position = Vec3::new(50.0, 50.0, 100.0); // Replace with your desired initial position
 
     let mut initial = Transform::from_translation(initial_position)
         .looking_at(Vec3::ZERO, Vec3::Y);
@@ -83,8 +88,9 @@ pub(crate) fn camera_control(
     mut camera_query: Query<(&Camera, &mut Transform)>,
     mut mouse_wheel: EventReader<MouseWheel>,
     mut ev_mousse: EventReader<MouseMotion>,
-    mut keyboard_events: EventReader<KeyboardInput>
+    mut keyboard_events: EventReader<KeyboardInput>,
 ) {
+
 
     for key in keyboard_events.iter() {
         let (_cam, mut transform) = camera_query.single_mut();
@@ -103,23 +109,20 @@ pub(crate) fn camera_control(
         }
         if movement.length() != 0.0 {
             movement = movement.normalize() * FORWARD_SENSITIVITY;
-            transform.translation += movement;
+            camera_drag_data.target_translation = Some(transform.translation + movement);
         }
     }
 
     for event in ev_mousse.iter() {
         if mouse_button_input.pressed(MouseButton::Left) {
             camera_drag_data.yaw -= event.delta.x * MOUSE_SENSITIVITY;
-            camera_drag_data.pitch += event.delta.y * MOUSE_SENSITIVITY;
+            camera_drag_data.pitch -= event.delta.y * MOUSE_SENSITIVITY;
 
             let yaw_quat = Quat::from_axis_angle(Vec3::Y, camera_drag_data.yaw.to_radians());
             let pitch_quat = Quat::from_axis_angle(Vec3::X, camera_drag_data.pitch.to_radians());
             let rotation = yaw_quat * pitch_quat;
 
-            // Apply the new rotation to the camera
-            for mut transform in camera_query.iter_mut() {
-                transform.1.rotation = rotation;
-            }
+            camera_drag_data.target_rotation = Some(rotation);
         }
     }
 

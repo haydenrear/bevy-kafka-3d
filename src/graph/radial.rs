@@ -135,28 +135,6 @@ pub trait Interpolator {
     ) -> Option<f32>;
 }
 
-pub struct ExponentialMovingAverageInterpolator;
-pub struct NthMomentMthDerivativeInterpolator;
-
-pub trait RadialNormalizer {
-}
-
-impl Interpolator for NthMomentMthDerivativeInterpolator {
-    fn get_next_value(
-        values: &ArrayBase<OwnedRepr<f32>, Ix1>,
-        interpolation_options: InterpolationOptions
-    ) -> Option<f32> {
-        match interpolation_options {
-            InterpolationOptions::NthMomentMthDerivative { n_moments, m_derivatives } => {
-                None
-            }
-            _ => {
-                None
-            }
-        }
-    }
-}
-
 fn get_convergence_times<'a, T>(
     starting_values: &Option<ArrayBase<OwnedRepr<f32>, Ix1>>,
     ending_values: &Option<ArrayBase<OwnedRepr<f32>, Ix1>>,

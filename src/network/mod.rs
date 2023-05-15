@@ -74,7 +74,7 @@ impl LayerType {
 
         PbrBundle {
             mesh: meshes.add(Mesh::from(shape::Box::new(
-                NODE_RADIUS + 20.0,
+                NODE_RADIUS + NODE_RADIUS * 10.0,
                 y_length,
                 0.0
             ))).into(),

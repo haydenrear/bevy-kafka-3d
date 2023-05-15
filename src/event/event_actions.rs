@@ -63,7 +63,12 @@ pub trait ClickWriteEvents <
     }
 }
 
-pub trait InteractionEventReader<EventDataT, EventArgsT, StateComponent, UpdateComponent, StateChangeFactoryT, StateUpdateI, Ctx: Context + Debug, QF: ReadOnlyWorldQuery>
+pub trait InteractionEventReader<
+    EventDataT, EventArgsT, StateComponent,
+    UpdateComponent, StateChangeFactoryT, StateUpdateI,
+    Ctx: Context + Debug,
+    QF: ReadOnlyWorldQuery
+>
     where
         EventDataT: EventData + 'static + Debug,
         EventArgsT: EventArgs + 'static + Debug,

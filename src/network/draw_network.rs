@@ -15,10 +15,10 @@ use crate::menu::menu_resource::VARIANCE;
 use crate::network::{Layer, Network, Node};
 use crate::util;
 
-pub const NODE_RADIUS: f32 = 5.0;
-pub const LAYER_SPACING: f32 = 200.0;
-pub const NODE_SPACING: f32 = 70.0;
-pub const CONNECTION_THICKNESS: f32 = 20.0;
+pub const NODE_RADIUS: f32 = 1.0;
+pub const LAYER_SPACING: f32 = 30.0;
+pub const NODE_SPACING: f32 = 10.0;
+pub const CONNECTION_THICKNESS: f32 = 2.0;
 
 /// Network created to have ability to inspect Layers to determine how to draw.
 /// 1. Add network
