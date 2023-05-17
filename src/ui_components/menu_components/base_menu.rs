@@ -1,6 +1,7 @@
+use bevy::ecs::system::EntityCommands;
 use bevy::prelude::*;
-use crate::menu::{ConfigurationOptionEnum, MenuItemMetadata, UiComponent};
-use crate::ui_components::ui_components::BuilderResult;
+use crate::menu::{ConfigurationOptionEnum, DropdownName, DropdownSelected, MenuItemMetadata, UiComponent};
+use crate::ui_components::menu_components::BuilderResult;
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 
 pub struct BaseMenu<'a> {
@@ -8,7 +9,8 @@ pub struct BaseMenu<'a> {
     pub(crate) config_option: &'a ConfigurationOptionEnum,
     pub(crate) parent_menus: Vec<MenuItemMetadata>,
     pub(crate) component: UiComponent,
-    pub(crate) parent: Entity
+    pub(crate) parent: Entity,
+    pub(crate) selectable: bool,
 }
 
 #[derive(Default, Clone, Debug  )]
@@ -33,7 +35,7 @@ impl<'a> BaseMenu<'a> {
 
         let button = draw_button
             .with_children(|button| {
-                let child_text_id = button.spawn(self.child_text_bundle(&mut asset_server)).id();
+                let mut child_text_id = self.spawn_text_bundle(&mut asset_server, button).id();
                 build_base_menu.base_menu_child_text = Some(child_text_id);
             });
 
@@ -52,7 +54,21 @@ impl<'a> BaseMenu<'a> {
         build_base_menu
     }
 
-    pub(crate) fn child_text_bundle(&self, mut asset_server: &mut Res<AssetServer>) -> impl Bundle {
+    fn spawn_text_bundle(&self, mut asset_server: &mut &mut Res<AssetServer>, button: &mut ChildBuilder) -> EntityCommands {
+        let mut text_bundle = button.spawn(self.text_bundle(&mut asset_server));
+        if self.selectable {
+            text_bundle.insert(
+                self.selectable_bundle()
+            );
+        } else {
+            text_bundle.insert(
+                self.non_selectable_bundle()
+            );
+        }
+        text_bundle
+    }
+
+    pub(crate) fn text_bundle(&self, mut asset_server: &mut Res<AssetServer>) -> impl Bundle {
         (
             TextBundle {
                 style: Style {
@@ -70,6 +86,20 @@ impl<'a> BaseMenu<'a> {
             },
             Label,
             UiIdentifiableComponent(self.menu_metadata.id),
+        )
+    }
+
+    pub(crate) fn selectable_bundle(&self) -> impl Bundle {
+        (
+            UiComponent::DropdownSelected,
+            DropdownSelected::default()
+        )
+    }
+
+    pub(crate) fn non_selectable_bundle(&self) -> impl Bundle {
+        (
+            UiComponent::DropdownName,
+            DropdownName::default(),
         )
     }
 

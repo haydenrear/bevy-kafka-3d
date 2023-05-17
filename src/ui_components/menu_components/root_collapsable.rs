@@ -2,9 +2,9 @@ use std::default::default;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::menu::{ConfigurationOptionEnum, MenuItemMetadata, MenuOption, MenuOptionType, UiComponent};
-use crate::ui_components::ui_components::base_menu::{BaseMenu, BuildBaseMenuResult};
-use crate::ui_components::ui_components::{add_config_opt, BuilderResult, do_submenu_menu_building};
-use crate::ui_components::ui_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
+use crate::ui_components::menu_components::base_menu::{BaseMenu, BuildBaseMenuResult};
+use crate::ui_components::menu_components::{add_config_opt, BuilderResult, do_submenu_menu_building};
+use crate::ui_components::menu_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 
 pub struct RootNodeBuilder {

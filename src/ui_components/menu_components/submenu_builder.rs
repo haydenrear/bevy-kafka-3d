@@ -1,9 +1,9 @@
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::menu::{ConfigurationOptionEnum, Dropdown, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionType, UiComponent};
-use crate::ui_components::ui_components::base_menu::BaseMenu;
-use crate::ui_components::ui_components::BuilderResult;
-use crate::ui_components::ui_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
+use crate::ui_components::menu_components::base_menu::BaseMenu;
+use crate::ui_components::menu_components::BuilderResult;
+use crate::ui_components::menu_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
 use crate::ui_components::ui_menu_component::menu_options;
 
 pub struct SubmenuBuilder<'a> {
@@ -40,6 +40,7 @@ impl <'a> SubmenuBuilder<'a> {
                     parent_menus: self.parent_menus.clone(),
                     component: UiComponent::Dropdown(Dropdown {
                         selected_index: 0,
+                        selectable: false,
                         options: options.iter()
                             .map(|opt| opt.metadata.name.clone())
                             .collect(),

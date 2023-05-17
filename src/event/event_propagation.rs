@@ -1,7 +1,6 @@
 use bevy::prelude::{Commands, Component, Entity, error, EventReader, info, Visibility};
 use bevy::ui::{Display, Style};
 use crate::event::event_state::StateChange;
-use crate::menu::ui_menu_event::change_style::StyleNode;
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 // macro_rules! component_propagation {
@@ -425,17 +424,3 @@ pub enum Relationship {
     VisibleState(Display)
 }
 
-impl Relationship {
-    pub(crate) fn create_style_node(&self, style: Style, id: f32) -> StyleNode {
-        match self {
-            Relationship::Child => StyleNode::Child(style, id),
-            Relationship::Parent => StyleNode::Parent(style, id) ,
-            Relationship::SelfState => StyleNode::SelfNode(style, id) ,
-            Relationship::EachSelfState => StyleNode::SelfNode(style, id) ,
-            Relationship::Sibling => StyleNode::Sibling(style, id) ,
-            Relationship::SiblingChild => StyleNode::SiblingChild(style, id) ,
-            Relationship::Other(_) => StyleNode::Other(style, id) ,
-            Relationship::VisibleState(_) => StyleNode::SelfNode(style, id) ,
-        }
-    }
-}

@@ -18,11 +18,13 @@ use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptio
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
 use crate::menu::ui_menu_event::interaction_ui_event_reader::UiEventReader;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::{DragEvents, GlobalState, ScrollEvents, StateChangeActionTypeStateRetriever};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::DisplayState::DisplayNone;
+use crate::menu::ui_menu_event::style_context::StyleContext;
+use crate::menu::ui_menu_event::next_action::DisplayState::DisplayNone;
+use crate::menu::ui_menu_event::next_action::{NextUiState, UiComponentState};
 use crate::menu::ui_menu_event::ui_state_change;
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
 use crate::ui_components::state_transitions::insert_state_transitions;
-use crate::ui_components::ui_components::BuildMenuResult;
+use crate::ui_components::menu_components::BuildMenuResult;
 use crate::ui_components::ui_menu_component::{create_menu, UiIdentifiableComponent};
 
 pub struct UiEventPlugin;
@@ -101,108 +103,8 @@ for StateChangeActionComponentStateFactory {
     }
 }
 
-#[derive(Debug)]
-pub enum NextUiState {
-    ReplaceSize(Update<Size>),
-    ReplaceDisplay(Update<Display>),
-    UpdatePosition(Update<UiRect>)
-}
-
-#[derive(Resource, Default, Clone, Debug)]
-pub struct StyleContext {
-    pub(crate) visible: HashMap<Entity, Style>,
-    pub(crate) is_dragging: bool,
-    pub(crate) delta: Option<Vec2>,
-    pub(crate) scroll_wheel: Option<Vec2>,
-    pub(crate) scroll_wheel_units: Option<MouseScrollUnit>,
-}
-
-impl Context for StyleContext {}
-
-impl ClickContext<ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter> for StyleContext {
-    fn clicked(&mut self) {
-        self.is_dragging = true;
-    }
-
-    fn un_clicked(&mut self) {
-        self.is_dragging = false;
-    }
-
-    fn cursor(&mut self, cursor_moved: &mut ResMut<GlobalState>) {
-        self.delta = Some(cursor_moved.cursor_delta.clone());
-        self.scroll_wheel = Some(cursor_moved.scroll_wheel_delta.clone());
-        self.scroll_wheel_units = cursor_moved.wheel_units.clone();
-    }
-}
-
-impl ClickContext<UiComponentStyleFilter, UiComponentStyleIxnFilter> for StyleContext {
-    fn clicked(&mut self) {
-        self.is_dragging = true;
-    }
-
-    fn un_clicked(&mut self) {
-        self.is_dragging = false;
-    }
-
-    fn cursor(&mut self, cursor_moved: &mut ResMut<GlobalState>) {
-        self.delta = Some(cursor_moved.cursor_delta.clone());
-        self.scroll_wheel = Some(cursor_moved.scroll_wheel_delta.clone());
-        self.scroll_wheel_units = cursor_moved.wheel_units.clone();
-    }
-}
-
-impl ClickContext<DraggableUiComponentFilter, DraggableUiComponentIxnFilter> for StyleContext {
-    fn clicked(&mut self) {
-        self.is_dragging = true;
-    }
-
-    fn un_clicked(&mut self) {
-        self.is_dragging = false;
-    }
-
-    fn cursor(&mut self, cursor_moved: &mut ResMut<GlobalState>) {
-        self.delta = Some(cursor_moved.cursor_delta.clone());
-        self.scroll_wheel = Some(cursor_moved.scroll_wheel_delta.clone());
-    }
-}
-
-impl UpdateStateInPlace<Style, StyleContext> for NextUiState {
-    fn update_state(&self, commands: &mut Commands,  value: &mut Style, style_context: &mut ResMut<StyleContext>) {
-        if let NextUiState::ReplaceSize(update) = &self {
-            update.update_state(commands, &mut value.size, style_context);
-        } else if let NextUiState::ReplaceDisplay(display) = &self {
-            display.update_state(commands, &mut value.display, style_context);
-        } else if let NextUiState::UpdatePosition(update) = &self {
-            update.update_state(commands, &mut value.position ,style_context);
-        }
-    }
-}
-
 pub trait UiComponentStateFilter<T> {
     fn matches(&self, other: &T) -> bool;
-}
-
-#[derive(Debug)]
-pub enum UiComponentState {
-    StateDisplay(DisplayState),
-    StateSize(SizeState),
-    Selected,
-    Deselected,
-    Any
-}
-
-impl UiComponentState {
-    pub(crate) fn matches(&self, style: &Style) -> bool {
-        match self {
-            UiComponentState::StateDisplay(display) => display.matches(&style.display),
-            UiComponentState::StateSize(state) => state.matches(&style.size),
-            UiComponentState::Any => true,
-            other => {
-                info!("Did not match: {:?}", other);
-                false
-            }
-        }
-    }
 }
 
 #[derive(Debug)]
@@ -240,97 +142,6 @@ pub struct UiEntityComponentStateTransitions {
 #[derive(Component, Debug)]
 pub struct UiComponentStateTransitions {
     pub(crate) transitions: Vec<UiComponentStateTransition>,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum DisplayState {
-    DisplayFlex,
-    DisplayNone,
-    DisplayAny,
-}
-
-#[derive(Debug, Eq, PartialEq)]
-pub enum SizeState {
-    Expanded{
-        height: u32,
-        width: u32,
-    }, Minimized {
-        height: u32,
-        width: u32,
-    }
-}
-
-impl DisplayState {
-    fn get_display(&self) -> Display {
-        match self {
-            DisplayState::DisplayFlex => {
-                Display::Flex
-            }
-            DisplayState::DisplayNone => {
-                Display::None
-            }
-            DisplayState::DisplayAny => {
-                Display::Flex
-            }
-        }
-    }
-}
-
-impl UiComponentStateFilter<Display> for DisplayState {
-    fn matches(&self, other: &Display) -> bool {
-        if let DisplayState::DisplayAny = self {
-            return true;
-        }
-        if self.get_display() == *other  {
-            return true;
-        } else {
-            return false;
-        }
-    }
-}
-
-impl SizeState {
-
-    fn get_width_height(&self) -> (u32, u32) {
-        match self  {
-            SizeState::Expanded { height, width } => {
-                (*height, *width)
-            }
-            SizeState::Minimized { height, width } => {
-                (*height, *width)
-            }
-        }
-    }
-
-}
-
-impl UiComponentStateFilter<Size> for SizeState {
-    fn matches(&self, starting_state: &Size) -> bool {
-        let (height_state, width_state) = self.get_width_height();
-        info!("{} is height and {} is width, and {:?} is starting_state.", height_state, width_state, starting_state);
-        if let Val::Percent(height) = starting_state.height {
-            if let Val::Percent(width) = starting_state.width {
-                info!("{} is match height and {} is match width.", height, width);
-                if height as u32 == height_state && width as u32 == width_state {
-                    info!("matched");
-                    return true;
-                }
-                return false;
-            }
-        }
-        if let Val::Px(height) = starting_state.height {
-            if let Val::Px(width) = starting_state.width {
-                info!("{} is match height and {} is match width.", height, width);
-                info!("{} is match height and {} is match width.", height, width);
-                if height as u32 == height_state && width as u32 == width_state {
-                    info!("matched");
-                    return true;
-                }
-                return false;
-            }
-        }
-        false
-    }
 }
 
 #[derive(Debug)]

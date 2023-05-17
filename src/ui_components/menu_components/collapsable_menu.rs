@@ -3,13 +3,13 @@ use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::menu::{ConfigurationOptionEnum, MenuItemMetadata, MenuOption, MenuOptionType, UiComponent};
 use crate::menu::UiComponent::CollapsableMenuComponent;
-use crate::ui_components::ui_components::base_menu::BaseMenu;
-use crate::ui_components::ui_components::{add_config_opt, BuilderResult, do_submenu_menu_building};
-use crate::ui_components::ui_components::dropdown_menu::set_parent;
-use crate::ui_components::ui_components::menu_options::dropdown_menu_option::SelectionMenuOptionBuilderResult;
-use crate::ui_components::ui_components::menu_options::MenuOptionBuilder;
-use crate::ui_components::ui_components::menu_options::slider_menu_option::SliderMenuOptionResult;
-use crate::ui_components::ui_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
+use crate::ui_components::menu_components::base_menu::BaseMenu;
+use crate::ui_components::menu_components::{add_config_opt, BuilderResult, do_submenu_menu_building};
+use crate::ui_components::menu_components::dropdown_menu::set_parent;
+use crate::ui_components::menu_components::menu_options::dropdown_menu_option::DropdownMenuOptionResult;
+use crate::ui_components::menu_components::menu_options::MenuOptionBuilder;
+use crate::ui_components::menu_components::menu_options::slider_menu_option::SliderMenuOptionResult;
+use crate::ui_components::menu_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 
 pub struct CollapsableMenuBuilder<'a> {
@@ -23,7 +23,7 @@ pub struct CollapsableMenuBuilder<'a> {
 
 #[derive(Clone, Debug)]
 pub struct DrawCollapsableMenuResult {
-    pub(crate) dropdown_menu_option_results: Vec<SelectionMenuOptionBuilderResult>,
+    pub(crate) dropdown_menu_option_results: Vec<DropdownMenuOptionResult>,
     pub(crate) submenu_results: Vec<DrawSubmenuResult>,
     pub(crate) slider: Vec<SliderMenuOptionResult>,
     pub(crate) collapsable_menu_button: Entity,

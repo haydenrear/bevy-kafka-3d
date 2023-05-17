@@ -88,7 +88,7 @@ for ConfigOptionActionStateRetriever<T>
             (Entity, &MetricsConfigurationOption<T>),
             (With<MetricsConfigurationOption<T>>)
         >,
-        with_parent_query: &Query<
+        propagation_query: &Query<
             (Entity, &Parent, &MetricsConfigurationOption<T>),
             (With<Parent>, With<MetricsConfigurationOption<T>>)
         >,

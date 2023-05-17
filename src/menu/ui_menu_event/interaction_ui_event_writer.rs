@@ -12,8 +12,10 @@ use crate::event::event_propagation::{ChangePropagation, PropagateComponentEvent
 use crate::event::event_actions::{ClickWriteEvents, RetrieveState};
 use crate::event::event_state::{Context, StateChange};
 use crate::menu::{DraggableComponent, ScrollableComponent, UiComponent};
-use crate::menu::ui_menu_event::change_style::{ChangeStyleTypes, StyleNode};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntityComponentStateTransition, PropagationQuery, PropagationQueryFilter, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, StateChangeActionType, StyleContext, UiComponentState, UiComponentStateFilter, UiComponentStateTransition, UiComponentStateTransitions, ScrollableIxnFilterQuery, UiComponentStateTransitionsQuery, UiEventArgs};
+use crate::menu::ui_menu_event::change_style::{ChangeStyleTypes};
+use crate::menu::ui_menu_event::next_action::UiComponentState;
+use crate::menu::ui_menu_event::style_context::StyleContext;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntityComponentStateTransition, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, StateChangeActionType, UiComponentStateFilter, UiComponentStateTransition, UiComponentStateTransitions, UiComponentStateTransitionsQuery, UiEventArgs};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 #[derive(Resource, Debug)]

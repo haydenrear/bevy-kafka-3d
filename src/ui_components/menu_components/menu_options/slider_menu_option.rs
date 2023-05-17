@@ -4,9 +4,10 @@ use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::event::event_state::StateChange::ChangeComponentStyle;
 use crate::menu::{ConfigurationOptionEnum, DraggableComponent, MenuInputType, MenuItemMetadata, MenuOption, Slider, SliderKnob, UiComponent};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, UiComponentState, UiComponentStateTransition, UiComponentStateTransitions};
-use crate::ui_components::ui_components::base_menu::BaseMenu;
-use crate::ui_components::ui_components::BuilderResult;
+use crate::menu::ui_menu_event::next_action::UiComponentState;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions};
+use crate::ui_components::menu_components::base_menu::BaseMenu;
+use crate::ui_components::menu_components::BuilderResult;
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 
 pub struct SliderMenuOptionBuilder<'a> {
@@ -67,7 +68,6 @@ impl <'a> SliderMenuOptionBuilder<'a> {
             NodeBundle {
                 style: Style {
                     display: Display::Flex,
-                    // size: Size::new(Val::Px(200.0), Val::Px(50.0)),
                     ..default()
                 },
                 background_color: BackgroundColor(Color::GREEN),
@@ -119,7 +119,7 @@ impl <'a> SliderMenuOptionBuilder<'a> {
                     UiComponentStateTransition {
                         filter_state: UiComponentState::Any,
                         state_change: vec![StateChangeActionType::Dragged(
-                            ChangeComponentStyle(ChangeStyleTypes::DragX)
+                            ChangeComponentStyle(ChangeStyleTypes::DragXPosition)
                         )],
                         propagation: ChangePropagation::SelfChange(
                             Relationship::SelfState

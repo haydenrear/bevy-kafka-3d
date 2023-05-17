@@ -3,12 +3,11 @@ use bevy::ecs::query::QueryEntityError;
 use bevy::prelude::*;
 use bevy::tasks::ParallelSlice;
 use crate::event::event_propagation::Relationship;
-use crate::menu::ui_menu_event::change_style::StyleNode;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponentStateTransitions;
 use crate::menu::{Entities, GetStateTransitions, UiComponent};
-use crate::ui_components::ui_components::BuildMenuResult;
-use crate::ui_components::ui_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
-use crate::ui_components::ui_components::dropdown_menu::DrawDropdownMenuResult;
+use crate::ui_components::menu_components::BuildMenuResult;
+use crate::ui_components::menu_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
+use crate::ui_components::menu_components::dropdown_menu::DrawDropdownMenuResult;
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 type EntityQuery<'a> = (Entity, &'a UiComponent, &'a Style, &'a UiIdentifiableComponent);
@@ -69,6 +68,8 @@ pub(crate) fn insert_state_transitions(
             );
     }
 
+
+
 }
 
 fn parent_entities(
@@ -76,17 +77,16 @@ fn parent_entities(
     with_parent_query: &Query<ParentQuery<'_>, ParentFilter>,
     entity: Entity,
 ) -> Vec<Entity> {
-    let mut entities: HashMap<Entity, StyleNode> = HashMap::new();
+    let mut entities = HashSet::new();
     let parent = with_parent_query.get(entity.clone())
         .map(|(_, _, parent, updateable, style)| parent.get())
         .ok();
 
     parent.map(|parent| {
-        with_children_query.get(parent.clone())
+        with_children_query.get(parent)
             .map(|(_, _, children, update, style)| {
                 info!("Found parent with id {}.", update.0);
-                let node_style = StyleNode::Parent(style.clone(), update.0);
-                entities.insert(parent, node_style);
+                entities.insert(update.0);
             })
             .or_else(|_| {
                 info!("Failed to fetch parent when parent was included in fetch.");
@@ -99,7 +99,7 @@ fn parent_entities(
             None
         });
 
-    entities.keys().map(|&e| e).collect()
+    entities.into_iter().collect()
 }
 
 fn sibling_entities(

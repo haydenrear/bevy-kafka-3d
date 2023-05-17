@@ -1,14 +1,14 @@
 use bevy::prelude::*;
 use bevy::utils::HashMap;
-use crate::menu::{ConfigurationOptionEnum, MenuOption, MenuOptionType};
-use crate::ui_components::ui_components::base_menu::BuildBaseMenuResult;
-use crate::ui_components::ui_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
-use crate::ui_components::ui_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
-use crate::ui_components::ui_components::menu_options::dropdown_menu_option::{SelectionMenuOptionBuilder, SelectionMenuOptionBuilderResult};
-use crate::ui_components::ui_components::menu_options::MenuOptionBuilder;
-use crate::ui_components::ui_components::menu_options::slider_menu_option::{SliderMenuOptionBuilder, SliderMenuOptionResult};
-use crate::ui_components::ui_components::root_collapsable::{DrawRootNodeResult, RootNodeBuilder};
-use crate::ui_components::ui_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
+use crate::menu::{ConfigurationOptionEnum, MenuOption, MenuOptionInputType, MenuOptionType};
+use crate::ui_components::menu_components::base_menu::BuildBaseMenuResult;
+use crate::ui_components::menu_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
+use crate::ui_components::menu_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
+use crate::ui_components::menu_components::menu_options::dropdown_menu_option::{SelectionMenuOptionBuilder, DropdownMenuOptionResult};
+use crate::ui_components::menu_components::menu_options::MenuOptionBuilder;
+use crate::ui_components::menu_components::menu_options::slider_menu_option::{SliderMenuOptionBuilder, SliderMenuOptionResult};
+use crate::ui_components::menu_components::root_collapsable::{DrawRootNodeResult, RootNodeBuilder};
+use crate::ui_components::menu_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
 use crate::ui_components::ui_menu_component::insert_config_option;
 
 pub(crate) mod dropdown_menu;
@@ -25,7 +25,7 @@ pub struct BuildMenuResult {
     pub(crate) root: HashMap<Entity, DrawRootNodeResult>,
     pub(crate) collapsable: HashMap<Entity, DrawCollapsableMenuResult>,
     pub(crate) dropdown: HashMap<Entity, DrawDropdownMenuResult>,
-    pub(crate) dropdown_menu_option_results: HashMap<Entity, SelectionMenuOptionBuilderResult>,
+    pub(crate) dropdown_menu_option_results: HashMap<Entity, DropdownMenuOptionResult>,
     pub(crate) submenu_results:  Vec<DrawSubmenuResult>,
     pub(crate) base_menu_results: HashMap<Entity, BuildBaseMenuResult>,
     pub(crate) slider: HashMap<Entity, SliderMenuOptionResult>,
@@ -49,8 +49,17 @@ fn add_config_opt(mut commands: &mut Commands, base_menu_result: Option<Entity>,
 }
 
 pub(crate) fn get_swing_out(menu_option: &MenuOption) -> f32 {
+    let swing_out = match menu_option.ui_option_type  {
+        MenuOptionInputType::Selected => false,
+        MenuOptionInputType::Radial => false,
+        MenuOptionInputType::FormInput => false,
+        MenuOptionInputType::Slider => false,
+        MenuOptionInputType::DropdownMenu => true,
+        MenuOptionInputType::CollapsableMenu => true,
+        MenuOptionInputType::SubMenu => true
+    };
     let mut swing_out_percentage = 0.0;
-    if menu_option.swing_out {
+    if swing_out {
         swing_out_percentage = 100.0;
     }
     swing_out_percentage
@@ -63,7 +72,7 @@ fn do_submenu_menu_building<'a>(
     mut materials: &mut ResMut<Assets<ColorMaterial>>,
     mut meshes: &mut ResMut<Assets<Mesh>>,
     mut asset_server: &mut Res<AssetServer>,
-) -> (Vec<DrawSubmenuResult>, Vec<SelectionMenuOptionBuilderResult>, Vec<SliderMenuOptionResult>) {
+) -> (Vec<DrawSubmenuResult>, Vec<DropdownMenuOptionResult>, Vec<SliderMenuOptionResult>) {
     let mut draw_submenu = vec![];
     let mut draw_menu_option = vec![];
     let mut slider_menu = vec![];

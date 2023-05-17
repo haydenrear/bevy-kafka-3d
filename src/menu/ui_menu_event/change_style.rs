@@ -7,8 +7,10 @@ use bevy::ui::UiRect;
 use crate::event::event_state::Update;
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::menu::Position;
+use crate::menu::ui_menu_event::next_action::UiComponentState;
+use crate::menu::ui_menu_event::style_context::StyleContext;
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{StyleContext, UiComponentFilters, UiComponentState, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentFilters, UiEventArgs};
 use crate::Node;
 
 /// Need to translate StyleChangeType to UiComponentFilters, and then pass the UiComponentFilters to
@@ -64,7 +66,6 @@ pub trait ChangeStyle<T, S>: Send + Sync + Debug + Clone {
                           current_display: HashMap<Entity, T>
     ) -> Option<UiEventArgs>;
     fn get_change(&self, value: &S) -> T;
-    fn get_value(self, node: &StyleNode) -> T;
 }
 
 macro_rules! gen_style_types {
@@ -178,9 +179,10 @@ pub enum ChangeStyleTypes {
         width_1: f32,
     },
     Selected {
+
     },
-    DragX,
-    DragY,
+    DragXPosition,
+    DragYPosition,
     ScrollX,
     ScrollY,
 }
@@ -263,7 +265,7 @@ impl ChangeStyleTypes {
                 }
                 Self::do_create_change_size_ui_event(created.unwrap(), entity)
             }
-            ChangeStyleTypes::DragX => {
+            ChangeStyleTypes::DragXPosition => {
                 if !style_context.is_dragging || style_context.delta.is_none() {
                     return None;
                 }
@@ -301,7 +303,7 @@ impl ChangeStyleTypes {
                 error!("In selected!");
                 None
             },
-            ChangeStyleTypes::DragY => {
+            ChangeStyleTypes::DragYPosition => {
                 error!("In drag!");
                 None
             }
@@ -354,114 +356,4 @@ impl ChangeStyleTypes {
         size
     }
 
-    fn get_style(style: Option<Style>, entities: &HashMap<Entity, StyleNode>) -> HashMap<Entity, Style> {
-        info!("Fetching style for nodes: {:?}", entities) ;
-        style.map(|style| {
-                entities.iter()
-                    .map(|(entity, _)| (*entity, style.clone()))
-                    .collect()
-            })
-            .or(Some(HashMap::new()))
-            .unwrap()
-    }
-
-    fn get_this_style(entities: &HashMap<Entity, StyleNode>, filter: &dyn Fn(&StyleNode) -> bool) -> Option<Style> {
-        entities.iter()
-            .flat_map(|(entity, node)| {
-                if filter(node) {
-                    return vec!(node.get_style());
-                }
-                vec![]
-            })
-            .next()
-    }
-
-
-}
-
-#[derive(Clone)]
-pub enum StyleNode {
-    Child(Style, f32),
-    SelfNode(Style, f32),
-    Parent(Style, f32),
-    Sibling(Style, f32),
-    SiblingChild(Style, f32),
-    SiblingChildRecursive(Style, f32),
-    Other(Style, f32)
-}
-
-impl Debug for StyleNode {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        f.write_str("Node enum: ");
-        match self {
-            StyleNode::Child(_, _) => {
-                f.write_str(" Child ");
-            }
-            StyleNode::SelfNode(_, _) => {
-                f.write_str(" Self ");
-            }
-            StyleNode::Parent(_, _) => {
-                f.write_str(" Parent ");
-            }
-            StyleNode::Other(_, _) => {
-                f.write_str(" Other ");
-            }
-            StyleNode::Sibling(_,_) => {
-                f.write_str(" Sibling ");
-            }
-            StyleNode::SiblingChild(..) => {
-                f.write_str(" Sibling Child ");
-            }
-            StyleNode::SiblingChildRecursive(..) => {
-                f.write_str(" Sibling Child Recursive ");
-            }
-        }
-        f.write_str(self.id().to_string().as_str())
-    }
-}
-
-impl StyleNode {
-    pub(crate) fn id(&self) -> f32 {
-        match self {
-            StyleNode::Child(_, id) => {
-                *id
-            }
-            StyleNode::SelfNode(_, id) => {
-                *id
-            }
-            StyleNode::Parent(_, id) => {
-                *id
-            }
-            StyleNode::Other(_, id) => {
-                *id
-            }
-            StyleNode::Sibling(_, id) => {
-                *id
-            }
-            StyleNode::SiblingChild(_, id) => *id,
-            StyleNode::SiblingChildRecursive(_, id) => *id
-        }
-    }
-
-    pub(crate) fn get_style(&self) -> Style {
-        match self {
-            StyleNode::SiblingChild(style, ..) => style.clone(),
-            StyleNode::SiblingChildRecursive(style, ..) => style.clone(),
-            StyleNode::Child(style, _) => {
-                style.clone()
-            }
-            StyleNode::SelfNode(style, id) => {
-                style.clone()
-            }
-            StyleNode::Parent(style, id) => {
-                style.clone()
-            }
-            StyleNode::Other(style, _) => {
-                style.clone()
-            }
-            StyleNode::Sibling(style, _) => {
-                style.clone()
-            }
-        }
-    }
 }

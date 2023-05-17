@@ -9,20 +9,21 @@ use crate::event::event_state::StateChange::ChangeComponentStyle;
 use crate::menu::{CollapsableMenu, ConfigurationOptionEnum, DataType, DraggableComponent, Dropdown, DropdownOption, Menu, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionInputType, MenuOptionType, MenuType, MetricsConfigurationOption, Radial, ScrollableMenuComponent, ScrollableMenuItemsBarComponent, ScrollingSidebarComponent, ScrollWheelComponent, Slider, SliderData, SliderKnob, UiBundled, UiComponent};
 use crate::menu::menu_resource::{MENU, MenuResource};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{CreateMenu, DisplayState, SizeState, StateChangeActionType, UiComponentState, UiComponentStateTransition, UiComponentStateTransitions};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{CreateMenu, StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions};
 use crate::menu::UiComponent::CollapsableMenuComponent;
 use crate::ui_components::ui_menu_component;
 use bevy::ecs::system::EntityCommands;
 use bevy::ui::{AlignItems, FocusPolicy, ZIndex};
-use crate::ui_components::ui_components::base_menu::BaseMenu;
-use crate::ui_components::ui_components::BuildMenuResult;
-use crate::ui_components::ui_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
-use crate::ui_components::ui_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
-use crate::ui_components::ui_components::menu_options::dropdown_menu_option::{SelectionMenuOptionBuilder, SelectionMenuOptionBuilderResult};
-use crate::ui_components::ui_components::menu_options::MenuOptionBuilder;
-use crate::ui_components::ui_components::menu_options::slider_menu_option::SliderMenuOptionResult;
-use crate::ui_components::ui_components::root_collapsable::RootNodeBuilder;
-use crate::ui_components::ui_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
+use crate::menu::ui_menu_event::next_action::{DisplayState, SizeState, UiComponentState};
+use crate::ui_components::menu_components::base_menu::BaseMenu;
+use crate::ui_components::menu_components::BuildMenuResult;
+use crate::ui_components::menu_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
+use crate::ui_components::menu_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
+use crate::ui_components::menu_components::menu_options::dropdown_menu_option::{SelectionMenuOptionBuilder, DropdownMenuOptionResult};
+use crate::ui_components::menu_components::menu_options::MenuOptionBuilder;
+use crate::ui_components::menu_components::menu_options::slider_menu_option::SliderMenuOptionResult;
+use crate::ui_components::menu_components::root_collapsable::RootNodeBuilder;
+use crate::ui_components::menu_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
 
 #[derive(Component, Debug, Clone)]
 pub struct UiIdentifiableComponent(pub f32);
@@ -127,6 +128,7 @@ fn add_dropdown(
             component: UiComponent::Dropdown(
                 Dropdown {
                     selected_index: 0,
+                    selectable: false,
                     options: get_menu_option_names(options),
                 }
             ),
@@ -197,6 +199,7 @@ fn build_submenu<'a>(
                         parent_menus: parents.clone(),
                         menu_component: UiComponent::Dropdown(Dropdown {
                             selected_index: 0,
+                            selectable: false,
                             options: get_menu_option_names(options),
                         }),
                         sub_menu,
@@ -284,7 +287,7 @@ fn add_results_dropdown(mut build_result: &mut ResMut<BuildMenuResult>, dropdown
 
 fn add_results(
     mut build_result: &mut ResMut<BuildMenuResult>,
-    dropdown_opt: &Vec<SelectionMenuOptionBuilderResult>,
+    dropdown_opt: &Vec<DropdownMenuOptionResult>,
     slider: &Vec<SliderMenuOptionResult>,
     submenu: &Vec<DrawSubmenuResult>
 ) {
@@ -302,7 +305,7 @@ fn add_submenu_results(mut build_result: &mut &mut ResMut<BuildMenuResult>, subm
         });
 }
 
-fn add_dropdown_menu_option_results(mut build_result: &mut ResMut<BuildMenuResult>, dropdown_menu: &Vec<SelectionMenuOptionBuilderResult>) {
+fn add_dropdown_menu_option_results(mut build_result: &mut ResMut<BuildMenuResult>, dropdown_menu: &Vec<DropdownMenuOptionResult>) {
     dropdown_menu
         .iter()
         .for_each(|d| {

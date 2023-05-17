@@ -1,13 +1,15 @@
 use bevy::utils::HashMap;
-use bevy::prelude::{BackgroundColor, Button, Changed, Color, Display, Entity, Interaction, Query, ResMut, Size, Style, With};
+use bevy::prelude::{BackgroundColor, Button, Changed, Color, Component, Display, Entity, Interaction, Query, ResMut, Size, Style, With};
 use bevy::log::info;
 use bevy::ui::UiRect;
 use bevy_transform::prelude::Transform;
-use crate::event::event_state::{StateChange, Update};
+use crate::event::event_state::{ClickContext, Context, StateChange, Update};
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::menu::{Position, UiComponent};
-use crate::menu::ui_menu_event::change_style::{ChangeStyleTypes, StyleNode};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{DisplayState, StyleContext, UiComponentState, UiComponentStateFilter, UiEventArgs};
+use crate::menu::ui_menu_event::change_style::{ChangeStyleTypes};
+use crate::menu::ui_menu_event::next_action::{DisplayState, UiComponentState};
+use crate::menu::ui_menu_event::style_context::StyleContext;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentStateFilter, UiEventArgs};
 
 /// Contains the state data needed in order to generate the UIEvents from the state change required.
 #[derive(Clone, Debug)]
@@ -31,6 +33,19 @@ pub enum UiClickStateChange {
     None,
 }
 
+pub trait StateChangeMachine<S, Ctx: Context> {
+    fn state_machine_event(
+        &self,
+        starting: &Style,
+        style_context: &mut ResMut<StyleContext>,
+        entity: Entity
+    ) -> Option<UiEventArgs> {
+        if let StateChange::ChangeComponentStyle(change_style) = self {
+            return change_style.do_change(starting, entity, style_context);
+        }
+        None
+    }
+}
 
 impl StateChange {
 

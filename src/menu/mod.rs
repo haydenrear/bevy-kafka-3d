@@ -9,6 +9,7 @@ use bevy::utils::petgraph::visit::Data;
 use bevy_mod_picking::Selection;
 use rdkafka::metadata;
 use serde::Deserialize;
+use ui_menu_event::next_action::{DisplayState, SizeState, UiComponentState};
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::event::event_state::{Context, UpdateStateInPlace};
 use crate::event::event_state::StateChange::ChangeComponentStyle;
@@ -16,14 +17,14 @@ use crate::graph::GraphParent;
 use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
 use crate::menu::menu_resource::{MENU, VARIANCE};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{DisplayState, EntitiesStateTypes, EntityComponentStateTransition, SizeState, StateChangeActionType, UiComponentState, UiComponentStateTransition, UiComponentStateTransitions, UiEntityComponentStateTransitions};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntitiesStateTypes, EntityComponentStateTransition, StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions, UiEntityComponentStateTransitions};
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, MetricChildNodes, Network, Node};
-use crate::ui_components::ui_components::{BuilderResult, BuildMenuResult};
-use crate::ui_components::ui_components::base_menu::BuildBaseMenuResult;
-use crate::ui_components::ui_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
-use crate::ui_components::ui_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
-use crate::ui_components::ui_components::menu_options::dropdown_menu_option::SelectionMenuOptionBuilderResult;
+use crate::ui_components::menu_components::{BuilderResult, BuildMenuResult};
+use crate::ui_components::menu_components::base_menu::BuildBaseMenuResult;
+use crate::ui_components::menu_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
+use crate::ui_components::menu_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
+use crate::ui_components::menu_components::menu_options::dropdown_menu_option::DropdownMenuOptionResult;
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 pub(crate) mod ui_menu_event;
@@ -355,6 +356,7 @@ pub trait UiBundled {
 #[derive(Component, Default, Clone, Debug)]
 pub struct Dropdown {
     pub(crate) selected_index: usize,
+    pub(crate) selectable: bool,
     pub(crate) options: Vec<String>
 }
 
@@ -386,6 +388,14 @@ pub struct RadialButtonSelection {
 pub struct DropdownOption {
     pub(crate) index: usize,
     pub(crate) option_name: String
+}
+
+#[derive(Component, Default, Clone, Debug)]
+pub struct DropdownSelected {
+}
+
+#[derive(Component, Default, Clone, Debug)]
+pub struct DropdownName {
 }
 
 #[derive(Component, Debug, Clone, Default)]
@@ -433,6 +443,8 @@ pub enum UiComponent {
     ScrollWheel(ScrollWheelComponent),
     ScrollingSidebar(ScrollingSidebarComponent),
     ScrollableMenuItemsBar(ScrollableMenuItemsBarComponent),
+    DropdownSelected,
+    DropdownName,
     Node,
 }
 
@@ -483,7 +495,56 @@ impl GetStateTransitions<BuildBaseMenuResult> for DrawDropdownMenuResult {
     ) -> Option<UiEntityComponentStateTransitions> {
 
         let remove_visible = Self::change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
-        let add_visible = Self::change_child(ChangeStyleTypes::AddVisible, &build_menu_result.children);
+        let change_visible = Self::change_child(ChangeStyleTypes::ChangeVisible, &build_menu_result.children);
+
+        let mut siblings: Vec<(Entity, Relationship, StateChangeActionType)> = build_menu_result.siblings_children_recursive
+            .iter()
+            .map(|entity| (
+                *entity,
+                Relationship::SiblingChild,
+                StateChangeActionType::Clicked(ChangeComponentStyle(ChangeStyleTypes::RemoveVisible))
+            ))
+            .collect();
+
+        info!("{:?} are the sibling recursive.", &siblings);
+
+        Some(
+            UiEntityComponentStateTransitions {
+                transitions: vec![
+                    EntityComponentStateTransition {
+                        entity_to_change: EntitiesStateTypes {
+                            states: change_visible
+                        },
+                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
+                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
+                    },
+                    EntityComponentStateTransition {
+                        entity_to_change: EntitiesStateTypes {
+                            states: remove_visible
+                        },
+                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
+                    },
+                    EntityComponentStateTransition {
+                        entity_to_change: EntitiesStateTypes {
+                            states: siblings
+                        },
+                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
+                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
+                    },
+                ]
+            }
+        )
+    }
+}
+
+impl GetStateTransitions<DropdownMenuOptionResult> for DrawDropdownMenuResult {
+    fn get_state_transitions(
+        builder_result: &DropdownMenuOptionResult,
+        build_menu_result: &Entities,
+    ) -> Option<UiEntityComponentStateTransitions> {
+
+        let remove_visible = Self::change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
         let change_visible = Self::change_child(ChangeStyleTypes::ChangeVisible, &build_menu_result.children);
 
         let mut siblings: Vec<(Entity, Relationship, StateChangeActionType)> = build_menu_result.siblings_children_recursive

@@ -1,8 +1,8 @@
 use std::default::default;
 use bevy::prelude::*;
 use crate::menu::{ConfigurationOptionEnum, MenuInputType, MenuItemMetadata, MenuOption, UiComponent};
-use crate::ui_components::ui_components::base_menu::BaseMenu;
-use crate::ui_components::ui_components::{add_config_opt, BuilderResult, get_swing_out};
+use crate::ui_components::menu_components::base_menu::BaseMenu;
+use crate::ui_components::menu_components::{add_config_opt, BuilderResult, get_swing_out};
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 
 pub struct SelectionMenuOptionBuilder<'a> {
@@ -15,14 +15,14 @@ pub struct SelectionMenuOptionBuilder<'a> {
 }
 
 #[derive(Default, Clone, Debug)]
-pub struct SelectionMenuOptionBuilderResult {
+pub struct DropdownMenuOptionResult {
     pub(crate) menu_option_entity: Option<Entity>,
     pub(crate) breadcrumbs_entity: Option<Entity>,
     pub(crate) selected_entity: Option<Entity>,
     pub(crate) text_entity: Option<Entity>
 }
 
-impl BuilderResult for SelectionMenuOptionBuilderResult {}
+impl BuilderResult for DropdownMenuOptionResult {}
 
 impl <'a> SelectionMenuOptionBuilder<'a> {
 
@@ -32,9 +32,9 @@ impl <'a> SelectionMenuOptionBuilder<'a> {
         mut materials: &mut ResMut<Assets<ColorMaterial>>,
         mut meshes: &mut ResMut<Assets<Mesh>>,
         mut asset_server: &mut Res<AssetServer>,
-    ) -> SelectionMenuOptionBuilderResult {
+    ) -> DropdownMenuOptionResult {
 
-        let mut result = SelectionMenuOptionBuilderResult::default();
+        let mut result = DropdownMenuOptionResult::default();
 
         let mut menu_option_button = commands
             .spawn(self.menu_option_button())
@@ -51,7 +51,6 @@ impl <'a> SelectionMenuOptionBuilder<'a> {
                     result.text_entity = Some(child_builder.spawn(self.text_entity(&mut asset_server)).id());
                 })
             );
-
 
         commands.get_entity(self.parent.unwrap())
             .as_mut()
@@ -79,8 +78,10 @@ impl <'a> SelectionMenuOptionBuilder<'a> {
                         Val::Percent(0.0),
                         Val::Percent(0.0)
                     ),
+
                     ..default()
                 },
+                z_index: ZIndex::Global(100),
                 background_color: BackgroundColor(Color::BLACK),
                 ..default()
             },

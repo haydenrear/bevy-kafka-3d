@@ -2,12 +2,12 @@ use std::default::default;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::menu::{ConfigurationOptionEnum, MenuItemMetadata, MenuOption, MenuOptionType, UiComponent};
-use crate::ui_components::ui_components::base_menu::{BaseMenu, BuildBaseMenuResult};
-use crate::ui_components::ui_components::{add_config_opt, BuilderResult, do_submenu_menu_building};
-use crate::ui_components::ui_components::menu_options::dropdown_menu_option::{SelectionMenuOptionBuilder, SelectionMenuOptionBuilderResult};
-use crate::ui_components::ui_components::menu_options::MenuOptionBuilder;
-use crate::ui_components::ui_components::menu_options::slider_menu_option::SliderMenuOptionResult;
-use crate::ui_components::ui_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
+use crate::ui_components::menu_components::base_menu::{BaseMenu, BuildBaseMenuResult};
+use crate::ui_components::menu_components::{add_config_opt, BuilderResult, do_submenu_menu_building};
+use crate::ui_components::menu_components::menu_options::dropdown_menu_option::{SelectionMenuOptionBuilder, DropdownMenuOptionResult};
+use crate::ui_components::menu_components::menu_options::MenuOptionBuilder;
+use crate::ui_components::menu_components::menu_options::slider_menu_option::SliderMenuOptionResult;
+use crate::ui_components::menu_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
 use crate::ui_components::ui_menu_component::insert_config_option;
 
 pub struct DropdownMenuBuilder<'a> {
@@ -20,7 +20,7 @@ pub struct DropdownMenuBuilder<'a> {
 
 #[derive(Default, Clone, Debug)]
 pub struct DrawDropdownMenuResult {
-    pub(crate) dropdown_menu_option_results: Vec<SelectionMenuOptionBuilderResult>,
+    pub(crate) dropdown_menu_option_results: Vec<DropdownMenuOptionResult>,
     pub(crate) submenu_results: Vec<DrawSubmenuResult>,
     pub(crate) slider: Vec<SliderMenuOptionResult>,
     pub(crate) base_menu_result: BuildBaseMenuResult
