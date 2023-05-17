@@ -1,8 +1,10 @@
 use bevy::input::ButtonState;
 use bevy::input::keyboard::KeyboardInput;
-use bevy::input::mouse::MouseButtonInput;
+use bevy::input::mouse::{MouseButtonInput, MouseMotion, MouseWheel};
 use bevy::prelude::*;
-use crate::camera::{MOUSE_SENSITIVITY, ZoomableDraggableCamera};
+use bevy::math::Vec4Swizzles;
+use crate::camera::{FORWARD_SENSITIVITY, MOUSE_SENSITIVITY, ZoomableDraggableCamera};
+use crate::camera::raycast_select::BevyPickingState;
 
 pub(crate) fn camera_rotation_system(
     time: Res<Time>,
@@ -10,7 +12,7 @@ pub(crate) fn camera_rotation_system(
     mut camera_query: Query<(&Camera, &mut Transform)>,
     mouse_button_input: Res<Input<MouseButton>>,
     mut keyboard_events: EventReader<KeyboardInput>,
-    mut mouse_button_input_events: EventReader<MouseButtonInput>
+    mut mouse_button_input_events: EventReader<MouseButtonInput>,
 ) {
 
     for input in mouse_button_input_events.iter() {
@@ -36,5 +38,68 @@ pub(crate) fn camera_rotation_system(
         });
 
     }
+}
+
+pub(crate) fn camera_control(
+    mut commands: Commands,
+    mouse_button_input: Res<Input<MouseButton>>,
+    pick_state: Res<BevyPickingState>,
+    mut camera_drag_data: ResMut<ZoomableDraggableCamera>,
+    mut camera_query: Query<(&Camera, &mut Transform)>,
+    mut mouse_wheel: EventReader<MouseWheel>,
+    mut ev_mousse: EventReader<MouseMotion>,
+    mut keyboard_events: EventReader<KeyboardInput>,
+) {
+
+    if pick_state.picked_ui_flag {
+        return;
+    }
+
+    for key in keyboard_events.iter() {
+        let (_cam, mut transform) = camera_query.single_mut();
+        let cam_matrix = transform.compute_matrix();
+        let forward = -cam_matrix.z_axis.xyz().normalize();
+        let right = cam_matrix.x_axis.xyz().normalize();
+        let mut movement = Vec3::ZERO;
+        if let Some(KeyCode::W) = key.key_code {
+            movement += forward;
+        } else if let Some(KeyCode::S) = key.key_code {
+            movement -= forward;
+        } else if let Some(KeyCode::D) = key.key_code {
+            movement += right;
+        } else if let Some(KeyCode::A) = key.key_code {
+            movement -= right;
+        }
+        if movement.length() != 0.0 {
+            movement = movement.normalize() * FORWARD_SENSITIVITY;
+            camera_drag_data.target_translation = Some(transform.translation + movement);
+        }
+    }
+
+    for event in ev_mousse.iter() {
+        if mouse_button_input.pressed(MouseButton::Left) {
+            camera_drag_data.yaw -= event.delta.x * MOUSE_SENSITIVITY;
+            camera_drag_data.pitch -= event.delta.y * MOUSE_SENSITIVITY;
+
+            let yaw_quat = Quat::from_axis_angle(Vec3::Y, camera_drag_data.yaw.to_radians());
+            let pitch_quat = Quat::from_axis_angle(Vec3::X, camera_drag_data.pitch.to_radians());
+            let rotation = yaw_quat * pitch_quat;
+
+            camera_drag_data.target_rotation = Some(rotation);
+        }
+    }
+
+    // for event in mouse_wheel.iter() {
+    //
+    //     camera_drag_data.current_distance -= event.y * camera_drag_data.zoom_sensitivity;
+    //
+    //     // Clamp current distance to the range [min_distance, max_distance]
+    //     camera_drag_data.current_distance = camera_drag_data.current_distance.clamp(camera_drag_data.min_distance, camera_drag_data.max_distance);
+    //
+    //     if let Some((_, mut transform)) = camera_query.iter_mut().next() {
+    //         transform.translation.z = camera_drag_data.current_distance;
+    //     }
+    // }
+
 }
 

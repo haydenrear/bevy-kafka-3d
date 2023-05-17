@@ -1,1 +1,2 @@
 CONFIG_PROPS = "resources/config.toml"
+RUST_LOG = 'debug'

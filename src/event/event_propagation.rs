@@ -1,6 +1,7 @@
 use bevy::prelude::{Commands, Component, Entity, error, EventReader, info, Visibility};
 use bevy::ui::{Display, Style};
 use crate::event::event_state::StateChange;
+use crate::menu::ui_menu_event::change_style::StyleNode;
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 // macro_rules! component_propagation {
@@ -77,33 +78,33 @@ where
 #[derive(Clone, Debug)]
 pub enum ChangePropagation {
     // Include self as parent and any children of parent
-    ParentToChild(StartingState),
+    ParentToChild(Relationship),
     // Include self as child and parent of self
-    ChildToParent(StartingState),
+    ChildToParent(Relationship),
     // Include self only
-    SelfChange(StartingState),
+    SelfChange(Relationship),
     // Include children only
-    Children(StartingState),
+    Children(Relationship),
     // includes siblings
-    Siblings(StartingState),
+    Siblings(Relationship),
     // include self and siblings
-    SelfToSiblings(StartingState),
+    SelfToSiblings(Relationship),
     // Include parent only
-    Parent(StartingState),
+    Parent(Relationship),
     // propagate event to siblings children
-    SiblingsChildren(StartingState),
+    SiblingsChildren(Relationship),
     // Propagate event to specific Id's
-    SiblingsChildrenRecursive(StartingState),
+    SiblingsChildrenRecursive(Relationship),
     // Propagate event to specific Id's
     CustomPropagation {
         to: Vec<f32>,
         // starting state
-        from: StartingState
+        from: Relationship
     },
 }
 
 impl ChangePropagation {
-    pub(crate) fn get_starting_state(&self) -> &StartingState {
+    pub(crate) fn get_starting_state(&self) -> &Relationship {
         match self {
             ChangePropagation::ParentToChild(starting) => {
                 starting
@@ -139,10 +140,10 @@ impl ChangePropagation {
     }
 }
 
-impl StartingState {
+impl Relationship {
     pub(crate) fn includes_parent(&self) -> bool {
         match self {
-            StartingState::Parent => {
+            Relationship::Parent => {
                 true
             }
             _ => {
@@ -153,7 +154,7 @@ impl StartingState {
 
     pub(crate) fn includes_self(&self) -> bool {
         match self {
-            StartingState::SelfState => {
+            Relationship::SelfState => {
                 true
             }
             _ => {
@@ -164,7 +165,7 @@ impl StartingState {
 
     pub(crate) fn includes_children(&self) -> bool {
         match self {
-            StartingState::Child => {
+            Relationship::Child => {
                 true
             }
             _ => {
@@ -175,7 +176,7 @@ impl StartingState {
 
     pub(crate) fn includes_sibling(&self) -> bool {
         match self {
-            StartingState::Sibling => {
+            Relationship::Sibling => {
                 true
             }
             _ => {false}
@@ -184,7 +185,7 @@ impl StartingState {
 
     pub(crate) fn includes_siblings_children(&self) -> bool {
         match self {
-            StartingState::SiblingChild => {
+            Relationship::SiblingChild => {
                 true
             }
             _ => {
@@ -413,7 +414,7 @@ impl ChangePropagation {
 /// if a child is swapping from visible to invisible, and the parent is swapping, then in order so
 /// that they won't swap out of sync, you use starting state of one to determine next state of both.
 #[derive(Clone, Debug)]
-pub enum StartingState {
+pub enum Relationship {
     Child,
     Parent,
     SelfState,
@@ -424,3 +425,17 @@ pub enum StartingState {
     VisibleState(Display)
 }
 
+impl Relationship {
+    pub(crate) fn create_style_node(&self, style: Style, id: f32) -> StyleNode {
+        match self {
+            Relationship::Child => StyleNode::Child(style, id),
+            Relationship::Parent => StyleNode::Parent(style, id) ,
+            Relationship::SelfState => StyleNode::SelfNode(style, id) ,
+            Relationship::EachSelfState => StyleNode::SelfNode(style, id) ,
+            Relationship::Sibling => StyleNode::Sibling(style, id) ,
+            Relationship::SiblingChild => StyleNode::SiblingChild(style, id) ,
+            Relationship::Other(_) => StyleNode::Other(style, id) ,
+            Relationship::VisibleState(_) => StyleNode::SelfNode(style, id) ,
+        }
+    }
+}

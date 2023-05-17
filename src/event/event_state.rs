@@ -1,9 +1,12 @@
 use bevy::prelude::{Color, Commands, Component, Entity, ResMut, Resource};
 use std::marker::PhantomData;
 use std::fmt::Debug;
+use bevy::ecs::query::ReadOnlyWorldQuery;
+use crate::cursor_adapter::CursorResource;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
 use crate::event::event_propagation::ChangePropagation;
+use crate::menu::ui_menu_event::interaction_ui_event_writer::GlobalState;
 
 /// From the event descriptor, create behaviors that will change the state.
 pub trait StateChangeFactory<T, A, C, UpdateComponent, Ctx, U: UpdateStateInPlace<UpdateComponent, Ctx> = ()>: Sized + Resource
@@ -23,6 +26,11 @@ pub trait UpdateStateInPlace<T, Ctx: Context>: Debug {
     fn update_state(&self, commands: &mut Commands, value: &mut T, ctx: &mut ResMut<Ctx>);
 }
 
+/// If the UpdateStateInPlace contains a struct that converts from certain components to other
+/// components
+pub trait StateUpdate<T>: Debug {
+    fn update_state(&self, value: &mut T);
+}
 
 #[derive(Debug)]/// Modularizes the state change.
 pub struct NextStateChange<T: UpdateStateInPlace<U, Ctx>, U: Component + Send + Sync + 'static, Ctx: Context> {
@@ -48,7 +56,16 @@ pub enum HoverStateChange {
     None,
 }
 
-pub trait Context: Resource {
+pub trait Context: Resource {}
+
+pub trait ClickContext<SelfFilterQuery, InteractionFilterQuery>: Context
+where
+    SelfFilterQuery: Send + Sync + 'static,
+    InteractionFilterQuery: Send + Sync + 'static
+{
+    fn clicked(&mut self);
+    fn un_clicked(&mut self);
+    fn cursor(&mut self, global_stat: &mut ResMut<GlobalState>);
 }
 
 #[derive(Clone, Debug)]

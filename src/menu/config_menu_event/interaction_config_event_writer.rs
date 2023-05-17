@@ -1,20 +1,30 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
+use bevy::input::mouse::MouseScrollUnit;
 use bevy::prelude::*;
 use bevy::utils::hashbrown::HashMap;
+use crate::cursor_adapter::CursorResource;
 use crate::event::event_actions::{ClickWriteEvents, RetrieveState};
 use crate::event::event_descriptor::EventDescriptor;
 use crate::event::event_propagation::PropagateComponentEvent;
-use crate::event::event_state::Context;
+use crate::event::event_state::{ClickContext, Context};
 use crate::menu::{MetricsConfigurationOption, ConfigurationOptionComponent, ConfigurationOptionEnum, DataType, MenuType};
 use crate::menu::config_menu_event::config_event::{ConfigurationOptionChange, ConfigurationOptionEventArgs};
 use crate::menu::menu_resource::MENU;
+use crate::menu::ui_menu_event::interaction_ui_event_writer::{GlobalState, UpdateGlobalState};
 use crate::network::{Network, Node};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 #[derive(Default, Resource, Debug)]
-pub struct ConfigOptionActionStateRetriever<T: Component> {
+pub struct ConfigOptionActionStateRetriever<T: Component>
+    where T: Component + Send + Sync + Default + Clone + Debug + 'static
+{
     phantom: PhantomData<T>,
+}
+
+impl <T> UpdateGlobalState<MetricsSelfQueryFilter<T>,MetricsSelfIxnQueryFilter<T>> for ConfigOptionActionStateRetriever<T>
+    where T: Component + Send + Sync + Default + Clone + Debug + 'static
+{
 }
 
 #[derive(Default, Resource, Debug)]
@@ -25,23 +35,37 @@ pub struct ConfigOptionContext {
 
 impl Context for ConfigOptionContext {}
 
-impl<T: Component + Debug + Default + Clone> ClickWriteEvents<
+impl <T> ClickContext<MetricsSelfQueryFilter<T>, MetricsSelfIxnQueryFilter<T>>
+for ConfigOptionContext
+where T: Component + Send + Sync + Default + Clone + Debug + 'static
+{
+    fn clicked(&mut self) {
+    }
+
+    fn un_clicked(&mut self) {
+    }
+
+    fn cursor(&mut self, global_stat: &mut ResMut<GlobalState>) {
+    }
+}
+
+
+pub type MetricsSelfQueryFilter<T> = (With<MetricsConfigurationOption<T>>);
+pub type MetricsSelfIxnQueryFilter<T> = (With<MetricsConfigurationOption<T>>, With<Button>, Changed<Interaction>);
+
+impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> ClickWriteEvents<
     ConfigOptionActionStateRetriever<T>, ConfigurationOptionEventArgs<T>,
     DataType, MetricsConfigurationOption<T>, ConfigOptionContext,
     // self query
     (Entity, &MetricsConfigurationOption<T>),
     // self filter
-    (With<MetricsConfigurationOption<T>>),
+    MetricsSelfQueryFilter<T>,
     // parent query
     (Entity, &Parent, &MetricsConfigurationOption<T>),
     // parent filter
     (With<Parent>, With<MetricsConfigurationOption<T>>),
-    // child query
-    (Entity, &Children, &MetricsConfigurationOption<T>),
-    // child filter
-    (With<Children>, With<MetricsConfigurationOption<T>>),
     // interaction filter
-    (With<MetricsConfigurationOption<T>>, With<Button>, Changed<Interaction>)
+    MetricsSelfIxnQueryFilter<T>
 > for ConfigOptionActionStateRetriever<T> {}
 
 impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> RetrieveState<
@@ -51,10 +75,8 @@ impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> RetrieveSta
     ConfigOptionContext,
     (Entity, &MetricsConfigurationOption<T>),
     (Entity, &Parent, &MetricsConfigurationOption<T>),
-    (Entity, &Children, &MetricsConfigurationOption<T>),
-    (With<MetricsConfigurationOption<T>>),
+    MetricsSelfQueryFilter<T>,
     (With<Parent>, With<MetricsConfigurationOption<T>>),
-    (With<Children>, With<MetricsConfigurationOption<T>>),
 >
 for ConfigOptionActionStateRetriever<T>
 {
@@ -69,10 +91,6 @@ for ConfigOptionActionStateRetriever<T>
         with_parent_query: &Query<
             (Entity, &Parent, &MetricsConfigurationOption<T>),
             (With<Parent>, With<MetricsConfigurationOption<T>>)
-        >,
-        with_child_query: &Query<
-            (Entity, &Children, &MetricsConfigurationOption<T>),
-            (With<Children>, With<MetricsConfigurationOption<T>>)
         >,
     ) -> (
         Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,

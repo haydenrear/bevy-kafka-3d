@@ -1,6 +1,6 @@
 use bevy::prelude::*;
 use bevy_mod_picking::{PickingEvent, SelectionEvent};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponent;
+use crate::menu::UiComponent;
 use crate::network::{ Node};
 
 // pub(crate) fn update_components_selected<T>

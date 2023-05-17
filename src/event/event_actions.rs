@@ -1,12 +1,17 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use bevy::ecs::query::{QueryEntityError, ReadOnlyWorldQuery, WorldQuery};
-use bevy::prelude::{Commands, Component, Entity, EventReader, EventWriter, Interaction, Query, Res, ResMut, Resource};
+use bevy::input::mouse::MouseWheel;
+use bevy::prelude::{Commands, Component, CursorMoved, Entity, EventReader, EventWriter, Input, Interaction, MouseButton, Query, Res, ResMut, Resource};
 use bevy::log::info;
+use bevy::math::Vec2;
 use bevy::time::Time;
+use crate::camera::raycast_select::BevyPickingState;
+use crate::cursor_adapter::CursorResource;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::PropagateComponentEvent;
-use crate::event::event_state::{Context, StateChangeFactory, Update, UpdateStateInPlace};
+use crate::event::event_state::{ClickContext, Context, StateChangeFactory, Update, UpdateStateInPlace};
+use crate::menu::ui_menu_event::interaction_ui_event_writer::{GlobalState, UpdateGlobalState};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 pub trait ClickWriteEvents <
@@ -14,54 +19,91 @@ pub trait ClickWriteEvents <
     EventArgsT: EventArgs + 'static,
     EventDataT: EventData + 'static,
     ComponentT: Component + Send + Sync + 'static,
-    Ctx: Context,
+    Ctx: ClickContext<SelfFilterQuery, InteractionFilterQuery>,
     SelfQuery: WorldQuery,
-    SelfFilterQuery: ReadOnlyWorldQuery,
-    ParentQuery: WorldQuery,
-    ParentFilterQuery: ReadOnlyWorldQuery,
-    ChildQuery: WorldQuery,
-    ChildFilterQuery: ReadOnlyWorldQuery,
-    InteractionFilterQuery: ReadOnlyWorldQuery,
+    SelfFilterQuery: ReadOnlyWorldQuery + Send + Sync + 'static,
+    PropagationQuery: WorldQuery,
+    PropagationFilterQuery: ReadOnlyWorldQuery,
+    InteractionFilterQuery: ReadOnlyWorldQuery + Send + Sync + 'static,
 >
     where RetrieveStateT: RetrieveState<
             EventArgsT, EventDataT, ComponentT, Ctx, SelfQuery,
-            ParentQuery, ChildQuery, SelfFilterQuery,
-            ParentFilterQuery, ChildFilterQuery
-        > {
+        PropagationQuery, SelfFilterQuery,
+        PropagationFilterQuery
+        > + UpdateGlobalState<SelfFilterQuery, InteractionFilterQuery> {
     fn click_write_events(
         mut commands: Commands,
-        retrieve: ResMut<RetrieveStateT>,
+        mut cursor_res: ResMut<RetrieveStateT>,
         mut context: ResMut<Ctx>,
         mut event_write: EventWriter<EventDescriptor<EventDataT, EventArgsT, ComponentT>>,
         self_query: Query<SelfQuery, SelfFilterQuery>,
-        with_parent_query: Query<ParentQuery, ParentFilterQuery>,
-        with_child_query: Query<ChildQuery, ChildFilterQuery>,
+        with_parent_query: Query<PropagationQuery, PropagationFilterQuery>,
         interaction_query: Query<(Entity, &Interaction, &UiIdentifiableComponent), InteractionFilterQuery>,
-        mut propagation_write: EventWriter<PropagateComponentEvent>
+        mut propagation_write: EventWriter<PropagateComponentEvent>,
+        mut cursor_events: EventReader<CursorMoved>,
+        mut wheel: EventReader<MouseWheel>,
+        mut intersected: ResMut<BevyPickingState>,
+        mouse_button_input: Res<Input<MouseButton>>,
+        mut global_state: ResMut<GlobalState>
     )
     {
         let _ = interaction_query
             .iter()
-            .for_each(|(entity, interaction, component)| {
+            .for_each(|(entity, interaction, _)| {
                 if let Interaction::Clicked = interaction {
-                    info!("Had interaction with: {:?}", component);
+                    context.clicked();
+                    RetrieveStateT::update_click_hover_ui(&mut global_state, true);
+                    intersected.picked_ui_flag = true;
+                    Self::update_cursor_res(&mut global_state, &mut cursor_events,  &mut wheel);
+
+                    info!("Click interaction with: {:?}", &entity);
                     let events = RetrieveStateT::create_event(
                         &mut commands,
-                        entity, &mut context,
+                        entity,
+                        &mut context,
                         &self_query,
-                        &with_parent_query,
-                        &with_child_query
+                        &with_parent_query
                     );
 
                     events.0.into_iter()
                         .for_each(|(event)| event_write.send(event));
                     events.1.into_iter()
                         .for_each(|(event)| propagation_write.send(event));
+
+                } else if let Interaction::None = interaction {
+                    context.un_clicked();
+                    RetrieveStateT::update_click_hover_ui(&mut global_state, false);
+                    RetrieveStateT::update_cursor(&mut global_state, Vec2::ZERO);
+                    if !mouse_button_input.pressed(MouseButton::Left) {
+                        intersected.picked_ui_flag = false;
+                    }
+                } else if let Interaction::Hovered = interaction {
+                    if !mouse_button_input.pressed(MouseButton::Left) {
+                        intersected.picked_ui_flag = true;
+                    }
+                    RetrieveStateT::update_hover_ui(&mut global_state, false);
+                    Self::update_cursor_res(&mut global_state, &mut cursor_events, &mut wheel);
                 }
             });
+    }
 
+    fn update_cursor_res(
+        mut context: &mut ResMut<GlobalState>,
+        cursor_events: &mut EventReader<CursorMoved>,
+        mouse_wheel: &mut EventReader<MouseWheel>,
+    ) {
+        info!("did");
+        if RetrieveStateT::click_hover_ui(context) {
+            for event in cursor_events.iter() {
+                RetrieveStateT::update_cursor(&mut context, event.position);
+            }
+            for event in mouse_wheel.iter() {
+                RetrieveStateT::update_wheel(&mut context, Vec2::new(event.x, event.y), Some(event.unit));
+            }
+        }
     }
 }
+
 
 pub trait InteractionEventReader<
     EventDataT, EventArgsT, StateComponent,
@@ -114,11 +156,9 @@ pub trait RetrieveState<
     ComponentT,
     Ctx,
     SelfQuery,
-    ParentQuery,
-    ChildQuery,
+    PropagationQuery,
     SelfFilterQuery: ReadOnlyWorldQuery = (),
-    ParentFilterQuery: ReadOnlyWorldQuery = (),
-    ChildFilterQuery: ReadOnlyWorldQuery = (),
+    PropagationFilterQuery: ReadOnlyWorldQuery = (),
 >: Resource
     where
         EventArgsT: EventArgs,
@@ -126,15 +166,13 @@ pub trait RetrieveState<
         ComponentT: Component + Send + Sync + 'static,
         Ctx: Context,
         SelfQuery: WorldQuery,
-        ParentQuery: WorldQuery,
-        ChildQuery: WorldQuery
+        PropagationQuery: WorldQuery,
 {
     fn create_event(
         commands: &mut Commands,
         entity: Entity,
         context: &mut ResMut<Ctx>,
         self_query: &Query<SelfQuery, SelfFilterQuery>,
-        with_parent_query: &Query<ParentQuery, ParentFilterQuery>,
-        with_child_query: &Query<ChildQuery, ChildFilterQuery>
+        propagation_query: &Query<PropagationQuery, PropagationFilterQuery>,
     ) ->  (Vec<EventDescriptor<EventDataT, EventArgsT, ComponentT>>, Vec<PropagateComponentEvent>);
 }

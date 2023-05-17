@@ -6,3 +6,4 @@ use lazy_static::lazy_static;
 pub(crate) mod graphing_tests;
 pub(crate) mod default_plugins;
 pub(crate) mod kafka;
+pub(crate) mod ui_tests;

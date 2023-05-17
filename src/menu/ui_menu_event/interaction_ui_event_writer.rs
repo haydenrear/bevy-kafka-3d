@@ -1,92 +1,224 @@
 use std::marker::PhantomData;
 use std::os::macos::raw::stat;
-use bevy::prelude::{Button, Changed, Commands, Component, Display, Entity, EventWriter, Interaction, Query, ResMut, Resource, Style, Visibility, With};
+use bevy::prelude::{Button, Changed, Commands, Component, Display, Entity, EventWriter, Interaction, Query, ResMut, Resource, Style, Vec2, Visibility, With};
 use bevy::hierarchy::{Children, Parent};
 use bevy::utils::{HashMap, HashSet};
 use bevy::log::info;
 use bevy::ecs::query::{QueryEntityError, ReadOnlyWorldQuery, WorldQuery};
+use bevy::input::mouse::MouseScrollUnit;
 use bevy::ui::Size;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
-use crate::event::event_propagation::{ChangePropagation, PropagateComponentEvent, StartingState};
+use crate::event::event_propagation::{ChangePropagation, PropagateComponentEvent, Relationship};
 use crate::event::event_actions::{ClickWriteEvents, RetrieveState};
 use crate::event::event_state::{Context, StateChange};
+use crate::menu::{DraggableComponent, ScrollableComponent, UiComponent};
 use crate::menu::ui_menu_event::change_style::{ChangeStyleTypes, StyleNode};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, StyleContext, UiComponent, UiComponentState, UiComponentStateFilter, UiComponentStateTransition, UiComponentStateTransitions, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntityComponentStateTransition, PropagationQuery, PropagationQueryFilter, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, StateChangeActionType, StyleContext, UiComponentState, UiComponentStateFilter, UiComponentStateTransition, UiComponentStateTransitions, ScrollableIxnFilterQuery, UiComponentStateTransitionsQuery, UiEventArgs};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
+#[derive(Resource, Debug)]
+pub struct StateChangeActionTypeStateRetriever<SELF: ReadOnlyWorldQuery, IXN: ReadOnlyWorldQuery> ( PhantomData<SELF> , PhantomData<IXN>);
 
-
-#[derive(Default, Resource, Debug)]
-pub struct StateChangeActionTypeStateRetriever;
-
-impl ClickWriteEvents<
-    StateChangeActionTypeStateRetriever, UiEventArgs, StateChangeActionType, Style, StyleContext,
-                // self query
-                (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
-                // self filter
-                (With<UiComponent>, With<Style>),
-                // parent query
-                (Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style),
-                // parent filter
-                (With<UiComponent>, With<Parent>, With<Style>),
-                // child query
-                (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
-                // child filter
-                (With<UiComponent>, With<Children>, With<Style>),
-                // interaction filter
-                (With<UiComponent>, With<Button>, Changed<Interaction>)
-> for StateChangeActionTypeStateRetriever {
+#[derive(Resource, Debug)]
+pub struct GlobalState
+{
+    pub(crate) cursor_pos: Vec2,
+    pub(crate) cursor_delta: Vec2,
+    pub(crate) click_hover_ui: bool,
+    pub(crate) hover_ui: bool,
+    pub(crate) scroll_wheel_delta: Vec2,
+    pub(crate) wheel_units: Option<MouseScrollUnit>
+}
+impl Default for GlobalState {
+    fn default() -> Self {
+        Self {
+            cursor_pos: Default::default(),
+            cursor_delta: Default::default(),
+            click_hover_ui: false,
+            hover_ui: false,
+            scroll_wheel_delta: Default::default(),
+            wheel_units: None,
+        }
+    }
 }
 
-impl RetrieveState<
+pub trait UpdateGlobalState<SELF, IXN>: Resource + Send + Sync
+where SELF: ReadOnlyWorldQuery,
+      IXN: ReadOnlyWorldQuery
+{
+    fn update_wheel(resource: &mut GlobalState, event: Vec2, wheel_units: Option<MouseScrollUnit>) {
+        let mut prev: Vec2 = Vec2::new(event.x, event.y);
+        std::mem::swap(&mut prev, &mut resource.scroll_wheel_delta);
+        info!("{:?} is scroll wheel delta", &resource.scroll_wheel_delta);
+        resource.wheel_units = wheel_units;
+        if prev != Vec2::ZERO {
+            let delta = resource.cursor_pos - prev;
+            resource.scroll_wheel_delta = delta;
+        }
+    }
+
+    fn update_cursor(resource: &mut GlobalState, cursor_pos: Vec2) {
+        let mut prev: Vec2 = cursor_pos;
+        std::mem::swap(&mut prev, &mut resource.cursor_pos);
+        if prev != Vec2::ZERO {
+            let delta = resource.cursor_pos - prev;
+            resource.cursor_delta = delta;
+        }
+    }
+
+    fn update_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+        resource.hover_ui = hover_ui;
+    }
+
+    fn update_click_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+        resource.hover_ui = hover_ui;
+    }
+    fn click_hover_ui(resources: &mut GlobalState) -> bool {
+        resources.click_hover_ui
+    }
+
+}
+
+impl UpdateGlobalState<UiComponentStyleFilter, UiComponentStyleIxnFilter>
+for StateChangeActionTypeStateRetriever<UiComponentStyleFilter, UiComponentStyleIxnFilter> {}
+
+impl UpdateGlobalState<ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter>
+for StateChangeActionTypeStateRetriever<ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter>   {
+    fn update_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+    }
+
+    fn update_click_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+    }
+}
+
+impl UpdateGlobalState<DraggableUiComponentFilter, DraggableUiComponentIxnFilter> for StateChangeActionTypeStateRetriever<DraggableUiComponentFilter, DraggableUiComponentIxnFilter>  {
+    fn update_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+    }
+
+    fn update_click_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+    }
+}
+
+macro_rules! global_defaults {
+    ($($ty1:ty, $ty2:ty),*) => {
+        use crate::menu::config_menu_event::interaction_config_event_writer::MetricsSelfQueryFilter;
+        use crate::menu::Menu;
+        use crate::menu::config_menu_event::interaction_config_event_writer::MetricsSelfIxnQueryFilter;
+        use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponentStyleFilter;
+        use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponentStyleIxnFilter;
+        use crate::menu::ui_menu_event::ui_menu_event_plugin::DraggableUiComponentFilter;
+        use crate::menu::ui_menu_event::ui_menu_event_plugin::DraggableUiComponentIxnFilter;
+        $(
+            impl Default for StateChangeActionTypeStateRetriever<$ty1, $ty2>  {
+                fn default() -> Self {
+                    Self(PhantomData::default(), PhantomData::default())
+                }
+            }
+        )*
+    }
+}
+
+global_defaults!(
+    MetricsSelfQueryFilter<Menu>, MetricsSelfIxnQueryFilter<Menu>,
+    UiComponentStyleFilter, UiComponentStyleIxnFilter,
+    DraggableUiComponentFilter, DraggableUiComponentIxnFilter,
+    ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter
+);
+
+impl ClickWriteEvents<
+    StateChangeActionTypeStateRetriever<UiComponentStyleFilter, UiComponentStyleIxnFilter>,
+                UiEventArgs, StateChangeActionType, Style, StyleContext,
+                // self query
+                UiComponentStateTransitionsQuery<'_>,
+                // self filter
+                UiComponentStyleFilter,
+                // parent query
+                PropagationQuery<'_>,
+                // parent filter
+                PropagationQueryFilter<'_>,
+                // interaction filter
+                UiComponentStyleIxnFilter
+> for StateChangeActionTypeStateRetriever<UiComponentStyleFilter, UiComponentStyleIxnFilter> {
+}
+
+#[derive(Default, Resource, Debug)]
+pub struct DragEvents;
+
+impl ClickWriteEvents<
+    StateChangeActionTypeStateRetriever<
+        DraggableUiComponentFilter,
+        DraggableUiComponentIxnFilter
+    >,
     UiEventArgs, StateChangeActionType, Style, StyleContext,
-    (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
-    (Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style),
-    (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
-    (With<UiComponent>, With<Style>),
-    (With<UiComponent>, With<Parent>, With<Style>),
-    (With<UiComponent>, With<Children>, With<Style>),
+    // self query
+    UiComponentStateTransitionsQuery<'_>,
+    // self filter
+    DraggableUiComponentFilter,
+    // parent query
+    PropagationQuery<'_>,
+    // parent filter
+    PropagationQueryFilter<'_>,
+    // interaction filter
+    DraggableUiComponentIxnFilter
+> for DragEvents {
+}
+
+#[derive(Default, Resource, Debug)]
+pub struct ScrollEvents;
+
+impl ClickWriteEvents<
+    StateChangeActionTypeStateRetriever<
+        ScrollableUiComponentFilter,
+        ScrollableUiComponentIxnFilter
+    >,
+    UiEventArgs, StateChangeActionType, Style, StyleContext,
+    // self query
+    UiComponentStateTransitionsQuery<'_>,
+    // self filter
+    ScrollableUiComponentFilter,
+    // parent query
+    PropagationQuery<'_>,
+    // parent filter
+    PropagationQueryFilter<'_>,
+    // interaction filter
+    ScrollableIxnFilterQuery
+> for ScrollEvents {
+}
+
+impl <SELF: ReadOnlyWorldQuery + Send + Sync + 'static, IXN: ReadOnlyWorldQuery + Send + Sync + 'static> RetrieveState<
+    UiEventArgs, StateChangeActionType, Style, StyleContext,
+    UiComponentStateTransitionsQuery<'_>,
+    PropagationQuery<'_>,
+    SELF,
+    PropagationQueryFilter<'_>,
 >
-for StateChangeActionTypeStateRetriever
+for StateChangeActionTypeStateRetriever<
+    SELF,
+    IXN
+>
 {
     fn create_event(
         mut commands: &mut Commands,
         entity: Entity,
         mut style_context: &mut ResMut<StyleContext>,
         entity_query: &Query<
-            (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
-            (With<UiComponent>, With<Style>)
+            UiComponentStateTransitionsQuery<'_>,
+            SELF
         >,
-        with_parent_query: &Query<
-            (Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style),
-            (With<UiComponent>, With<Parent>, With<Style>)
-        >,
-        with_children_query: &Query<
-            (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
-            (With<UiComponent>, With<Children>, With<Style>)
+        propagation_query: &Query<
+            PropagationQuery<'_>,
+            PropagationQueryFilter
         >
     ) -> (Vec<EventDescriptor<StateChangeActionType, UiEventArgs, Style>>, Vec<PropagateComponentEvent>)
     {
         let mut event_descriptors = vec![];
         let mut propagate_events = vec![];
 
-        entity_query.get(entity.clone())
-            .iter()
-            .flat_map(|(_, ui_component, state_transitions, style, updateable_value)|
-                state_transitions.transitions.iter()
-                    .map(move |state_change_action| {
-                        info!("Found state change action:\n {:?}\n", state_change_action);
-                        (entity, ui_component, style, updateable_value, state_change_action)
-                    })
-            )
-            .for_each(|(entity, ui_component, style, updateable_value, state_change_action)| {
-                Self::create_ui_event(
-                    &entity_query, &with_parent_query, &with_children_query,
-                    entity, style, updateable_value,
-                    &state_change_action, style_context,
-                    )
-                    .into_iter()
-                    .for_each(|prop| event_descriptors.push(prop));
+        Self::create_ui_event(&entity_query, &propagation_query, &mut style_context, entity)
+            .into_iter()
+            .for_each(|prop| {
+                info!("Sending event: {:?}.", prop);
+                event_descriptors.push(prop);
             });
 
         (event_descriptors, propagate_events)
@@ -94,401 +226,81 @@ for StateChangeActionTypeStateRetriever
     }
 }
 
-
-impl StateChangeActionTypeStateRetriever {
+impl<SELF, IXN> StateChangeActionTypeStateRetriever<SELF, IXN>
+    where
+        SELF: ReadOnlyWorldQuery + Send + Sync + 'static,
+        IXN: ReadOnlyWorldQuery + Send + Sync + 'static
+{
     fn create_ui_event(
         entity_query: &Query<
-            (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
-            (With<UiComponent>, With<Style>)
+            UiComponentStateTransitionsQuery<'_>,
+            SELF
         >,
-        with_parent_query: &Query<
-            (Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style),
-            (With<UiComponent>, With<Parent>, With<Style>)
-        >,
-        with_children_query: &Query<
-            (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
-            (With<UiComponent>, With<Children>, With<Style>)
-        >,
-        entity: Entity,
-        style: &Style,
-        updateable_value: &UiIdentifiableComponent,
-        state_transition: &UiComponentStateTransition,
-        mut style_context: &mut ResMut<StyleContext>
+        propagation_query: &Query<PropagationQuery<'_>, PropagationQueryFilter>,
+        mut style_context: &mut ResMut<StyleContext>,
+        entity: Entity
     ) -> Vec<EventDescriptor<StateChangeActionType, UiEventArgs, Style>> {
+        entity_query.get(entity)
+            .iter()
+            .flat_map(|entity| {
+                entity.4.transitions.iter()
+                    .map(|transition| (entity.0, entity.1, entity.2, entity.3, transition))
+            })
+            .flat_map(|entity| {
 
-        info!("found state change action: {:?}", &state_transition);
+                info!("{:?} is state transition.", entity.4);
+                let mut descriptors = vec![];
 
-        let mut entities = HashMap::new();
-
-        let propagation = &state_transition.propagation;
-        let node_style = StyleNode::SelfNode(style.clone().clone(), updateable_value.0);
-
-        if !match &state_transition.filter_state {
-            UiComponentState::StateDisplay(state) => {
-                state.matches(&style.display)
-            }
-            UiComponentState::StateSize(state) => {
-                state.matches(&style.size)
-            }
-        } {
-            return vec![];
-        }  else if propagation.includes_self() {
-            entities.insert(entity.clone(), node_style);
-        }
-
-
-        if propagation.includes_parent() {
-            parent_entities(&with_children_query, &with_parent_query, entity, &mut entities);
-        }
-
-        if propagation.includes_children() {
-            child_entities(&entity_query, &with_children_query, entity, &mut entities);
-        }
-
-        if propagation.includes_sibling() {
-            info!("Including siblings.");
-            sibling_entities(&with_children_query, &with_parent_query, entity, &mut entities);
-        }
-
-        if propagation.includes_siblings_children() {
-            info!("Including siblings.");
-            siblings_children_entities(&with_children_query, &with_parent_query, entity, &mut entities);
-        }
-
-        if propagation.includes_siblings_children_recursive() {
-            info!("Including siblings.");
-            siblings_children_recursive(&entity_query, &with_children_query, &with_parent_query,  entity, &mut entities);
-        }
-
-        if let ChangePropagation::CustomPropagation { to, from } = propagation {
-            custom_propagation_entities(&entity_query, &with_children_query, &with_parent_query, entity, style, updateable_value, &mut entities, &to, &from);
-            info!("Custom propagation event with {:?}.", entities);
-        }
-
-        state_transition.state_change.iter()
-            .flat_map(|state_change_action_type| {
-                match state_change_action_type {
-                    StateChangeActionType::Hover(_) => {
-                        vec![]
-                    }
-                    StateChangeActionType::Clicked(clicked) => {
-                        clicked.get_ui_event(
-                                &entities,
-                                state_transition.propagation.get_starting_state().clone(),
-                                &state_transition.current_state_filter,
-                                &mut style_context
-                             )
-                            .map(|args| {
-                                EventDescriptor {
-                                    component: PhantomData::default(),
-                                    event_data: state_change_action_type.clone(),
-                                    event_args: args,
-                                }
-                            })
-                            .map(|arg| vec![arg])
-                            .or(Some(vec![]))
-                            .unwrap()
-                    }
+                if !entity.4.filter_state.matches(entity.2) {
+                    return vec![];
                 }
+
+                for (related_entity, _, state_change_action_type) in entity.4.entity_to_change.states.iter() {
+                    info!("{:?} is state change action type.", state_change_action_type);
+                    let (_, related_style, _) = propagation_query.get(*related_entity).unwrap();
+
+                    if !entity.4.current_state_filter.matches(related_style) {
+                        info!("Did not match.");
+                        continue;
+                    }
+
+                    Self::create_add_event(&mut style_context, &mut descriptors, state_change_action_type, &related_style, *related_entity);
+                }
+
+                descriptors
             })
             .collect()
 
     }
-}
 
-fn parent_entities(
-    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
-    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
-    entity: Entity,
-    mut entities: &mut HashMap<Entity, StyleNode>
-) {
-    let parent = with_parent_query.get(entity.clone())
-        .map(|(_, _, parent, updateable, style)| parent.get())
-        .ok();
-
-    parent.map(|parent| {
-        with_children_query.get(parent.clone())
-            .map(|(_, _, children, update, style)| {
-                info!("Found parent with id {}.", update.0);
-                let node_style = StyleNode::Parent(style.clone(), update.0);
-                entities.insert(parent, node_style);
-            })
-            .or_else(|_| {
-                info!("Failed to fetch parent when parent was included in fetch.");
-                Ok::<(), QueryEntityError>(())
-            })
-            .unwrap()
-    })
-        .or_else(|| {
-            info!("Failed to fetch parent when parent was included in fetch.");
-            None
-        });
-}
-
-fn sibling_entities(
-    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
-    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
-    entity: Entity,
-    mut entities: &mut HashMap<Entity, StyleNode>
-) {
-    let parent = with_parent_query.get(entity.clone())
-        .map(|(_, _, parent, updateable, style)| parent.get())
-        .ok();
-
-    parent.map(|parent| {
-        with_children_query.get(parent.clone())
-            .map(|(_, _, children, update, style)| {
-                info!("Found parent with id {}.", update.0);
-                children.iter().for_each(|child| {
-                    with_parent_query.get(child.clone())
-                        .into_iter()
-                        .for_each(|(entity, component, parent, id, style)| {
-                            info!("Including sibling: {}.", id.0);
-                            entities.insert(entity.clone(), StyleNode::Sibling(style.clone(), id.0));
-                        });
-                });
-            })
-            .or_else(|_| {
-                info!("Failed to fetch parent when parent was included in fetch.");
-                Ok::<(), QueryEntityError>(())
-            })
-            .unwrap()
-    })
-        .or_else(|| {
-            info!("Failed to fetch parent when parent was included in fetch.");
-            None
-        });
-}
-
-fn siblings_children_entities(
-    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
-    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
-    entity: Entity,
-    mut entities: &mut HashMap<Entity, StyleNode>
-) {
-    let parent = with_parent_query.get(entity.clone())
-        .map(|(_, _, parent, updateable, style)| parent.get())
-        .ok();
-
-    parent.map(|parent| {
-        with_children_query.get(parent.clone())
-            .map(|(_, _, children, update, style)| {
-                info!("Found parent with id {}.", update.0);
-                children.iter().for_each(|child| {
-                    with_parent_query.get(child.clone())
-                        .into_iter()
-                        .filter(|(this_entity, _, _, _, _)| entity != *this_entity)
-                        .for_each(|(sibling, _, _, _, _)| {
-                            with_children_query.get(sibling)
-                                .into_iter()
-                                .for_each(|(_, _, children, update, style)| {
-                                    children.iter().for_each(|child| {
-                                        entities.insert(child.clone(), StyleNode::SiblingChild(style.clone(), update.0));
-                                    });
-                                });
-                            info!("Including sibling: {}.", update.0);
-                        });
-                });
-            })
-            .or_else(|_| {
-                info!("Failed to fetch parent when parent was included in fetch.");
-                Ok::<(), QueryEntityError>(())
-            })
-            .unwrap()
-    })
-        .or_else(|| {
-            info!("Failed to fetch parent when parent was included in fetch.");
-            None
-        });
-}
-
-fn siblings_children_recursive(
-    entity_query: &Query<
-        (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
-        (With<UiComponent>, With<Style>)
-    >,
-    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
-    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
-    entity: Entity,
-    mut entities: &mut HashMap<Entity, StyleNode>
-) {
-    let parent = with_parent_query.get(entity.clone())
-        .map(|(_, _, parent, updateable, style)| parent.get())
-        .ok();
-
-    parent.map(|parent| {
-        with_children_query.get(parent.clone())
-            .map(|(_, _, children, update, style)| {
-                info!("Found parent with id {}.", update.0);
-                children.iter().for_each(|child| {
-                    with_parent_query.get(child.clone())
-                        .into_iter()
-                        .filter(|(this_entity, _, _, _, _)| entity != *this_entity)
-                        .for_each(|(sibling, _, _, _, _)| {
-                            let sibling_children = entities.iter().filter(|entity| matches!(entity.1, StyleNode::SiblingChild(_, _)))
-                                .map(|entity| *entity.0)
-                                .collect::<Vec<Entity>>();
-                            info!("Including sibling: {}.", update.0);
-                            add_child_recursive(entities, sibling_children, entity_query, with_children_query, with_parent_query);
-                        });
-                });
-            })
-            .or_else(|_| {
-                info!("Failed to fetch parent when parent was included in fetch.");
-                Ok::<(), QueryEntityError>(())
-            })
-            .unwrap()
-    })
-        .or_else(|| {
-            info!("Failed to fetch parent when parent was included in fetch.");
-            None
-        });
-}
-
-fn add_child_recursive(
-    entities: &mut HashMap<Entity, StyleNode>,
-    sibling_children: Vec<Entity>,
-    entity_query: &Query<
-        (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
-        (With<UiComponent>, With<Style>)
-    >,
-    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
-    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
-) {
-    let mut added_inner = HashSet::new();
-
-    for entity in sibling_children.iter() {
-        let _ = with_children_query.get(*entity)
-            .map(|has_children| {
-                let _ = with_parent_query.get(has_children.0)
-                    .map(|to_add| {
-                        entities.insert(to_add.0, StyleNode::SiblingChildRecursive(to_add.4.clone(), has_children.3.0));
-                        added_inner.insert(to_add.0);
-                        add_child_recursive_inner(entities, to_add.0, entity_query, with_children_query, with_parent_query, &mut added_inner);
-                    });
-            });
-    }
-}
-
-fn add_child_recursive_inner(
-    entities: &mut HashMap<Entity, StyleNode>,
-    next_entities: Entity,
-    entity_query: &Query<
-        (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
-        (With<UiComponent>, With<Style>)
-    >,
-    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
-    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
-    mut added_inner: &mut HashSet<Entity>
-) {
-    let _ = with_children_query.get(next_entities)
-        .map(|has_children| {
-            has_children.2.iter().for_each(|child| {
-                let _ = with_parent_query.get(*child)
-                    .map(|to_add| {
-                        if !added_inner.contains(&to_add.0) {
-                            info!("Including sibling child recursive: {:?}", to_add.0);
-                            entities.insert(to_add.0, StyleNode::SiblingChildRecursive(to_add.4.clone(), to_add.3.0));
-                            added_inner.insert(to_add.0);
-                            add_child_recursive_inner(entities, to_add.0, entity_query, with_children_query, with_parent_query, added_inner);
+    fn create_add_event(
+        mut style_context: &mut ResMut<StyleContext>,
+        mut descriptors: &mut Vec<EventDescriptor<StateChangeActionType, UiEventArgs, Style>>,
+        state_change_action_type: &StateChangeActionType,
+        related_style: &&Style,
+        entity: Entity
+    ) {
+        info!("Creating add event.");
+        match state_change_action_type {
+            StateChangeActionType::Hover(_) => {
+                None
+            }
+            StateChangeActionType::Clicked(clicked)
+            | StateChangeActionType::Dragged(clicked) => {
+                info!("Creating click drag event.");
+                clicked.get_ui_event(&related_style, &mut style_context, entity)
+                    .map(|args| {
+                        info!("Created ui event args: {:?}.", &args);
+                        EventDescriptor {
+                            component: PhantomData::default(),
+                            event_data: state_change_action_type.clone(),
+                            event_args: args,
                         }
-                    });
-            });
+                    })
+            }
+        }.map(|descriptor| {
+            descriptors.push(descriptor);
         });
-}
-
-
-fn child_entities(
-    entity_query: &Query<
-        (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
-        (With<UiComponent>, With<Style>)
-    >,
-    with_children_query: &Query<
-        (Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style),
-        (With<UiComponent>, With<Children>, With<Style>)
-    >,
-    entity: Entity,
-    mut entities: &mut HashMap<Entity, StyleNode>
-) {
-
-    info!("Including children.");
-
-    let child_entities = with_children_query.get(entity.clone())
-        .map(|(_, _, child, update, _)| child.iter()
-            .map(|child| child.clone()).collect::<Vec<Entity>>()
-        )
-        .ok()
-        .or(Some(vec![]))
-        .unwrap();
-
-    child_entities.iter().for_each(|child| {
-        info!("Fetching child entity: {:?}.", child);
-        let _ = entity_query.get(child.clone())
-            .map(|entity| {
-                let node_style = StyleNode::Child(entity.3.clone(), entity.4.0);
-                entities.insert(entity.0.clone(), node_style);
-            })
-            .or_else(|_| {
-                info!("Error fetching query for child.");
-                Ok::<(), QueryEntityError>(())
-            });
-    });
-
-    info!("{:?} are the entities after adding child.", entities);
-}
-
-
-fn custom_propagation_entities(
-    entity_query: &Query<
-        (Entity, &UiComponent, &UiComponentStateTransitions, &Style, &UiIdentifiableComponent),
-        (With<UiComponent>, With<Style>)
-    >,
-    with_children_query: &Query<(Entity, &UiComponent, &Children, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Children>, With<Style>)>,
-    with_parent_query: &Query<(Entity, &UiComponent, &Parent, &UiIdentifiableComponent, &Style), (With<UiComponent>, With<Parent>, With<Style>)>,
-    entity: Entity,
-    style: &Style,
-    updateable_value: &UiIdentifiableComponent,
-    mut entities: &mut HashMap<Entity, StyleNode>,
-    to: &Vec<f32>,
-    from: &StartingState
-) {
-    if let StartingState::SelfState = from {
-        entities.insert(entity.clone(), StyleNode::SelfNode(style.clone(), updateable_value.0));
     }
-
-    info!("{:?} are the to.", to);
-
-    with_children_query.get(entity)
-        .iter()
-        .flat_map(|found| {
-            found.2.iter().map(|child| with_parent_query.get(child.clone()))
-        })
-        .map(|ok| ok.ok())
-        .flat_map(|ok| ok.map(|value| vec![value]).or(Some(vec![])).unwrap())
-        .filter(|found| {
-            to.contains(&found.3.0)
-        })
-        .for_each(|found| {
-            entities.insert(entity, StyleNode::Child(found.4.clone(), found.3.0));
-        });
-
-    with_parent_query.get(entity)
-        .iter()
-        .flat_map(|with_parent| entity_query.get(with_parent.2.get()))
-        .filter(|found| {
-            to.contains(&found.4.0)
-        })
-        .for_each(|found| {
-            entities.insert(entity, StyleNode::Parent(found.3.clone(), found.4.0));
-        });
-
-    entity_query.iter()
-        .filter(|(_, _, _, _,updateable )| {
-            info!("Checking {}", &updateable.0);
-            to.contains(&updateable.0)
-        })
-        .for_each(|(entity, component, state_transition, style, updateable)| {
-            entities.insert(entity, StyleNode::Other(style.clone(), updateable.0));
-        });
 }
 
