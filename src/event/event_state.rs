@@ -6,7 +6,7 @@ use crate::cursor_adapter::CursorResource;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
 use crate::event::event_propagation::ChangePropagation;
-use crate::menu::ui_menu_event::interaction_ui_event_writer::GlobalState;
+use crate::menu::ui_menu_event::ui_state_change::GlobalState;
 use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
 
 /// From the event descriptor, create behaviors that will change the state.

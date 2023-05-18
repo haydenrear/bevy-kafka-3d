@@ -12,7 +12,7 @@ use crate::menu::{ConfigurationOptionComponent, ConfigurationOptionEnum, DataTyp
 use crate::menu::config_menu_event::config_event::{ConfigurationOptionChange, ConfigurationOptionEventArgs};
 use crate::menu::config_menu_event::config_menu_event_plugin::{MetricsSelfIxnQueryFilter, MetricsSelfQueryFilter};
 use crate::menu::menu_resource::MENU;
-use crate::menu::ui_menu_event::interaction_ui_event_writer::{GlobalState, UpdateGlobalState};
+use crate::menu::ui_menu_event::ui_state_change::{GlobalState, UpdateGlobalState};
 use crate::network::{Network, Node};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 

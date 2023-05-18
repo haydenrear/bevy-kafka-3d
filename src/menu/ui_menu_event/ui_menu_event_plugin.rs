@@ -12,55 +12,24 @@ use crate::cursor_adapter::CursorResource;
 use crate::event::event_actions::{ClickWriteEvents, InteractionEventReader};
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::{ChangePropagation, Relationship};
-use crate::event::event_state::{ClickContext, Context, HoverStateChange, NextStateChange, StyleStateChangeEventData, StateChangeFactory, StateUpdate, Update, UpdateStateInPlace};
+use crate::event::event_state::{ClickContext, Context, HoverStateChange, NextStateChange, StateChangeFactory, StateUpdate, StyleStateChangeEventData, Update, UpdateStateInPlace};
 use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
 use crate::menu::{CollapsableMenu, ConfigurationOptionEnum, DraggableComponent, Dropdown, DropdownOption, MenuItemMetadata, Radial, RadialButton, RadialButtonSelection, ScrollableComponent, Slider, SliderKnob, ui_menu_event, UiBundled, UiComponent};
 use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
 use crate::menu::ui_menu_event::interaction_ui_event_reader::UiEventReader;
-use crate::menu::ui_menu_event::interaction_ui_event_writer::{DragEvents, GlobalState, ScrollEvents, StateChangeActionTypeStateRetriever};
+use crate::menu::ui_menu_event::interaction_ui_event_writer::{DragEvents, ScrollEvents, StateChangeActionTypeStateRetriever};
 use crate::menu::ui_menu_event::style_context::UiContext;
 use crate::menu::ui_menu_event::next_action::DisplayState::DisplayNone;
 use crate::menu::ui_menu_event::next_action::{Matches, NextUiState, UiComponentState};
+use crate::menu::ui_menu_event::types::{ClickEvents, DraggableStateChangeRetriever, ScrollableStateChangeRetriever, StyleStateChange, UiComponentEventDescriptor};
 use crate::menu::ui_menu_event::ui_state_change;
-use crate::menu::ui_menu_event::ui_state_change::{StateChangeMachine, UiClickStateChange};
+use crate::menu::ui_menu_event::ui_state_change::{GlobalState, StateChangeMachine, UiClickStateChange};
 use crate::ui_components::state_transitions::insert_state_transitions;
 use crate::ui_components::menu_components::BuildMenuResult;
 use crate::ui_components::ui_menu_component::{create_menu, UiIdentifiableComponent};
 
 pub struct UiEventPlugin;
-
-pub type UiComponentStyleFilter = (With<UiComponent>, With<Style>);
-pub type UiComponentStyleIxnFilter = (With<UiComponent>, With<Button>, Changed<Interaction>);
-pub type DraggableUiComponentFilter = (With<UiComponent>, With<Style>, With<DraggableComponent>);
-pub type DraggableUiComponentIxnFilter = (With<UiComponent>, With<Button>, With<DraggableComponent>);
-pub type ScrollableUiComponentFilter = (With<UiComponent>, With<Style>, With<ScrollableComponent>);
-pub type ScrollableUiComponentIxnFilter = (With<UiComponent>, With<Button>, With<ScrollableComponent>);
-pub type ScrollableIxnFilterQuery = (With<UiComponent>, With<Button>, With<ScrollableComponent>);
-pub type PropagationQueryFilter<C> = (With<C>);
-
-pub type PropagationQuery<'a, C> = (Entity, &'a C, &'a UiIdentifiableComponent);
-pub type UiComponentStateTransitionsQuery<'a, C, S, M> = (Entity, &'a UiComponent, &'a C, &'a UiIdentifiableComponent, &'a UiEntityComponentStateTransitions<S,C, M>);
-
-pub type StyleUiComponentStateTransitionsQuery<'a> = UiComponentStateTransitionsQuery<'a, Style, StyleStateChangeEventData, UiComponentState>;
-pub type StylePropagationQuery<'a> = PropagationQuery<'a, Style>;
-pub type StylePropagationQueryFilter = PropagationQueryFilter<Style>;
-
-pub type UiStateChange<C, S> = StateChangeActionType<S, C, UiContext, UiEventArgs>;
-pub type StyleStateChange = StateChangeActionType<StyleStateChangeEventData, Style, UiContext, UiEventArgs>;
-
-pub type DraggableStateChangeRetriever = StateChangeActionTypeStateRetriever<
-    DraggableUiComponentFilter, DraggableUiComponentIxnFilter, Style,
-    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState>;
-pub type ScrollableStateChangeRetriever = StateChangeActionTypeStateRetriever<
-    ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, Style, UiContext,
-    UiEventArgs, StyleStateChangeEventData, UiComponentState>;
-pub type UiComponentStateChangeRetriever = StateChangeActionTypeStateRetriever<
-    UiComponentStyleFilter, UiComponentStyleIxnFilter, Style,
-    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState
->;
-
-pub type UiComponentEventDescriptor = EventDescriptor<StyleStateChangeEventData, UiEventArgs, Style>;
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]
 pub enum CreateMenu {
@@ -78,14 +47,14 @@ impl Plugin for UiEventPlugin {
                 .in_schedule(OnEnter(CreateMenu::InsertStateTransitions))
             )
             .insert_resource(BuildMenuResult::default())
-            .insert_resource(UiComponentStateChangeRetriever::default())
-            // .insert_resource(DraggableStateChangeRetriever::default())
-            // .insert_resource(ScrollableStateChangeRetriever::default())
-            .add_system(UiComponentStateChangeRetriever::click_write_events)
-            // .add_system(DragEvents::click_write_events)
-            // .add_system(ScrollEvents::click_write_events)
+            .insert_resource(ClickEvents::default())
+            .insert_resource(DraggableStateChangeRetriever::default())
+            .insert_resource(ScrollableStateChangeRetriever::default())
             .insert_resource(UiContext::default())
-            // .add_system(UiEventReader::read_events)
+            .add_system(ClickEvents::click_write_events)
+            .add_system(DragEvents::click_write_events)
+            .add_system(ScrollEvents::click_write_events)
+            .add_system(UiEventReader::read_events)
             .add_system(ui_state_change::hover_event)
             .add_event::<UiEventArgs>()
             .add_event::<UiComponentEventDescriptor>()
@@ -97,9 +66,9 @@ impl Plugin for UiEventPlugin {
 #[derive(Resource, Default, Clone, Debug)]
 pub struct StateChangeActionComponentStateFactory;
 
-impl StateChangeFactory<StyleStateChange, UiEventArgs, Style, Style, UiContext, NextUiState>
+impl StateChangeFactory<StyleStateChangeEventData, UiEventArgs, Style, Style, UiContext, NextUiState>
 for StateChangeActionComponentStateFactory {
-    fn current_state(current: &EventDescriptor<StyleStateChange, UiEventArgs, Style>, context: &mut ResMut<UiContext>) -> Vec<NextStateChange<NextUiState, Style, UiContext>> {
+    fn current_state(current: &EventDescriptor<StyleStateChangeEventData, UiEventArgs, Style>, context: &mut ResMut<UiContext>) -> Vec<NextStateChange<NextUiState, Style, UiContext>> {
         if let UiEventArgs::Event(UiClickStateChange::ChangeSize { entity, update_display}) = &current.event_args {
             vec![NextStateChange {
                 entity: *entity,
@@ -143,27 +112,41 @@ pub struct UiComponentStateTransition {
 }
 
 #[derive(Debug)]
-pub struct EntityComponentStateTransition<T: StateChangeMachine<C, UiContext, UiEventArgs>, C, M: Matches<C>> {
-    pub(crate) entity_to_change: EntitiesStateTypes<C, T>,
-    pub(crate) filter_state: M,
+pub struct EntityComponentStateTransition<StateMachineT, ComponentT, MatchesT, Ctx, EventArgsT>
+    where
+        Ctx: Context,
+        EventArgsT: EventArgs,
+        MatchesT: Matches<ComponentT>,
+        StateMachineT: StateChangeMachine<ComponentT, Ctx, EventArgsT>
+{
+    pub(crate) entity_to_change: EntitiesStateTypes<ComponentT, StateMachineT, Ctx, EventArgsT>,
+    pub(crate) filter_state: MatchesT,
     // filter for the component to be changed.
-    pub(crate) current_state_filter: M
+    pub(crate) current_state_filter: MatchesT,
 }
 
 #[derive(Debug)]
-pub struct EntitiesStateTypes<T, StateMachine>
+pub struct EntitiesStateTypes<T, StateMachine, Ctx, Args>
 where
-    StateMachine: StateChangeMachine<T, UiContext, UiEventArgs> + Send + Sync + 'static
+    StateMachine: StateChangeMachine<T, Ctx, Args> + Send + Sync + 'static,
+    Ctx: Context,
+    Args: EventArgs
 {
     /// In the update function, the EntityComponentStateTransitionComponent will iterate through
     /// each of the states and get the related components to calculate the value to be passed to
     /// the StateUpdate function.
-    pub(crate) states: Vec<(Entity, Relationship, UiStateChange<T, StateMachine>)>
+    pub(crate) states: Vec<(Entity, Relationship, StateChangeActionType<StateMachine, T, Ctx, Args>)>
 }
 
 #[derive(Component, Debug)]
-pub struct UiEntityComponentStateTransitions<T: StateChangeMachine<C, UiContext, UiEventArgs>, C, M: Matches<C>>  {
-    pub(crate) transitions: Vec<EntityComponentStateTransition<T, C, M>>,
+pub struct UiEntityComponentStateTransitions<StateMachineT, ComponentT, MatchesT, Ctx, EventArgsT>
+where
+    Ctx: Context,
+    EventArgsT: EventArgs,
+    MatchesT: Matches<ComponentT>,
+    StateMachineT: StateChangeMachine<ComponentT, Ctx, EventArgsT>
+{
+    pub(crate) transitions: Vec<EntityComponentStateTransition<StateMachineT, ComponentT, MatchesT, Ctx, EventArgsT>>,
 }
 
 #[derive(Component, Debug)]

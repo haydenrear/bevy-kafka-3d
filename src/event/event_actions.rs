@@ -11,8 +11,7 @@ use crate::cursor_adapter::CursorResource;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::PropagateComponentEvent;
 use crate::event::event_state::{ClickContext, Context, StateChangeFactory, Update, UpdateStateInPlace};
-use crate::menu::ui_menu_event::interaction_ui_event_writer::{GlobalState, UpdateGlobalState};
-use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
+use crate::menu::ui_menu_event::ui_state_change::{GlobalState, StateChangeMachine, UpdateGlobalState};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 pub trait ClickWriteEvents <

@@ -10,6 +10,7 @@ use bevy_mod_picking::Selection;
 use rdkafka::metadata;
 use serde::Deserialize;
 use ui_menu_event::next_action::{DisplayState, SizeState, UiComponentState};
+use ui_menu_event::types::{StyleStateChange, UiStateChange, UiStyleComponentStateTransitions};
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::event::event_state::{Context, StyleStateChangeEventData, UpdateStateInPlace};
 use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
@@ -17,7 +18,8 @@ use crate::graph::GraphParent;
 use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
 use crate::menu::menu_resource::{MENU, VARIANCE};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntitiesStateTypes, EntityComponentStateTransition, StateChangeActionType, StyleStateChange, UiComponentStateTransition, UiComponentStateTransitions, UiEntityComponentStateTransitions, UiStateChange};
+use crate::menu::ui_menu_event::style_context::UiContext;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntitiesStateTypes, EntityComponentStateTransition, StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions, UiEntityComponentStateTransitions, UiEventArgs};
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, MetricChildNodes, Network, Node};
 use crate::ui_components::menu_components::{BuilderResult, BuildMenuResult};
@@ -448,8 +450,6 @@ pub enum UiComponent {
     Node,
 }
 
-pub type UiStyleComponentStateTransitions = UiEntityComponentStateTransitions<StyleStateChangeEventData, Style, UiComponentState>;
-
 pub trait GetStateTransitions<T: BuilderResult> {
 
     fn get_state_transitions(builder_result: &T, entities: &Entities) -> Option<UiStyleComponentStateTransitions>;
@@ -554,7 +554,7 @@ impl GetStateTransitions<BuildBaseMenuResult> for DrawDropdownMenuResult {
                         filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
                         current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
                     },
-                ]
+                ],
             }
         )
     }
@@ -609,7 +609,7 @@ impl GetStateTransitions<DropdownMenuOptionResult> for DrawDropdownMenuResult {
                         filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
                         current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
                     },
-                ]
+                ],
             }
         )
     }

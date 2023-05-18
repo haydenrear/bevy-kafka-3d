@@ -4,7 +4,9 @@ use crate::camera::raycast_select::BevyPickingState;
 use crate::event::event_propagation::{component_propagation_system, PropagateComponentEvent};
 use crate::interactions::InteractionEvent;
 use crate::menu::menu_resource::MenuResource;
-use crate::menu::ui_menu_event::interaction_ui_event_writer::GlobalState;
+use crate::menu::ui_menu_event::ui_state_change::GlobalState;
+use crate::menu::ui_menu_event::next_action::Matches;
+use crate::menu::ui_menu_event::types::UiStyleEntityComponentStateTransitions;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentStateTransitions, UiEntityComponentStateTransitions, UiEventPlugin};
 use crate::test::bevy_tests::default_plugins::NoRenderBevyIntegrationTestPlugin;
 use crate::ui_components::state_transitions::insert_state_transitions;
@@ -31,7 +33,7 @@ pub(crate) fn test_state_transitions_added() {
 
     for collapsable in collapsable.iter() {
         println!("Checking {:?}", collapsable);
-        let state_transitions = app.world.get::<UiEntityComponentStateTransitions>(*collapsable);
+        let state_transitions = app.world.get::<UiStyleEntityComponentStateTransitions>(*collapsable);
         assert!(state_transitions.is_some());
         let state_transitions = state_transitions.unwrap();
         let any_visibility_state_transitions = state_transitions.transitions.iter().any(|s| {
