@@ -8,8 +8,9 @@ use crate::event::event_actions::{ClickWriteEvents, RetrieveState};
 use crate::event::event_descriptor::EventDescriptor;
 use crate::event::event_propagation::PropagateComponentEvent;
 use crate::event::event_state::{ClickContext, Context};
-use crate::menu::{MetricsConfigurationOption, ConfigurationOptionComponent, ConfigurationOptionEnum, DataType, MenuType};
+use crate::menu::{ConfigurationOptionComponent, ConfigurationOptionEnum, DataType, MenuType, MetricsConfigurationOption};
 use crate::menu::config_menu_event::config_event::{ConfigurationOptionChange, ConfigurationOptionEventArgs};
+use crate::menu::config_menu_event::config_menu_event_plugin::{MetricsSelfIxnQueryFilter, MetricsSelfQueryFilter};
 use crate::menu::menu_resource::MENU;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::{GlobalState, UpdateGlobalState};
 use crate::network::{Network, Node};
@@ -48,10 +49,6 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
     fn cursor(&mut self, global_stat: &mut ResMut<GlobalState>) {
     }
 }
-
-
-pub type MetricsSelfQueryFilter<T> = (With<MetricsConfigurationOption<T>>);
-pub type MetricsSelfIxnQueryFilter<T> = (With<MetricsConfigurationOption<T>>, With<Button>, Changed<Interaction>);
 
 impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> ClickWriteEvents<
     ConfigOptionActionStateRetriever<T>, ConfigurationOptionEventArgs<T>,

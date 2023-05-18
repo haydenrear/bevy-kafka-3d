@@ -5,14 +5,14 @@ use crate::menu::config_menu_event::config_event::{ConfigEventStateFactory, Conf
 use crate::menu::{DataType, MetricsConfigurationOption, UiComponent};
 use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
 use crate::menu::ui_menu_event::next_action::NextUiState;
-use crate::menu::ui_menu_event::style_context::StyleContext;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionComponentStateFactory, StateChangeActionType, UiEventArgs};
+use crate::menu::ui_menu_event::style_context::UiContext;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionComponentStateFactory, StateChangeActionType, StyleStateChange, UiEventArgs};
 
 pub struct UiEventReader {}
 
 impl InteractionEventReader<
-    StateChangeActionType, UiEventArgs, Style, Style,
+    StyleStateChange, UiEventArgs, Style, Style,
     StateChangeActionComponentStateFactory,
-    NextUiState, StyleContext, (With<UiComponent>)
+    NextUiState, UiContext, (With<UiComponent>)
 > for UiEventReader
 {}

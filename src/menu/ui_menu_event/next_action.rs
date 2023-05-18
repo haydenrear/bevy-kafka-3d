@@ -1,7 +1,8 @@
+use std::marker::PhantomData;
 use bevy::prelude::{Commands, Component, Display, Entity, ResMut, Size, Style, Text, UiRect, Val};
 use bevy::log::info;
 use crate::event::event_state::{Update, UpdateStateInPlace};
-use crate::menu::ui_menu_event::style_context::StyleContext;
+use crate::menu::ui_menu_event::style_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponentStateFilter;
 
 #[derive(Debug)]
@@ -12,8 +13,8 @@ pub enum NextUiState {
     UpdateSelection(Update<Text>)
 }
 
-impl UpdateStateInPlace<Style, StyleContext> for NextUiState {
-    fn update_state(&self, commands: &mut Commands,  value: &mut Style, style_context: &mut ResMut<StyleContext>) {
+impl UpdateStateInPlace<Style, UiContext> for NextUiState {
+    fn update_state(&self, commands: &mut Commands,  value: &mut Style, style_context: &mut ResMut<UiContext>) {
         match &self {
             NextUiState::ReplaceSize(update) => update.update_state(commands, &mut value.size, style_context),
             NextUiState::ReplaceDisplay(display) => display.update_state(commands, &mut value.display, style_context),
@@ -23,10 +24,10 @@ impl UpdateStateInPlace<Style, StyleContext> for NextUiState {
     }
 }
 
-impl UpdateStateInPlace<Text, StyleContext> for NextUiState {
-    fn update_state(&self, commands: &mut Commands, mut value: &mut Text, style_context: &mut ResMut<StyleContext>) {
+impl UpdateStateInPlace<Text, UiContext> for NextUiState {
+    fn update_state(&self, commands: &mut Commands, mut value: &mut Text, style_context: &mut ResMut<UiContext>) {
         match &self {
-            Self::UpdateSelection(text) => text.update_to(commands, &mut value, style_context),
+            Self::UpdateSelection(update) => update.update_state(commands, &mut value, style_context),
             _ => {}
         }
     }
@@ -41,8 +42,8 @@ pub enum UiComponentState {
     Any
 }
 
-impl UiComponentState {
-    pub(crate) fn matches(&self, style: &Style) -> bool {
+impl Matches<Style> for UiComponentState {
+    fn matches(&self, style: &Style) -> bool {
         match self {
             UiComponentState::StateDisplay(display) => display.matches(&style.display),
             UiComponentState::StateSize(state) => state.matches(&style.size),
@@ -87,6 +88,10 @@ impl DisplayState {
             }
         }
     }
+}
+
+pub trait Matches<T> : Send + Sync + 'static{
+    fn matches(&self, other: &T) -> bool;
 }
 
 impl UiComponentStateFilter<Display> for DisplayState {

@@ -35,7 +35,9 @@ impl<'a> BaseMenu<'a> {
 
         let button = draw_button
             .with_children(|button| {
-                let mut child_text_id = self.spawn_text_bundle(&mut asset_server, button).id();
+                let text_bundle = &mut button.spawn(self.text_bundle(&mut asset_server));
+                self.spawn_text_bundle(text_bundle);
+                let mut child_text_id = text_bundle.id();
                 build_base_menu.base_menu_child_text = Some(child_text_id);
             });
 
@@ -54,8 +56,7 @@ impl<'a> BaseMenu<'a> {
         build_base_menu
     }
 
-    fn spawn_text_bundle(&self, mut asset_server: &mut &mut Res<AssetServer>, button: &mut ChildBuilder) -> EntityCommands {
-        let mut text_bundle = button.spawn(self.text_bundle(&mut asset_server));
+    fn spawn_text_bundle<'b>(&'b self, text_bundle: &'b mut EntityCommands)  {
         if self.selectable {
             text_bundle.insert(
                 self.selectable_bundle()
@@ -65,7 +66,6 @@ impl<'a> BaseMenu<'a> {
                 self.non_selectable_bundle()
             );
         }
-        text_bundle
     }
 
     pub(crate) fn text_bundle(&self, mut asset_server: &mut Res<AssetServer>) -> impl Bundle {
@@ -89,14 +89,14 @@ impl<'a> BaseMenu<'a> {
         )
     }
 
-    pub(crate) fn selectable_bundle(&self) -> impl Bundle {
+    pub(crate) fn selectable_bundle<'b>(&'b self) -> impl Bundle {
         (
             UiComponent::DropdownSelected,
             DropdownSelected::default()
         )
     }
 
-    pub(crate) fn non_selectable_bundle(&self) -> impl Bundle {
+    pub(crate) fn non_selectable_bundle<'b>(&'b self) -> impl Bundle {
         (
             UiComponent::DropdownName,
             DropdownName::default(),

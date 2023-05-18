@@ -4,8 +4,8 @@ use bevy::asset::{Assets, AssetServer};
 use bevy::log::{error, info};
 use bevy::hierarchy::BuildChildren;
 use crate::event::event_propagation::{ChangePropagation, Relationship};
-use crate::event::event_state::{HoverStateChange, StateChange, Update, UpdateStateInPlace};
-use crate::event::event_state::StateChange::ChangeComponentStyle;
+use crate::event::event_state::{HoverStateChange, StyleStateChangeEventData, Update, UpdateStateInPlace};
+use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
 use crate::menu::{CollapsableMenu, ConfigurationOptionEnum, DataType, DraggableComponent, Dropdown, DropdownOption, Menu, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionInputType, MenuOptionType, MenuType, MetricsConfigurationOption, Radial, ScrollableMenuComponent, ScrollableMenuItemsBarComponent, ScrollingSidebarComponent, ScrollWheelComponent, Slider, SliderData, SliderKnob, UiBundled, UiComponent};
 use crate::menu::menu_resource::{MENU, MenuResource};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
@@ -132,6 +132,7 @@ fn add_dropdown(
                     options: get_menu_option_names(options),
                 }
             ),
+            selectable: false,
         },
         menu_option_builders: menu_options(options, parents),
     };

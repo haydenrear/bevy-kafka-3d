@@ -1,6 +1,6 @@
 use bevy::prelude::{Commands, Component, Entity, error, EventReader, info, Visibility};
 use bevy::ui::{Display, Style};
-use crate::event::event_state::StateChange;
+use crate::event::event_state::StyleStateChangeEventData;
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 // macro_rules! component_propagation {

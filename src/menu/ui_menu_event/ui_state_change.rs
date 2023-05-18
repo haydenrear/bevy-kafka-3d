@@ -3,12 +3,13 @@ use bevy::prelude::{BackgroundColor, Button, Changed, Color, Component, Display,
 use bevy::log::info;
 use bevy::ui::UiRect;
 use bevy_transform::prelude::Transform;
-use crate::event::event_state::{ClickContext, Context, StateChange, Update};
+use crate::event::event_descriptor::EventArgs;
+use crate::event::event_state::{ClickContext, Context, StyleStateChangeEventData, Update};
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::menu::{Position, UiComponent};
 use crate::menu::ui_menu_event::change_style::{ChangeStyleTypes};
 use crate::menu::ui_menu_event::next_action::{DisplayState, UiComponentState};
-use crate::menu::ui_menu_event::style_context::StyleContext;
+use crate::menu::ui_menu_event::style_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentStateFilter, UiEventArgs};
 
 /// Contains the state data needed in order to generate the UIEvents from the state change required.
@@ -33,34 +34,37 @@ pub enum UiClickStateChange {
     None,
 }
 
-pub trait StateChangeMachine<S, Ctx: Context> {
+pub trait StateChangeMachine<S, Ctx: Context, Args: EventArgs>: Send + Sync + 'static {
     fn state_machine_event(
         &self,
-        starting: &Style,
-        style_context: &mut ResMut<StyleContext>,
+        starting: &S,
+        style_context: &mut ResMut<Ctx>,
         entity: Entity
-    ) -> Option<UiEventArgs> {
-        if let StateChange::ChangeComponentStyle(change_style) = self {
+    ) -> Option<Args>;
+}
+
+impl StateChangeMachine<Style, UiContext, UiEventArgs> for StyleStateChangeEventData {
+    fn state_machine_event(&self, starting: &Style, style_context: &mut ResMut<UiContext>, entity: Entity) -> Option<UiEventArgs> {
+        if let StyleStateChangeEventData::ChangeComponentStyle(change_style) = self {
             return change_style.do_change(starting, entity, style_context);
         }
         None
     }
 }
 
-impl StateChange {
+impl StyleStateChangeEventData {
 
     pub fn get_ui_event(
         &self,
         starting: &Style,
-        style_context: &mut ResMut<StyleContext>,
+        style_context: &mut ResMut<UiContext>,
         entity: Entity
     ) -> Option<UiEventArgs> {
-        if let StateChange::ChangeComponentStyle(change_style) = self {
+        if let StyleStateChangeEventData::ChangeComponentStyle(change_style) = self {
             return change_style.do_change(starting, entity, style_context);
         }
         None
     }
-
 
 }
 

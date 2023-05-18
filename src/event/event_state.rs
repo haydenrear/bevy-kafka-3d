@@ -7,6 +7,7 @@ use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
 use crate::event::event_propagation::ChangePropagation;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::GlobalState;
+use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
 
 /// From the event descriptor, create behaviors that will change the state.
 pub trait StateChangeFactory<T, A, C, UpdateComponent, Ctx, U: UpdateStateInPlace<UpdateComponent, Ctx> = ()>: Sized + Resource
@@ -69,24 +70,28 @@ where
 }
 
 #[derive(Clone, Debug)]
-pub enum StateChange {
+pub enum StyleStateChangeEventData {
     ChangeComponentColor(Color),
     ChangeComponentStyle(ChangeStyleTypes),
     None,
 }
 
+impl EventData for StyleStateChangeEventData {}
+
 #[derive(Clone, Debug)]
 pub struct Update<T>
-    where T: Clone + Debug + Send + Sync + Default
+    where T: Clone + Debug + Send + Sync
 {
     pub(crate) update_to: Option<T>,
 }
 
 impl <T, Ctx> UpdateStateInPlace<T, Ctx> for Update<T>
-    where T: Clone + Debug + Send + Sync + Default,
+    where
+        T: Clone + Debug + Send + Sync,
         Ctx: Context
 {
     fn update_state(&self, commands: &mut Commands, value: &mut T, ctx: &mut ResMut<Ctx>) {
         *value = self.update_to.as_ref().unwrap().clone();
     }
 }
+

@@ -46,6 +46,7 @@ impl <'a> SubmenuBuilder<'a> {
                             .collect(),
                     }),
                     parent: self.parent.unwrap(),
+                    selectable: false,
                 };
                 let mut dropdown_menu_builder = DropdownMenuBuilder {
                     menu_metadata: metadata,

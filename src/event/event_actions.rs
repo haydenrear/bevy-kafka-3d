@@ -12,13 +12,14 @@ use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::PropagateComponentEvent;
 use crate::event::event_state::{ClickContext, Context, StateChangeFactory, Update, UpdateStateInPlace};
 use crate::menu::ui_menu_event::interaction_ui_event_writer::{GlobalState, UpdateGlobalState};
+use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 pub trait ClickWriteEvents <
     RetrieveStateT,
-    EventArgsT: EventArgs + 'static,
+    EventArgsT: EventArgs + 'static + Debug,
     EventDataT: EventData + 'static,
-    ComponentT: Component + Send + Sync + 'static,
+    ComponentT: Component + Send + Sync + 'static + Debug,
     Ctx: ClickContext<SelfFilterQuery, InteractionFilterQuery>,
     SelfQuery: WorldQuery,
     SelfFilterQuery: ReadOnlyWorldQuery + Send + Sync + 'static,
@@ -27,10 +28,10 @@ pub trait ClickWriteEvents <
     InteractionFilterQuery: ReadOnlyWorldQuery + Send + Sync + 'static,
 >
     where RetrieveStateT: RetrieveState<
-            EventArgsT, EventDataT, ComponentT, Ctx, SelfQuery,
+        EventArgsT, EventDataT, ComponentT, Ctx, SelfQuery,
         PropagationQuery, SelfFilterQuery,
         PropagationFilterQuery
-        > + UpdateGlobalState<SelfFilterQuery, InteractionFilterQuery> {
+        > + UpdateGlobalState<SelfFilterQuery, InteractionFilterQuery>  {
     fn click_write_events(
         mut commands: Commands,
         mut cursor_res: ResMut<RetrieveStateT>,
@@ -161,9 +162,9 @@ pub trait RetrieveState<
     PropagationFilterQuery: ReadOnlyWorldQuery = (),
 >: Resource
     where
-        EventArgsT: EventArgs,
-        EventDataT: EventData,
-        ComponentT: Component + Send + Sync + 'static,
+        EventArgsT: EventArgs + Debug + 'static,
+        EventDataT: EventData + 'static,
+        ComponentT: Component + Send + Sync + 'static + Debug,
         Ctx: Context,
         SelfQuery: WorldQuery,
         PropagationQuery: WorldQuery,

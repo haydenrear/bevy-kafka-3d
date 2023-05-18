@@ -1,7 +1,8 @@
 use std::default::default;
+use std::marker::PhantomData;
 use bevy::prelude::*;
 use crate::event::event_propagation::{ChangePropagation, Relationship};
-use crate::event::event_state::StateChange::ChangeComponentStyle;
+use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
 use crate::menu::{ConfigurationOptionEnum, DraggableComponent, MenuInputType, MenuItemMetadata, MenuOption, Slider, SliderKnob, UiComponent};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
 use crate::menu::ui_menu_event::next_action::UiComponentState;
@@ -118,9 +119,12 @@ impl <'a> SliderMenuOptionBuilder<'a> {
                 transitions: vec![
                     UiComponentStateTransition {
                         filter_state: UiComponentState::Any,
-                        state_change: vec![StateChangeActionType::Dragged(
-                            ChangeComponentStyle(ChangeStyleTypes::DragXPosition)
-                        )],
+                        state_change: vec![StateChangeActionType::Dragged {
+                            value: ChangeComponentStyle(ChangeStyleTypes::DragXPosition),
+                            p: PhantomData::default(),
+                            p1: PhantomData::default(),
+                            p2: PhantomData::default()
+                        }],
                         propagation: ChangePropagation::SelfChange(
                             Relationship::SelfState
                         ),

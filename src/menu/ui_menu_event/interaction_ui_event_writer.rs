@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::os::macos::raw::stat;
 use bevy::prelude::{Button, Changed, Commands, Component, Display, Entity, EventWriter, Interaction, Query, ResMut, Resource, Style, Vec2, Visibility, With};
@@ -10,16 +11,33 @@ use bevy::ui::Size;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::{ChangePropagation, PropagateComponentEvent, Relationship};
 use crate::event::event_actions::{ClickWriteEvents, RetrieveState};
-use crate::event::event_state::{Context, StateChange};
+use crate::event::event_state::{Context, StyleStateChangeEventData};
 use crate::menu::{DraggableComponent, ScrollableComponent, UiComponent};
 use crate::menu::ui_menu_event::change_style::{ChangeStyleTypes};
-use crate::menu::ui_menu_event::next_action::UiComponentState;
-use crate::menu::ui_menu_event::style_context::StyleContext;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntityComponentStateTransition, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, StateChangeActionType, UiComponentStateFilter, UiComponentStateTransition, UiComponentStateTransitions, UiComponentStateTransitionsQuery, UiEventArgs};
+use crate::menu::ui_menu_event::next_action::{Matches, UiComponentState};
+use crate::menu::ui_menu_event::style_context::UiContext;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{DraggableStateChangeRetriever, EntityComponentStateTransition, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, StateChangeActionType, StyleStateChange, UiComponentStateChangeRetriever, UiComponentStateFilter, UiComponentStateTransition, UiComponentStateTransitions, UiComponentStateTransitionsQuery, UiEventArgs, UiStateChange};
+use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 #[derive(Resource, Debug)]
-pub struct StateChangeActionTypeStateRetriever<SELF: ReadOnlyWorldQuery, IXN: ReadOnlyWorldQuery> ( PhantomData<SELF> , PhantomData<IXN>);
+pub struct StateChangeActionTypeStateRetriever<SELF, IXN, S, Ctx, Args, StateMachine, MatchesT> (
+    PhantomData<SELF> ,
+    PhantomData<IXN>,
+    PhantomData<S>,
+    PhantomData<Ctx>,
+    PhantomData<Args>,
+    PhantomData<StateMachine>,
+    PhantomData<MatchesT>
+)
+where
+    SELF: ReadOnlyWorldQuery,
+    IXN: ReadOnlyWorldQuery,
+    S: Component,
+    Ctx: Context,
+    Args: EventArgs,
+    StateMachine: StateChangeMachine<S, Ctx, Args>,
+    MatchesT: Matches<S>;
 
 #[derive(Resource, Debug)]
 pub struct GlobalState
@@ -82,10 +100,10 @@ where SELF: ReadOnlyWorldQuery,
 }
 
 impl UpdateGlobalState<UiComponentStyleFilter, UiComponentStyleIxnFilter>
-for StateChangeActionTypeStateRetriever<UiComponentStyleFilter, UiComponentStyleIxnFilter> {}
+for UiComponentStateChangeRetriever {}
 
 impl UpdateGlobalState<ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter>
-for StateChangeActionTypeStateRetriever<ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter>   {
+for ScrollableStateChangeRetriever  {
     fn update_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
     }
 
@@ -93,7 +111,8 @@ for StateChangeActionTypeStateRetriever<ScrollableUiComponentFilter, ScrollableU
     }
 }
 
-impl UpdateGlobalState<DraggableUiComponentFilter, DraggableUiComponentIxnFilter> for StateChangeActionTypeStateRetriever<DraggableUiComponentFilter, DraggableUiComponentIxnFilter>  {
+impl UpdateGlobalState<DraggableUiComponentFilter, DraggableUiComponentIxnFilter>
+for DraggableStateChangeRetriever  {
     fn update_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
     }
 
@@ -102,18 +121,24 @@ impl UpdateGlobalState<DraggableUiComponentFilter, DraggableUiComponentIxnFilter
 }
 
 macro_rules! global_defaults {
-    ($($ty1:ty, $ty2:ty),*) => {
-        use crate::menu::config_menu_event::interaction_config_event_writer::MetricsSelfQueryFilter;
+    ($($ty1:ty, $ty2:ty, $ty3:ty, $ty4:ty, $ty5:ty),*) => {
         use crate::menu::Menu;
-        use crate::menu::config_menu_event::interaction_config_event_writer::MetricsSelfIxnQueryFilter;
         use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponentStyleFilter;
         use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponentStyleIxnFilter;
         use crate::menu::ui_menu_event::ui_menu_event_plugin::DraggableUiComponentFilter;
         use crate::menu::ui_menu_event::ui_menu_event_plugin::DraggableUiComponentIxnFilter;
         $(
-            impl Default for StateChangeActionTypeStateRetriever<$ty1, $ty2>  {
+            impl Default for StateChangeActionTypeStateRetriever<$ty1, $ty2, $ty3, $ty4, $ty5, StyleStateChangeEventData, UiComponentState>  {
                 fn default() -> Self {
-                    Self(PhantomData::default(), PhantomData::default())
+                    Self(
+                        PhantomData::default(),
+                        PhantomData::default(),
+                        PhantomData::default(),
+                        PhantomData::default(),
+                        PhantomData::default(),
+                        PhantomData::default(),
+                        PhantomData::default()
+                    )
                 }
             }
         )*
@@ -121,97 +146,141 @@ macro_rules! global_defaults {
 }
 
 global_defaults!(
-    MetricsSelfQueryFilter<Menu>, MetricsSelfIxnQueryFilter<Menu>,
-    UiComponentStyleFilter, UiComponentStyleIxnFilter,
-    DraggableUiComponentFilter, DraggableUiComponentIxnFilter,
-    ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter
+    UiComponentStyleFilter, UiComponentStyleIxnFilter, Style, UiContext, UiEventArgs,
+    DraggableUiComponentFilter, DraggableUiComponentIxnFilter, Style, UiContext, UiEventArgs,
+    ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, Style, UiContext, UiEventArgs
 );
 
 impl ClickWriteEvents<
-    StateChangeActionTypeStateRetriever<UiComponentStyleFilter, UiComponentStyleIxnFilter>,
-                UiEventArgs, StateChangeActionType, Style, StyleContext,
-                // self query
-                UiComponentStateTransitionsQuery<'_>,
-                // self filter
-                UiComponentStyleFilter,
-                // parent query
-                PropagationQuery<'_>,
-                // parent filter
-                PropagationQueryFilter<'_>,
-                // interaction filter
-                UiComponentStyleIxnFilter
-> for StateChangeActionTypeStateRetriever<UiComponentStyleFilter, UiComponentStyleIxnFilter> {
-}
+    UiComponentStateChangeRetriever,
+    UiEventArgs, StyleStateChangeEventData, Style, UiContext,
+    // self query
+    UiComponentStateTransitionsQuery<'_, Style, StyleStateChangeEventData, UiComponentState>,
+    // self filter
+    UiComponentStyleFilter,
+    // parent query
+    PropagationQuery<'_, Style>,
+    // parent filter
+    PropagationQueryFilter<Style>,
+    // interaction filter
+    UiComponentStyleIxnFilter
+> for UiComponentStateChangeRetriever {}
 
 #[derive(Default, Resource, Debug)]
 pub struct DragEvents;
 
-impl ClickWriteEvents<
-    StateChangeActionTypeStateRetriever<
-        DraggableUiComponentFilter,
-        DraggableUiComponentIxnFilter
-    >,
-    UiEventArgs, StateChangeActionType, Style, StyleContext,
-    // self query
-    UiComponentStateTransitionsQuery<'_>,
-    // self filter
-    DraggableUiComponentFilter,
-    // parent query
-    PropagationQuery<'_>,
-    // parent filter
-    PropagationQueryFilter<'_>,
-    // interaction filter
-    DraggableUiComponentIxnFilter
-> for DragEvents {
-}
+// impl ClickWriteEvents<
+//     DraggableStateChangeRetriever,
+//     UiEventArgs, StyleStateChange, Style, UiContext,
+//     // self query
+//     UiComponentStateTransitionsQuery<'_, Style>,
+//     // self filter
+//     DraggableUiComponentFilter,
+//     // parent query
+//     PropagationQuery<'_, Style>,
+//     // parent filter
+//     PropagationQueryFilter<Style>,
+//     // interaction filter
+//     DraggableUiComponentIxnFilter
+// > for DragEvents {
+// }
 
 #[derive(Default, Resource, Debug)]
 pub struct ScrollEvents;
 
-impl ClickWriteEvents<
-    StateChangeActionTypeStateRetriever<
-        ScrollableUiComponentFilter,
-        ScrollableUiComponentIxnFilter
-    >,
-    UiEventArgs, StateChangeActionType, Style, StyleContext,
-    // self query
-    UiComponentStateTransitionsQuery<'_>,
-    // self filter
-    ScrollableUiComponentFilter,
-    // parent query
-    PropagationQuery<'_>,
-    // parent filter
-    PropagationQueryFilter<'_>,
-    // interaction filter
-    ScrollableIxnFilterQuery
-> for ScrollEvents {
-}
 
-impl <SELF: ReadOnlyWorldQuery + Send + Sync + 'static, IXN: ReadOnlyWorldQuery + Send + Sync + 'static> RetrieveState<
-    UiEventArgs, StateChangeActionType, Style, StyleContext,
-    UiComponentStateTransitionsQuery<'_>,
-    PropagationQuery<'_>,
-    SELF,
-    PropagationQueryFilter<'_>,
+// impl ClickWriteEvents<
+//     ScrollableStateChangeRetriever,
+//     UiEventArgs, StyleStateChange, Style, UiContext,
+//     // self query
+//     UiComponentStateTransitionsQuery<'_, Style>,
+//     // self filter
+//     ScrollableUiComponentFilter,
+//     // parent query
+//     PropagationQuery<'_, Style>,
+//     // parent filter
+//     PropagationQueryFilter<Style>,
+//     // interaction filter
+//     ScrollableIxnFilterQuery
+// > for ScrollEvents {
+// }
+
+// impl <SelfFilterQuery, SelfIxnFilter, ComponentT, Ctx, EventArgsT, EventDataT> RetrieveState<
+//     EventArgsT,
+//     EventDataT,
+//     ComponentT,
+//     Ctx,
+//     UiComponentStateTransitionsQuery<'_, ComponentT>,
+//     PropagationQuery<'_, ComponentT>,
+//     SelfFilterQuery,
+//     PropagationQueryFilter<ComponentT>,
+// >
+// for StateChangeActionTypeStateRetriever<
+//     SelfFilterQuery, SelfIxnFilter,
+//     ComponentT, Ctx, EventArgsT, EventDataT
+// >
+// where
+//     SelfIxnFilter: ReadOnlyWorldQuery,
+//     SelfFilterQuery: ReadOnlyWorldQuery,
+//     ComponentT: Component + Send + Sync + 'static + Debug,
+//     Ctx: Context,
+//     EventArgsT: EventArgs + Debug + 'static,
+//     EventDataT: StateChangeMachine<ComponentT, Ctx, EventArgsT> + EventData + 'static
+// {
+//     fn create_event(
+//         mut commands: &mut Commands,
+//         entity: Entity,
+//         mut style_context: &mut ResMut<Ctx>,
+//         entity_query: &Query<
+//             UiComponentStateTransitionsQuery<'_, ComponentT>,
+//             SelfFilterQuery
+//         >,
+//         propagation_query: &Query<
+//             PropagationQuery<'_, ComponentT>,
+//             PropagationQueryFilter<ComponentT>
+//         >
+//     ) -> (Vec<EventDescriptor<EventDataT, EventArgsT, ComponentT>>, Vec<PropagateComponentEvent>)
+//     {
+//         let mut event_descriptors = vec![];
+//         let mut propagate_events = vec![];
+//
+//         Self::create_ui_event(&entity_query, &propagation_query, &mut style_context, entity)
+//             .into_iter()
+//             .for_each(|prop| {
+//                 event_descriptors.push(prop);
+//             });
+//
+//         (event_descriptors, propagate_events)
+//
+//     }
+// }
+//
+
+impl RetrieveState<
+    UiEventArgs,
+    StyleStateChangeEventData,
+    Style,
+    UiContext,
+    UiComponentStateTransitionsQuery<'_, Style, StyleStateChangeEventData, UiComponentState>,
+    PropagationQuery<'_, Style>,
+    UiComponentStyleFilter,
+    PropagationQueryFilter<Style>,
 >
-for StateChangeActionTypeStateRetriever<
-    SELF,
-    IXN
->
+for UiComponentStateChangeRetriever
 {
     fn create_event(
         mut commands: &mut Commands,
         entity: Entity,
-        mut style_context: &mut ResMut<StyleContext>,
+        mut style_context: &mut ResMut<UiContext>,
         entity_query: &Query<
-            UiComponentStateTransitionsQuery<'_>,
-            SELF
+            UiComponentStateTransitionsQuery<'_, Style, StyleStateChangeEventData, UiComponentState>,
+            UiComponentStyleFilter
         >,
         propagation_query: &Query<
-            PropagationQuery<'_>,
-            PropagationQueryFilter
+            PropagationQuery<'_, Style>,
+            PropagationQueryFilter<Style>
         >
-    ) -> (Vec<EventDescriptor<StateChangeActionType, UiEventArgs, Style>>, Vec<PropagateComponentEvent>)
+    ) -> (Vec<EventDescriptor<StyleStateChangeEventData, UiEventArgs, Style>>, Vec<PropagateComponentEvent>)
     {
         let mut event_descriptors = vec![];
         let mut propagate_events = vec![];
@@ -219,7 +288,6 @@ for StateChangeActionTypeStateRetriever<
         Self::create_ui_event(&entity_query, &propagation_query, &mut style_context, entity)
             .into_iter()
             .for_each(|prop| {
-                info!("Sending event: {:?}.", prop);
                 event_descriptors.push(prop);
             });
 
@@ -228,20 +296,26 @@ for StateChangeActionTypeStateRetriever<
     }
 }
 
-impl<SELF, IXN> StateChangeActionTypeStateRetriever<SELF, IXN>
+impl<SelfFilterQuery, IXN, C, StateMachine, MatchesT> StateChangeActionTypeStateRetriever<SelfFilterQuery, IXN, C, UiContext, UiEventArgs, StateMachine, MatchesT>
     where
-        SELF: ReadOnlyWorldQuery + Send + Sync + 'static,
-        IXN: ReadOnlyWorldQuery + Send + Sync + 'static
+        SelfFilterQuery: ReadOnlyWorldQuery + Send + Sync + 'static,
+        IXN: ReadOnlyWorldQuery + Send + Sync + 'static,
+        C: Component + Debug,
+        StateMachine: StateChangeMachine<C, UiContext, UiEventArgs> + Send + Sync + EventData + 'static + Clone,
+        MatchesT: Matches<C>
 {
     fn create_ui_event(
         entity_query: &Query<
-            UiComponentStateTransitionsQuery<'_>,
-            SELF
+            UiComponentStateTransitionsQuery<'_, C, StateMachine, MatchesT>,
+            SelfFilterQuery
         >,
-        propagation_query: &Query<PropagationQuery<'_>, PropagationQueryFilter>,
-        mut style_context: &mut ResMut<StyleContext>,
+        propagation_query: &Query<
+            PropagationQuery<'_, C>,
+            PropagationQueryFilter<C>
+        >,
+        mut style_context: &mut ResMut<UiContext>,
         entity: Entity
-    ) -> Vec<EventDescriptor<StateChangeActionType, UiEventArgs, Style>> {
+    ) -> Vec<EventDescriptor<StateMachine, UiEventArgs, C>> {
         entity_query.get(entity)
             .iter()
             .flat_map(|entity| {
@@ -250,7 +324,6 @@ impl<SELF, IXN> StateChangeActionTypeStateRetriever<SELF, IXN>
             })
             .flat_map(|entity| {
 
-                info!("{:?} is state transition.", entity.4);
                 let mut descriptors = vec![];
 
                 if !entity.4.filter_state.matches(entity.2) {
@@ -258,7 +331,6 @@ impl<SELF, IXN> StateChangeActionTypeStateRetriever<SELF, IXN>
                 }
 
                 for (related_entity, _, state_change_action_type) in entity.4.entity_to_change.states.iter() {
-                    info!("{:?} is state change action type.", state_change_action_type);
                     let (_, related_style, _) = propagation_query.get(*related_entity).unwrap();
 
                     if !entity.4.current_state_filter.matches(related_style) {
@@ -276,33 +348,31 @@ impl<SELF, IXN> StateChangeActionTypeStateRetriever<SELF, IXN>
     }
 
     fn create_add_event(
-        mut style_context: &mut ResMut<StyleContext>,
-        mut descriptors: &mut Vec<EventDescriptor<StateChangeActionType, UiEventArgs, Style>>,
-        state_change_action_type: &StateChangeActionType,
-        related_style: &&Style,
+        mut style_context: &mut ResMut<UiContext>,
+        mut descriptors: &mut Vec<EventDescriptor<StateMachine, UiEventArgs, C>>,
+        state_change_action_type: &UiStateChange<C, StateMachine>,
+        related_style: &C,
         entity: Entity
     ) {
-        info!("Creating add event.");
         match state_change_action_type {
-            StateChangeActionType::Hover(_) => {
-                None
-            }
-            StateChangeActionType::Clicked(clicked)
-            | StateChangeActionType::Dragged(clicked) => {
-                info!("Creating click drag event.");
-                clicked.get_ui_event(&related_style, &mut style_context, entity)
+            StateChangeActionType::Clicked{value, ..} => {
+                value.state_machine_event(related_style, style_context, entity)
                     .map(|args| {
                         info!("Created ui event args: {:?}.", &args);
                         EventDescriptor {
                             component: PhantomData::default(),
-                            event_data: state_change_action_type.clone(),
+                            event_data: value.clone(),
                             event_args: args,
                         }
                     })
+                    .map(|descriptor| {
+                        descriptors.push(descriptor);
+                    });
             }
-        }.map(|descriptor| {
-            descriptors.push(descriptor);
-        });
+            _ => {
+
+            }
+        }
     }
 }
 

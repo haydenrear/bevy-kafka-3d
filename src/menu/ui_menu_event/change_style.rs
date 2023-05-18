@@ -8,7 +8,7 @@ use crate::event::event_state::Update;
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::menu::Position;
 use crate::menu::ui_menu_event::next_action::UiComponentState;
-use crate::menu::ui_menu_event::style_context::StyleContext;
+use crate::menu::ui_menu_event::style_context::UiContext;
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentFilters, UiEventArgs};
 use crate::Node;
@@ -196,7 +196,7 @@ impl ChangeStyleTypes {
         &self,
         starting_state: &Style,
         entity: Entity,
-        style_context: &mut ResMut<StyleContext>
+        style_context: &mut ResMut<UiContext>
     ) -> Option<UiEventArgs> {
         match self {
             ChangeStyleTypes::RemoveVisible => {

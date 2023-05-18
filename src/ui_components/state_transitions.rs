@@ -72,34 +72,17 @@ pub(crate) fn insert_state_transitions(
 
 }
 
-fn parent_entities(
-    with_children_query: &Query<ChildQuery<'_>, ChildFilter>,
+fn get_parent(
     with_parent_query: &Query<ParentQuery<'_>, ParentFilter>,
     entity: Entity,
 ) -> Vec<Entity> {
-    let mut entities = HashSet::new();
     let parent = with_parent_query.get(entity.clone())
         .map(|(_, _, parent, updateable, style)| parent.get())
         .ok();
 
-    parent.map(|parent| {
-        with_children_query.get(parent)
-            .map(|(_, _, children, update, style)| {
-                info!("Found parent with id {}.", update.0);
-                entities.insert(update.0);
-            })
-            .or_else(|_| {
-                info!("Failed to fetch parent when parent was included in fetch.");
-                Ok::<(), QueryEntityError>(())
-            })
-            .unwrap()
-    })
-        .or_else(|| {
-            info!("Failed to fetch parent when parent was included in fetch.");
-            None
-        });
+    parent.iter().flat_map(|p| vec![*p])
+        .collect()
 
-    entities.into_iter().collect()
 }
 
 fn sibling_entities(

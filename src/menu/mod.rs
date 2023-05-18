@@ -11,13 +11,13 @@ use rdkafka::metadata;
 use serde::Deserialize;
 use ui_menu_event::next_action::{DisplayState, SizeState, UiComponentState};
 use crate::event::event_propagation::{ChangePropagation, Relationship};
-use crate::event::event_state::{Context, UpdateStateInPlace};
-use crate::event::event_state::StateChange::ChangeComponentStyle;
+use crate::event::event_state::{Context, StyleStateChangeEventData, UpdateStateInPlace};
+use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
 use crate::graph::GraphParent;
 use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
 use crate::menu::menu_resource::{MENU, VARIANCE};
 use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntitiesStateTypes, EntityComponentStateTransition, StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions, UiEntityComponentStateTransitions};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntitiesStateTypes, EntityComponentStateTransition, StateChangeActionType, StyleStateChange, UiComponentStateTransition, UiComponentStateTransitions, UiEntityComponentStateTransitions, UiStateChange};
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, MetricChildNodes, Network, Node};
 use crate::ui_components::menu_components::{BuilderResult, BuildMenuResult};
@@ -448,34 +448,49 @@ pub enum UiComponent {
     Node,
 }
 
+pub type UiStyleComponentStateTransitions = UiEntityComponentStateTransitions<StyleStateChangeEventData, Style, UiComponentState>;
+
 pub trait GetStateTransitions<T: BuilderResult> {
 
-    fn get_state_transitions(builder_result: &T, entities: &Entities) -> Option<UiEntityComponentStateTransitions>;
+    fn get_state_transitions(builder_result: &T, entities: &Entities) -> Option<UiStyleComponentStateTransitions>;
 
-    fn change_child(style_type: ChangeStyleTypes, entities: &Vec<Entity>) -> Vec<(Entity, Relationship, StateChangeActionType)> {
-        let mut change_visisble: Vec<(Entity, Relationship, StateChangeActionType)> = entities
-            .iter()
-            .map(|e| {
-                info!("Adding child for change visible: {:?}, {:?}.", e, &style_type);
-                e
-            })
-            .map(|entity| (
-                *entity,
-                Relationship::Child,
-                StateChangeActionType::Clicked(ChangeComponentStyle(style_type.clone()))
-            ))
-            .collect();
-        change_visisble
-    }
+}
 
-    fn change_visible_self(build_menu_result: &Entities, style_type: ChangeStyleTypes) -> Vec<(Entity, Relationship, StateChangeActionType)> {
-        vec![(
-                build_menu_result.self_state,
-                Relationship::SelfState,
-                StateChangeActionType::Clicked(ChangeComponentStyle(style_type.clone()))
-        )]
-    }
+fn change_child(style_type: ChangeStyleTypes, entities: &Vec<Entity>) -> Vec<(Entity, Relationship, UiStateChange<Style, StyleStateChangeEventData>)> {
+    let mut change_visisble = entities
+        .iter()
+        .map(|e| {
+            info!("Adding child for change visible: {:?}, {:?}.", e, &style_type);
+            e
+        })
+        .map(|entity| (
+            *entity,
+            Relationship::Child,
+            StateChangeActionType::Clicked{
+                value: ChangeComponentStyle(style_type.clone()),
+                p: PhantomData::default(),
+                p1: PhantomData::default(),
+                p2: PhantomData::default()
+            }
+        ))
+        .collect::<Vec<(Entity, Relationship, UiStateChange<Style, StyleStateChangeEventData>)>>();
+    change_visisble
+}
 
+fn change_visible_self(
+    build_menu_result: &Entities,
+    style_type: ChangeStyleTypes
+) -> Vec<(Entity, Relationship, UiStateChange<Style, StyleStateChangeEventData>)> {
+    vec![(
+        build_menu_result.self_state,
+        Relationship::SelfState,
+        StateChangeActionType::Clicked{
+            value: ChangeComponentStyle(style_type.clone()),
+            p: PhantomData::default(),
+            p1: PhantomData::default(),
+            p2: PhantomData::default()
+        }
+    )]
 }
 
 pub struct Entities {
@@ -492,17 +507,24 @@ impl GetStateTransitions<BuildBaseMenuResult> for DrawDropdownMenuResult {
     fn get_state_transitions(
         builder_result: &BuildBaseMenuResult,
         build_menu_result: &Entities,
-    ) -> Option<UiEntityComponentStateTransitions> {
+    ) -> Option<UiStyleComponentStateTransitions> {
+        info!("building state transitions.");
 
-        let remove_visible = Self::change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
-        let change_visible = Self::change_child(ChangeStyleTypes::ChangeVisible, &build_menu_result.children);
+        let remove_visible: Vec<(Entity, Relationship, UiStateChange<Style, StyleStateChangeEventData>)>
+            = change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
+        let change_visible = change_child(ChangeStyleTypes::ChangeVisible, &build_menu_result.children);
 
-        let mut siblings: Vec<(Entity, Relationship, StateChangeActionType)> = build_menu_result.siblings_children_recursive
+        let mut siblings: Vec<(Entity, Relationship, UiStateChange<Style, StyleStateChangeEventData>)> = build_menu_result.siblings_children_recursive
             .iter()
             .map(|entity| (
                 *entity,
                 Relationship::SiblingChild,
-                StateChangeActionType::Clicked(ChangeComponentStyle(ChangeStyleTypes::RemoveVisible))
+                StateChangeActionType::Clicked {
+                    value: ChangeComponentStyle(ChangeStyleTypes::RemoveVisible),
+                    p: PhantomData::default(),
+                    p1: PhantomData::default(),
+                    p2: PhantomData::default()
+                }
             ))
             .collect();
 
@@ -542,17 +564,22 @@ impl GetStateTransitions<DropdownMenuOptionResult> for DrawDropdownMenuResult {
     fn get_state_transitions(
         builder_result: &DropdownMenuOptionResult,
         build_menu_result: &Entities,
-    ) -> Option<UiEntityComponentStateTransitions> {
+    ) -> Option<UiStyleComponentStateTransitions> {
 
-        let remove_visible = Self::change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
-        let change_visible = Self::change_child(ChangeStyleTypes::ChangeVisible, &build_menu_result.children);
+        let remove_visible = change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
+        let change_visible = change_child(ChangeStyleTypes::ChangeVisible, &build_menu_result.children);
 
-        let mut siblings: Vec<(Entity, Relationship, StateChangeActionType)> = build_menu_result.siblings_children_recursive
+        let mut siblings: Vec<(Entity, Relationship, StyleStateChange)> = build_menu_result.siblings_children_recursive
             .iter()
             .map(|entity| (
                 *entity,
                 Relationship::SiblingChild,
-                StateChangeActionType::Clicked(ChangeComponentStyle(ChangeStyleTypes::RemoveVisible))
+                StateChangeActionType::Clicked{
+                    value: ChangeComponentStyle(ChangeStyleTypes::RemoveVisible),
+                    p: PhantomData::default(),
+                    p1: PhantomData::default(),
+                    p2: PhantomData::default()
+                }
             ))
             .collect();
 
@@ -593,18 +620,18 @@ impl GetStateTransitions<DrawCollapsableMenuResult> for DrawCollapsableMenuResul
     fn get_state_transitions(
         builder_result: &DrawCollapsableMenuResult,
         build_menu_result: &Entities,
-    ) -> Option<UiEntityComponentStateTransitions> {
+    ) -> Option<UiStyleComponentStateTransitions> {
 
-        let mut add_visible = Self::change_child( ChangeStyleTypes::AddVisible, &build_menu_result.children);
+        let mut add_visible = change_child( ChangeStyleTypes::AddVisible, &build_menu_result.children);
 
-        let mut remove_visible_recurs = Self::change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
+        let mut remove_visible_recurs = change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
 
-        let mut self_change_minimize = Self::change_visible_self(build_menu_result, ChangeStyleTypes::UpdateSize {
+        let mut self_change_minimize = change_visible_self(build_menu_result, ChangeStyleTypes::UpdateSize {
             height_1: 100.0,
             width_1: 20.0,
         });
 
-        let mut self_change_maximize = Self::change_visible_self(build_menu_result, ChangeStyleTypes::UpdateSize {
+        let mut self_change_maximize = change_visible_self(build_menu_result, ChangeStyleTypes::UpdateSize {
             height_1: 100.0,
             width_1: 4.0,
         });
