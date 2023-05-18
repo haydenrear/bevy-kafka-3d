@@ -85,7 +85,7 @@ impl Plugin for UiEventPlugin {
             // .add_system(DragEvents::click_write_events)
             // .add_system(ScrollEvents::click_write_events)
             .insert_resource(UiContext::default())
-            .add_system(UiEventReader::read_events)
+            // .add_system(UiEventReader::read_events)
             .add_system(ui_state_change::hover_event)
             .add_event::<UiEventArgs>()
             .add_event::<UiComponentEventDescriptor>()

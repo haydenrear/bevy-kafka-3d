@@ -18,12 +18,12 @@ pub struct ConfigMenuEventPlugin;
 
 impl Plugin for ConfigMenuEventPlugin {
     fn build(&self, app: &mut App) {
-        app
-            .add_event::<ConfigurationOptionEventArgs<Node>>()
-            .insert_resource(ConfigOptionActionStateRetriever::<Menu>::default())
-            .add_system(ConfigOptionActionStateRetriever::<Menu>::click_write_events)
-            .add_system(ConfigEventReader::<Menu>::read_events)
-            .add_event::<EventDescriptor<DataType, ConfigurationOptionEventArgs<Menu>, MetricsConfigurationOption<Menu>>>()
+        // app
+        //     .add_event::<ConfigurationOptionEventArgs<Node>>()
+        //     .insert_resource(ConfigOptionActionStateRetriever::<Menu>::default())
+        //     .add_system(ConfigOptionActionStateRetriever::<Menu>::click_write_events)
+        //     .add_system(ConfigEventReader::<Menu>::read_events)
+        //     .add_event::<EventDescriptor<DataType, ConfigurationOptionEventArgs<Menu>, MetricsConfigurationOption<Menu>>>()
         ;
     }
 }
