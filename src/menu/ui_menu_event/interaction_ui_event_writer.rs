@@ -3,6 +3,7 @@ use crate::menu::ui_menu_event::ui_menu_event_plugin::PropagateDisplay;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::os::macos::raw::stat;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::SelectOptions;
 use bevy::prelude::{Button, Changed, Commands, Component, Display, Entity, EventWriter, Interaction, Query, ResMut, Resource, Style, Vec2, Visibility, With};
 use bevy::hierarchy::{Children, Parent};
 use bevy::utils::{HashMap, HashSet};
@@ -18,7 +19,7 @@ use crate::menu::{DraggableComponent, ScrollableComponent, UiComponent};
 use crate::menu::ui_menu_event::change_style::UiChangeTypes;
 use crate::menu::ui_menu_event::next_action::{Matches, UiComponentState};
 use crate::menu::ui_menu_event::ui_context::UiContext;
-use crate::menu::ui_menu_event::types::{ClickEvents, DraggableStateChangeRetriever, DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, StateTransitionsQuery, StyleStateChange, StyleUiComponentStateTransitionsQuery, UiComponentStyleFilter, UiComponentStyleIxnFilter, UiStateChange};
+use crate::menu::ui_menu_event::types::{ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, StateTransitionsQuery, StyleStateChange, StyleUiComponentStateTransitionsQuery, UiComponentStyleFilter, UiComponentStyleIxnFilter, UiSelectedComponentStateTransitions, UiSelectedComponentStateTransitionsQuery, UiStateChange};
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntityComponentStateTransition, StateChangeActionType, TransitionGroup, UiComponentStateTransition, UiComponentStateTransitions, UiEventArgs};
 use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
@@ -101,18 +102,18 @@ impl ClickWriteEvents<
 pub struct ClickSelectOptions;
 
 impl ClickWriteEvents<
-    ScrollableStateChangeRetriever,
+    ClickSelectionEventRetriever,
     UiEventArgs, StyleStateChangeEventData, Style, UiContext,
     // self query
-    StyleUiComponentStateTransitionsQuery<'_>,
+    UiSelectedComponentStateTransitionsQuery<'_>,
     // self filter
-    ScrollableUiComponentFilter,
+    UiComponentStyleFilter,
     // parent query
     PropagationQuery<'_, Style>,
     // parent filter
     PropagationQueryFilter<Style>,
     // interaction filter
-    ScrollableIxnFilterQuery
+    UiComponentStyleIxnFilter
 > for ClickSelectOptions {
 }
 
@@ -254,10 +255,10 @@ StateChangeActionTypeStateRetriever<SelfFilterQuery, IXN, C, Ctx, EventArgsT, St
 
 
 macro_rules! state_change_action_retriever_default {
-    ($($ty1:ty, $ty2:ty, $ty3:ty, $ty4:ty, $ty5:ty),*) => {
+    ($($ty1:ty, $ty2:ty, $ty3:ty, $ty4:ty, $ty5:ty, $ty6:ty),*) => {
         use crate::menu::Menu;
         $(
-            impl Default for StateChangeActionTypeStateRetriever<$ty1, $ty2, $ty3, $ty4, $ty5, StyleStateChangeEventData, UiComponentState, PropagateDisplay>  {
+            impl Default for StateChangeActionTypeStateRetriever<$ty1, $ty2, $ty3, $ty4, $ty5, StyleStateChangeEventData, UiComponentState, $ty6>  {
                 fn default() -> Self {
                     Self(
                         PhantomData::default(),
@@ -276,7 +277,8 @@ macro_rules! state_change_action_retriever_default {
 }
 
 state_change_action_retriever_default!(
-    UiComponentStyleFilter, UiComponentStyleIxnFilter, Style, UiContext, UiEventArgs,
-    DraggableUiComponentFilter, DraggableUiComponentIxnFilter, Style, UiContext, UiEventArgs,
-    ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, Style, UiContext, UiEventArgs
+    UiComponentStyleFilter, UiComponentStyleIxnFilter, Style, UiContext, UiEventArgs, PropagateDisplay,
+    DraggableUiComponentFilter, DraggableUiComponentIxnFilter, Style, UiContext, UiEventArgs, PropagateDisplay,
+    ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, Style, UiContext, UiEventArgs, PropagateDisplay,
+    UiComponentStyleFilter, UiComponentStyleIxnFilter, Style, UiContext, UiEventArgs, SelectOptions
 );

@@ -12,7 +12,6 @@ use crate::event::event_propagation::PropagateComponentEvent;
 use crate::event::event_state::{ClickContext, Context, StateChangeFactory, Update, UpdateStateInPlace};
 use crate::interactions::InteractionEvent;
 use crate::menu::ui_menu_event::ui_state_change::{GlobalState, StateChangeMachine, UpdateGlobalState};
-use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 pub trait ClickWriteEvents <
     RetrieveStateT,

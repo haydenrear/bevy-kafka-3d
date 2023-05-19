@@ -14,7 +14,8 @@ use crate::ui_components::ui_menu_component::insert_config_option;
 pub(crate) mod menu_options;
 pub(crate) mod menu_types;
 
-pub trait BuilderResult {}
+pub trait BuilderResult {
+}
 
 #[derive(Resource, Default, Debug)]
 pub struct BuildMenuResult {

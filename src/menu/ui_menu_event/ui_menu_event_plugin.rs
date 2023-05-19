@@ -14,20 +14,22 @@ use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::event::event_state::{ClickContext, Context, HoverStateChange, NextStateChange, StateChangeFactory, StateUpdate, StyleStateChangeEventData, Update, UpdateStateInPlace};
 use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
+use crate::event::state_transition::get_state_transitions::GetStateTransitions;
 use crate::event::state_transition::state_transitions_system::insert_state_transitions;
 use crate::interactions::InteractionEvent;
-use crate::menu::{CollapsableMenuComponent, ConfigurationOptionEnum, DraggableComponent, Dropdown, DropdownOption, MenuItemMetadata, Radial, RadialButton, RadialButtonSelection, ScrollableComponent, Slider, SliderKnob, ui_menu_event, UiComponent};
-use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
-use crate::menu::ui_menu_event::change_style::UiChangeTypes;
 use crate::menu::ui_menu_event::interaction_ui_event_reader::UiEventReader;
-use crate::menu::ui_menu_event::interaction_ui_event_writer::{DragEvents, ScrollEvents, StateChangeActionTypeStateRetriever};
+use crate::menu::ui_menu_event::interaction_ui_event_writer::{ClickSelectOptions, DragEvents, ScrollEvents, StateChangeActionTypeStateRetriever};
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::next_action::DisplayState::DisplayNone;
 use crate::menu::ui_menu_event::next_action::{Matches, NextUiState, UiComponentState};
-use crate::menu::ui_menu_event::types::{ClickEvents, DraggableStateChangeRetriever, DraggableUiComponentIxnFilter, ScrollableStateChangeRetriever, ScrollableUiComponentIxnFilter, StyleStateChange, UiComponentEventDescriptor, UiComponentStyleIxnFilter};
+use crate::menu::ui_menu_event::types::{ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, DraggableUiComponentIxnFilter, ScrollableStateChangeRetriever, ScrollableUiComponentIxnFilter, StyleStateChange, UiComponentEventDescriptor, UiComponentStyleIxnFilter};
 use crate::menu::ui_menu_event::ui_state_change;
 use crate::menu::ui_menu_event::ui_state_change::{GlobalState, StateChangeMachine, UiClickStateChange};
 use crate::ui_components::menu_components::BuildMenuResult;
+use crate::ui_components::menu_components::menu_options::dropdown_menu_option::DropdownMenuOptionResult;
+use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;
+use crate::ui_components::menu_components::menu_types::collapsable_menu::DrawCollapsableMenuResult;
+use crate::ui_components::menu_components::menu_types::dropdown_menu::DrawDropdownMenuResult;
 use crate::ui_components::ui_menu_component::{create_menu, UiIdentifiableComponent};
 
 pub struct UiEventPlugin;
@@ -44,10 +46,19 @@ impl Plugin for UiEventPlugin {
         app
             .add_state::<CreateMenu>()
             .add_startup_system(create_menu)
-            .add_system(insert_state_transitions::<PropagateDisplay>
+            .add_system(insert_state_transitions::<PropagateDisplay, DrawCollapsableMenuResult>
                 .in_schedule(OnEnter(CreateMenu::InsertStateTransitions))
             )
-            .add_system(insert_state_transitions::<SelectOptions>
+            .add_system(insert_state_transitions::<SelectOptions, DropdownMenuOptionResult>
+                .in_schedule(OnEnter(CreateMenu::InsertStateTransitions))
+            )
+            .add_system(insert_state_transitions::<PropagateDisplay, DrawDropdownMenuResult>
+                .in_schedule(OnEnter(CreateMenu::InsertStateTransitions))
+            )
+            .add_system(insert_state_transitions::<PropagateDisplay, DrawCollapsableMenuResult>
+                .in_schedule(OnEnter(CreateMenu::InsertStateTransitions))
+            )
+            .add_system(insert_state_transitions::<PropagateDisplay, BuildBaseMenuResult>
                 .in_schedule(OnEnter(CreateMenu::InsertStateTransitions))
             )
             .insert_resource(BuildMenuResult::default())
@@ -55,9 +66,12 @@ impl Plugin for UiEventPlugin {
             .insert_resource(DraggableStateChangeRetriever::default())
             .insert_resource(ScrollableStateChangeRetriever::default())
             .insert_resource(UiContext::default())
+            .insert_resource(ClickSelectOptions::default())
+            .insert_resource(ClickSelectionEventRetriever::default())
             .add_system(ClickEvents::click_write_events)
             .add_system(DragEvents::click_write_events)
             .add_system(ScrollEvents::click_write_events)
+            .add_system(ClickSelectOptions::click_write_events)
             .add_system(UiEventReader::read_events)
             .add_system(ui_state_change::hover_event)
             .add_system(event_merge_propagate::<DraggableUiComponentIxnFilter>)

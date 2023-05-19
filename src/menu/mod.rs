@@ -22,7 +22,7 @@ use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntitiesStateTypes, EntityComponentStateTransition, StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions, UiEntityComponentStateTransitions, UiEventArgs};
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, MetricChildNodes, Network, Node};
-use crate::ui_components::menu_components::{BuilderResult, BuildMenuResult};
+use crate::ui_components::menu_components::{BuildMenuResult};
 use crate::ui_components::menu_components::menu_types::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
 use crate::ui_components::menu_components::menu_options::dropdown_menu_option::{DropdownMenuOptionBuilder, DropdownMenuOptionResult};
 use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;

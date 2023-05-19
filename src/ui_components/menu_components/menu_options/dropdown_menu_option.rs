@@ -89,13 +89,13 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
                         Val::Percent(0.0),
                         Val::Percent(0.0)
                     ),
-
                     ..default()
                 },
                 z_index: ZIndex::Global(100),
                 background_color: BackgroundColor(Color::BLACK),
                 ..default()
             },
+            SelectOptions::default(),
             PropagateDisplay::default(),
             self.id_component.clone(),
             self.menu_option_component.clone()

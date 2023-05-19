@@ -11,9 +11,10 @@ use crate::event::event_state::{ClickContext, Context, StyleStateChangeEventData
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::menu::{Position, UiComponent};
 use crate::menu::ui_menu_event::change_style::{DoChange, UiChangeTypes};
+use crate::menu::ui_menu_event::interaction_ui_event_writer::ClickSelectOptions;
 use crate::menu::ui_menu_event::next_action::{DisplayState, UiComponentState};
 use crate::menu::ui_menu_event::ui_context::UiContext;
-use crate::menu::ui_menu_event::types::{ClickEvents, DraggableStateChangeRetriever, DraggableUiComponentFilter, DraggableUiComponentIxnFilter, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter};
+use crate::menu::ui_menu_event::types::{ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, DraggableUiComponentFilter, DraggableUiComponentIxnFilter, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter};
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiEventArgs};
 
 /// Contains the state data needed in order to generate the UIEvents from the state change required.
@@ -153,6 +154,9 @@ where SELF: ReadOnlyWorldQuery,
 
 impl UpdateGlobalState<UiComponentStyleFilter, UiComponentStyleIxnFilter>
 for ClickEvents {}
+
+impl UpdateGlobalState<UiComponentStyleFilter, UiComponentStyleIxnFilter>
+for ClickSelectionEventRetriever {}
 
 impl UpdateGlobalState<ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter>
 for ScrollableStateChangeRetriever  {
