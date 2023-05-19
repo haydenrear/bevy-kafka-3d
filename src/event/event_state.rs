@@ -1,11 +1,12 @@
-use bevy::prelude::{Color, Commands, Component, Entity, ResMut, Resource};
+use bevy::prelude::{Color, Commands, Component, Entity, info, ResMut, Resource, Style};
 use std::marker::PhantomData;
 use std::fmt::Debug;
 use bevy::ecs::query::ReadOnlyWorldQuery;
-use crate::cursor_adapter::CursorResource;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
-use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
+use crate::menu::ui_menu_event::change_style::UiChangeTypes;
 use crate::event::event_propagation::ChangePropagation;
+use crate::menu::ui_menu_event::ui_context::UiContext;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
 use crate::menu::ui_menu_event::ui_state_change::GlobalState;
 use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
 
@@ -72,7 +73,8 @@ where
 #[derive(Clone, Debug)]
 pub enum StyleStateChangeEventData {
     ChangeComponentColor(Color),
-    ChangeComponentStyle(ChangeStyleTypes),
+    ChangeComponentStyle(UiChangeTypes),
+    ChangeTextValue(),
     None,
 }
 
@@ -91,6 +93,7 @@ impl <T, Ctx> UpdateStateInPlace<T, Ctx> for Update<T>
         Ctx: Context
 {
     fn update_state(&self, commands: &mut Commands, value: &mut T, ctx: &mut ResMut<Ctx>) {
+        info!("Updating to state: {:?} from state: {:?}.", value, self.update_to);
         *value = self.update_to.as_ref().unwrap().clone();
     }
 }

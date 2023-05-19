@@ -7,10 +7,10 @@ use bevy::log::info;
 use bevy::math::Vec2;
 use bevy::time::Time;
 use crate::camera::raycast_select::BevyPickingState;
-use crate::cursor_adapter::CursorResource;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::PropagateComponentEvent;
 use crate::event::event_state::{ClickContext, Context, StateChangeFactory, Update, UpdateStateInPlace};
+use crate::interactions::InteractionEvent;
 use crate::menu::ui_menu_event::ui_state_change::{GlobalState, StateChangeMachine, UpdateGlobalState};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
@@ -38,7 +38,7 @@ pub trait ClickWriteEvents <
         mut event_write: EventWriter<EventDescriptor<EventDataT, EventArgsT, ComponentT>>,
         self_query: Query<SelfQuery, SelfFilterQuery>,
         with_parent_query: Query<PropagationQuery, PropagationFilterQuery>,
-        interaction_query: Query<(Entity, &Interaction, &UiIdentifiableComponent), InteractionFilterQuery>,
+        mut interaction_query: EventReader<InteractionEvent<InteractionFilterQuery>>,
         mut propagation_write: EventWriter<PropagateComponentEvent>,
         mut cursor_events: EventReader<CursorMoved>,
         mut wheel: EventReader<MouseWheel>,
@@ -49,8 +49,8 @@ pub trait ClickWriteEvents <
     {
         let _ = interaction_query
             .iter()
-            .for_each(|(entity, interaction, _)| {
-                if let Interaction::Clicked = interaction {
+            .for_each(|interaction| {
+                if let InteractionEvent::UiComponentInteraction { event: Interaction::Clicked, entity} = interaction {
                     context.clicked();
                     RetrieveStateT::update_click_hover_ui(&mut global_state, true);
                     intersected.picked_ui_flag = true;
@@ -59,7 +59,7 @@ pub trait ClickWriteEvents <
                     info!("Click interaction with: {:?}", &entity);
                     let events = RetrieveStateT::create_event(
                         &mut commands,
-                        entity,
+                        *entity,
                         &mut context,
                         &self_query,
                         &with_parent_query
@@ -70,14 +70,14 @@ pub trait ClickWriteEvents <
                     events.1.into_iter()
                         .for_each(|(event)| propagation_write.send(event));
 
-                } else if let Interaction::None = interaction {
+                } else if let InteractionEvent::UiComponentInteraction { event: Interaction::Hovered, entity} = interaction {
                     context.un_clicked();
                     RetrieveStateT::update_click_hover_ui(&mut global_state, false);
                     RetrieveStateT::update_cursor(&mut global_state, Vec2::ZERO);
                     if !mouse_button_input.pressed(MouseButton::Left) {
                         intersected.picked_ui_flag = false;
                     }
-                } else if let Interaction::Hovered = interaction {
+                } else if let InteractionEvent::UiComponentInteraction { event: Interaction::None, ..} = interaction {
                     if !mouse_button_input.pressed(MouseButton::Left) {
                         intersected.picked_ui_flag = true;
                     }

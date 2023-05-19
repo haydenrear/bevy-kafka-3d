@@ -1,6 +1,7 @@
 use bevy::ecs::system::EntityCommands;
 use bevy::prelude::*;
-use crate::menu::{ConfigurationOptionEnum, DropdownName, DropdownSelected, MenuItemMetadata, UiComponent};
+use crate::menu::{ConfigurationOptionEnum, DropdownName, DropdownSelected, MenuItemMetadata, SelectableType, UiComponent};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::PropagateDisplay;
 use crate::ui_components::menu_components::BuilderResult;
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 
@@ -10,13 +11,27 @@ pub struct BaseMenu<'a> {
     pub(crate) parent_menus: Vec<MenuItemMetadata>,
     pub(crate) component: UiComponent,
     pub(crate) parent: Entity,
-    pub(crate) selectable: bool,
 }
 
-#[derive(Default, Clone, Debug  )]
+#[derive(Clone, Debug)]
 pub struct BuildBaseMenuResult {
-    pub(crate) base_menu_parent: Option<Entity>,
-    pub(crate) base_menu_child_text: Option<Entity>
+    pub(crate) base_menu_parent: Entity,
+    pub(crate) base_menu_child_text: Entity
+}
+
+#[derive(Default)]
+struct BuildBaseMenuResultBuilder {
+    self_entity: Option<Entity>,
+    text_entity: Option<Entity>
+}
+
+impl BuildBaseMenuResultBuilder {
+    fn build(&self) -> BuildBaseMenuResult {
+        BuildBaseMenuResult {
+            base_menu_parent: self.self_entity.unwrap(),
+            base_menu_child_text: self.text_entity.unwrap()
+        }
+    }
 }
 
 impl BuilderResult for BuildBaseMenuResult{}
@@ -31,41 +46,46 @@ impl<'a> BaseMenu<'a> {
     ) -> BuildBaseMenuResult {
 
         let mut draw_button = commands.spawn(self.button_bundle());
-        let mut build_base_menu = BuildBaseMenuResult::default() ;
+        let mut build_base_menu = BuildBaseMenuResultBuilder::default();
 
         let button = draw_button
             .with_children(|button| {
                 let text_bundle = &mut button.spawn(self.text_bundle(&mut asset_server));
                 self.spawn_text_bundle(text_bundle);
                 let mut child_text_id = text_bundle.id();
-                build_base_menu.base_menu_child_text = Some(child_text_id);
+                build_base_menu.text_entity = Some(child_text_id);
             });
 
-        build_base_menu.base_menu_parent = Some(button.id());
+        build_base_menu.self_entity = Some(button.id());
 
         insert_config_option(self.config_option, button);
 
         commands.get_entity(self.parent)
             .as_mut()
             .map(|parent| {
-                parent.add_child(build_base_menu.base_menu_parent.unwrap());
+                parent.add_child(build_base_menu.self_entity.unwrap());
             });
 
-        info!("{:?} is base menu parent.", &build_base_menu.base_menu_parent.unwrap());
+        info!("{:?} is base menu parent.", &build_base_menu.self_entity.unwrap());
 
-        build_base_menu
+        build_base_menu.build()
     }
 
+    /// if you have a filter component for the state transition to determine if it's activated,
+    /// then you can filter, and add the state transition, and filter according to that component.
+    /// When you add the state transitions to the components, you can check to see which transition
+    /// group it is a part of.
     fn spawn_text_bundle<'b>(&'b self, text_bundle: &'b mut EntityCommands)  {
-        if self.selectable {
-            text_bundle.insert(
-                self.selectable_bundle()
-            );
-        } else {
-            text_bundle.insert(
-                self.non_selectable_bundle()
-            );
-        }
+        // TODO: if want to add selectable from dropdown instead of checkmark selectable
+        // if self.selectable {
+        //     text_bundle.insert(
+        //         self.selectable_bundle()
+        //     );
+        // } else {
+        //     text_bundle.insert(
+        //         self.non_selectable_bundle()
+        //     );
+        // }
     }
 
     pub(crate) fn text_bundle(&self, mut asset_server: &mut Res<AssetServer>) -> impl Bundle {
@@ -91,14 +111,14 @@ impl<'a> BaseMenu<'a> {
 
     pub(crate) fn selectable_bundle<'b>(&'b self) -> impl Bundle {
         (
-            UiComponent::DropdownSelected,
+            UiComponent::DropdownSelectable,
             DropdownSelected::default()
         )
     }
 
     pub(crate) fn non_selectable_bundle<'b>(&'b self) -> impl Bundle {
         (
-            UiComponent::DropdownName,
+            UiComponent::NamedDropdownMenu,
             DropdownName::default(),
         )
     }
@@ -124,6 +144,7 @@ impl<'a> BaseMenu<'a> {
                 background_color: BackgroundColor(Color::BLUE),
                 ..default()
             },
+            PropagateDisplay::default(),
             UiIdentifiableComponent(self.menu_metadata.id),
             self.component.clone(),
         )

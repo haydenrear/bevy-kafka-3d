@@ -17,16 +17,16 @@ use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
 use crate::graph::GraphParent;
 use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
 use crate::menu::menu_resource::{MENU, VARIANCE};
-use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
-use crate::menu::ui_menu_event::style_context::UiContext;
+use crate::menu::ui_menu_event::change_style::UiChangeTypes;
+use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntitiesStateTypes, EntityComponentStateTransition, StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions, UiEntityComponentStateTransitions, UiEventArgs};
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, MetricChildNodes, Network, Node};
 use crate::ui_components::menu_components::{BuilderResult, BuildMenuResult};
-use crate::ui_components::menu_components::base_menu::BuildBaseMenuResult;
-use crate::ui_components::menu_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
-use crate::ui_components::menu_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
-use crate::ui_components::menu_components::menu_options::dropdown_menu_option::DropdownMenuOptionResult;
+use crate::ui_components::menu_components::menu_types::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
+use crate::ui_components::menu_components::menu_options::dropdown_menu_option::{DropdownMenuOptionBuilder, DropdownMenuOptionResult};
+use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;
+use crate::ui_components::menu_components::menu_types::collapsable_menu::DrawCollapsableMenuResult;
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 pub(crate) mod ui_menu_event;
@@ -78,9 +78,15 @@ pub enum Position {
     Right
 }
 
+pub enum SelectableType {
+    DropdownSelectableReplaceText,
+    DropdownSelectableCheckmarkActivate,
+    NotSelectable
+}
+
 #[derive(Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq)]
 pub enum MenuOptionInputType {
-    Selected,
+    Activated,
     Radial,
     FormInput,
     Slider,
@@ -98,7 +104,7 @@ pub enum MenuInputType {
         metadata: MenuItemMetadata,
         option: ConfigurationOptionEnum,
     },
-    CollapsableMenu {
+    CollapsableMenuInputType {
         options: Vec<MenuOption>,
         metadata: MenuItemMetadata,
         option: ConfigurationOptionEnum
@@ -125,64 +131,6 @@ pub enum MenuInputType {
     }
 }
 
-pub(crate) fn update_style(style: &mut Style, metadata: MenuItemMetadata) {
-    metadata.size.map(|size| {
-        style.size = size;
-    });
-}
-
-
-
-impl MenuInputType {
-
-    // pub(crate) fn node_bundle(&self, component: UiComponent) -> impl Bundle {
-    //     match self {
-    //         MenuInputType::Dropdown { metadata, option, options } => {
-    //             (
-    //                 ButtonBundle {
-    //                     style: Style {
-    //                         display: component.starting_display(),
-    //                         flex_direction: FlexDirection::Column,
-    //                         align_self: AlignSelf::Start,
-    //                         size: Size::new(Val::Percent(100.0), Val::Px(40.0)),
-    //                         position: if metadata.swing_out {
-    //                             UiRect::new(Val::Percent(100.0), Val::Percent(0.0), Val::Percent(0.0), Val::Percent(0.0))
-    //                         } else {
-    //                             UiRect::default()
-    //                         },
-    //                         ..default()
-    //                     },
-    //                     background_color: BackgroundColor(Color::BLUE),
-    //                     ..default()
-    //                 },
-    //                 UiIdentifiableComponent(metadata.id)
-    //             )
-    //         }
-    //         MenuInputType::CollapsableMenu { metadata, .. } => {
-    //             ()
-    //         }
-    //         MenuInputType::Radial { metadata, .. } => {
-    //             ()
-    //         }
-    //         MenuInputType::FormInput { metadata, .. } => {
-    //             ()
-    //         }
-    //         MenuInputType::Slider { metadata, .. } => {
-    //             ()
-    //         }
-    //     }
-    // }
-    //
-    // pub(crate) fn children(&self) -> impl Bundle {
-    //     ()
-    // }
-
-    pub(crate) fn consumer(&self, mut commands: &mut Commands) {
-
-    }
-
-}
-
 #[derive(Clone, Debug)]
 pub struct SliderData {
     start: u32,
@@ -205,49 +153,6 @@ pub enum MenuType {
     Graph, Network, Metrics, Menu
 }
 
-impl <T, Ctx> UpdateStateInPlace<MetricsConfigurationOption<T>, Ctx>
-for MetricsConfigurationOption<T>
-where T: Component + Send + Sync + Clone + Debug + Default + 'static,
-    Ctx: Context
-{
-    fn update_state(&self,commands: &mut Commands, value: &mut MetricsConfigurationOption<T>, ctx: &mut ResMut<Ctx>) {
-        info!("Updating state from {:?} to {:?}.", value, &self);
-        *value = self.clone()
-    }
-}
-
-impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> MetricsConfigurationOption<T> {
-    pub(crate) fn get_data(&self) -> &DataType {
-        match self {
-            MetricsConfigurationOption::Variance(_, data, _) => { data }
-            MetricsConfigurationOption::Concavity(_, data, _) => { data }
-            MetricsConfigurationOption::Metrics(_, data, _) => { data }
-            MetricsConfigurationOption::GraphMenu(_, data, _, _) => { data }
-            MetricsConfigurationOption::NetworkMenu(_, data, _, _) =>  data
-        }
-    }
-}
-
-impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> MetricsConfigurationOption<T> {
-    pub(crate) fn get_id(&self) -> &'static str{
-        match self {
-            MetricsConfigurationOption::Variance(_, _, id) => {
-                id
-            }
-            MetricsConfigurationOption::Concavity(_, _, id) => {
-                id
-            }
-            MetricsConfigurationOption::Metrics(_, _, id) => {
-                id
-            }
-            MetricsConfigurationOption::GraphMenu(_, _, id, _) => {
-                id
-            }
-            MetricsConfigurationOption::NetworkMenu(_, _, id, _) => id
-        }
-    }
-}
-
 
 /// When you select an option, there are a few things to keep in mind:
 /// 1. When you select an option it may deselect other options. Or it may not.
@@ -264,23 +169,6 @@ impl <T: Component + Send + Sync + Clone + Debug + Default + 'static> Default
 for MetricsConfigurationOption<T> {
     fn default() -> Self {
         MetricsConfigurationOption::Variance(PhantomData::default(), DataType::Number(Some(0.0)), VARIANCE)
-    }
-}
-
-pub trait AcceptConfigurationOption<T> where Self: Component + Clone + Default + Debug {
-    fn accept_configuration_option(value: MetricsConfigurationOption<Self>, args: T)
-    where Self: Sized;
-}
-
-impl AcceptConfigurationOption<()> for Node {
-    fn accept_configuration_option(value: MetricsConfigurationOption<Node>, args: ()) {
-        todo!()
-    }
-}
-
-impl AcceptConfigurationOption<Vec<Node>> for MetricChildNodes {
-    fn accept_configuration_option(value: MetricsConfigurationOption<MetricChildNodes>, nodes: Vec<Node>) {
-        todo!()
     }
 }
 
@@ -313,7 +201,7 @@ pub enum ConfigurationOptionEnum {
 
 impl ConfigurationOptionEnum {
     pub(crate) fn get_option_input_enum(&self) -> MenuOptionInputType {
-        MenuOptionInputType::Selected
+        MenuOptionInputType::Activated
     }
 }
 
@@ -351,10 +239,6 @@ impl Default for DataType {
     }
 }
 
-pub trait UiBundled {
-    fn get_bundle(&self, commands: &mut Commands, menu_metadata: &MenuItemMetadata) -> Entity;
-}
-
 #[derive(Component, Default, Clone, Debug)]
 pub struct Dropdown {
     pub(crate) selected_index: usize,
@@ -363,7 +247,7 @@ pub struct Dropdown {
 }
 
 #[derive(Component, Clone, Debug, Default)]
-pub struct CollapsableMenu {
+pub struct CollapsableMenuComponent {
 }
 
 #[derive(Component, Clone, Debug, Default)]
@@ -435,7 +319,7 @@ pub struct ScrollableMenuItemsBarComponent {
 pub enum UiComponent {
     Dropdown(Dropdown),
     MenuOption(DropdownOption),
-    CollapsableMenuComponent(CollapsableMenu),
+    CollapsableMenu(CollapsableMenuComponent),
     SlideComponent(Slider),
     SliderKnob(SliderKnob),
     RadialComponent(Radial),
@@ -445,250 +329,10 @@ pub enum UiComponent {
     ScrollWheel(ScrollWheelComponent),
     ScrollingSidebar(ScrollingSidebarComponent),
     ScrollableMenuItemsBar(ScrollableMenuItemsBarComponent),
-    DropdownSelected,
-    DropdownName,
+    DropdownSelectable,
+    NamedDropdownMenu,
     Node,
-}
-
-pub trait GetStateTransitions<T: BuilderResult> {
-
-    fn get_state_transitions(builder_result: &T, entities: &Entities) -> Option<UiStyleComponentStateTransitions>;
-
-}
-
-fn change_child(style_type: ChangeStyleTypes, entities: &Vec<Entity>) -> Vec<(Entity, Relationship, UiStateChange<Style, StyleStateChangeEventData>)> {
-    let mut change_visisble = entities
-        .iter()
-        .map(|e| {
-            info!("Adding child for change visible: {:?}, {:?}.", e, &style_type);
-            e
-        })
-        .map(|entity| (
-            *entity,
-            Relationship::Child,
-            StateChangeActionType::Clicked{
-                value: ChangeComponentStyle(style_type.clone()),
-                p: PhantomData::default(),
-                p1: PhantomData::default(),
-                p2: PhantomData::default()
-            }
-        ))
-        .collect::<Vec<(Entity, Relationship, UiStateChange<Style, StyleStateChangeEventData>)>>();
-    change_visisble
-}
-
-fn change_visible_self(
-    build_menu_result: &Entities,
-    style_type: ChangeStyleTypes
-) -> Vec<(Entity, Relationship, UiStateChange<Style, StyleStateChangeEventData>)> {
-    vec![(
-        build_menu_result.self_state,
-        Relationship::SelfState,
-        StateChangeActionType::Clicked{
-            value: ChangeComponentStyle(style_type.clone()),
-            p: PhantomData::default(),
-            p1: PhantomData::default(),
-            p2: PhantomData::default()
-        }
-    )]
-}
-
-pub struct Entities {
-    pub(crate) siblings: Vec<Entity>,
-    pub(crate) children: Vec<Entity>,
-    pub(crate) siblings_children: Vec<Entity>,
-    pub(crate) siblings_children_recursive: Vec<Entity>,
-    pub(crate) parent: Vec<Entity>,
-    pub(crate) self_state: Entity,
-    pub(crate) children_recursive: Vec<Entity>
-}
-
-impl GetStateTransitions<BuildBaseMenuResult> for DrawDropdownMenuResult {
-    fn get_state_transitions(
-        builder_result: &BuildBaseMenuResult,
-        build_menu_result: &Entities,
-    ) -> Option<UiStyleComponentStateTransitions> {
-        info!("building state transitions.");
-
-        let remove_visible: Vec<(Entity, Relationship, UiStateChange<Style, StyleStateChangeEventData>)>
-            = change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
-        let change_visible = change_child(ChangeStyleTypes::ChangeVisible, &build_menu_result.children);
-
-        let mut siblings: Vec<(Entity, Relationship, UiStateChange<Style, StyleStateChangeEventData>)> = build_menu_result.siblings_children_recursive
-            .iter()
-            .map(|entity| (
-                *entity,
-                Relationship::SiblingChild,
-                StateChangeActionType::Clicked {
-                    value: ChangeComponentStyle(ChangeStyleTypes::RemoveVisible),
-                    p: PhantomData::default(),
-                    p1: PhantomData::default(),
-                    p2: PhantomData::default()
-                }
-            ))
-            .collect();
-
-        info!("{:?} are the sibling recursive.", &siblings);
-
-        Some(
-            UiEntityComponentStateTransitions {
-                transitions: vec![
-                    EntityComponentStateTransition {
-                        entity_to_change: EntitiesStateTypes {
-                            states: change_visible
-                        },
-                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
-                    },
-                    EntityComponentStateTransition {
-                        entity_to_change: EntitiesStateTypes {
-                            states: remove_visible
-                        },
-                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                    },
-                    EntityComponentStateTransition {
-                        entity_to_change: EntitiesStateTypes {
-                            states: siblings
-                        },
-                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
-                    },
-                ],
-            }
-        )
-    }
-}
-
-impl GetStateTransitions<DropdownMenuOptionResult> for DrawDropdownMenuResult {
-    fn get_state_transitions(
-        builder_result: &DropdownMenuOptionResult,
-        build_menu_result: &Entities,
-    ) -> Option<UiStyleComponentStateTransitions> {
-
-        let remove_visible = change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
-        let change_visible = change_child(ChangeStyleTypes::ChangeVisible, &build_menu_result.children);
-
-        let mut siblings: Vec<(Entity, Relationship, StyleStateChange)> = build_menu_result.siblings_children_recursive
-            .iter()
-            .map(|entity| (
-                *entity,
-                Relationship::SiblingChild,
-                StateChangeActionType::Clicked{
-                    value: ChangeComponentStyle(ChangeStyleTypes::RemoveVisible),
-                    p: PhantomData::default(),
-                    p1: PhantomData::default(),
-                    p2: PhantomData::default()
-                }
-            ))
-            .collect();
-
-        info!("{:?} are the sibling recursive.", &siblings);
-
-        Some(
-            UiEntityComponentStateTransitions {
-                transitions: vec![
-                    EntityComponentStateTransition {
-                        entity_to_change: EntitiesStateTypes {
-                            states: change_visible
-                        },
-                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
-                    },
-                    EntityComponentStateTransition {
-                        entity_to_change: EntitiesStateTypes {
-                            states: remove_visible
-                        },
-                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                    },
-                    EntityComponentStateTransition {
-                        entity_to_change: EntitiesStateTypes {
-                            states: siblings
-                        },
-                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
-                    },
-                ],
-            }
-        )
-    }
-}
-
-
-impl GetStateTransitions<DrawCollapsableMenuResult> for DrawCollapsableMenuResult {
-    fn get_state_transitions(
-        builder_result: &DrawCollapsableMenuResult,
-        build_menu_result: &Entities,
-    ) -> Option<UiStyleComponentStateTransitions> {
-
-        let mut add_visible = change_child( ChangeStyleTypes::AddVisible, &build_menu_result.children);
-
-        let mut remove_visible_recurs = change_child(ChangeStyleTypes::RemoveVisible, &build_menu_result.children_recursive);
-
-        let mut self_change_minimize = change_visible_self(build_menu_result, ChangeStyleTypes::UpdateSize {
-            height_1: 100.0,
-            width_1: 20.0,
-        });
-
-        let mut self_change_maximize = change_visible_self(build_menu_result, ChangeStyleTypes::UpdateSize {
-            height_1: 100.0,
-            width_1: 4.0,
-        });
-
-        Some(
-            UiEntityComponentStateTransitions {
-                transitions: vec![
-                    EntityComponentStateTransition{
-                        filter_state: UiComponentState::StateSize(SizeState::Expanded{
-                            height: 100,
-                            width: 20
-                        }),
-                        entity_to_change: EntitiesStateTypes {
-                            states: remove_visible_recurs,
-                        },
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayFlex),
-                    },
-                    EntityComponentStateTransition{
-                        filter_state: UiComponentState::StateSize(SizeState::Minimized {
-                            height: 100,
-                            width: 4
-                        }),
-                        entity_to_change: EntitiesStateTypes {
-                            states: add_visible,
-                        },
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayNone),
-                    },
-                    EntityComponentStateTransition{
-                        filter_state: UiComponentState::StateSize(SizeState::Minimized{
-                            height: 100,
-                            width: 4
-                        }),
-                        entity_to_change: EntitiesStateTypes {
-                            states: self_change_minimize
-                        },
-                        current_state_filter: UiComponentState::StateSize(SizeState::Minimized {
-                            height: 100,
-                            width: 4
-                        }),
-                    },
-                    EntityComponentStateTransition{
-                        filter_state: UiComponentState::StateSize(SizeState::Expanded {
-                            height: 100,
-                            width: 20
-                        }),
-                        entity_to_change: EntitiesStateTypes {
-                            states: self_change_maximize,
-                        },
-                        current_state_filter: UiComponentState::StateSize(SizeState::Expanded {
-                            height: 100,
-                            width: 20
-                        }),
-                    },
-                ],
-            }
-        )
-    }
+    MenuOptionCheckmark,
 }
 
 impl UiComponent {

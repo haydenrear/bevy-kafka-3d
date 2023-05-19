@@ -3,357 +3,273 @@ use std::sync::Arc;
 use bevy::log::{error, info};
 use bevy::utils::HashMap;
 use bevy::prelude::{BackgroundColor, Component, Display, Entity, ResMut, Size, Style, Val, Vec2};
+use bevy::text::Text;
 use bevy::ui::UiRect;
 use crate::event::event_state::Update;
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::menu::Position;
 use crate::menu::ui_menu_event::next_action::UiComponentState;
-use crate::menu::ui_menu_event::style_context::UiContext;
+use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentFilters, UiEventArgs};
 use crate::Node;
+
+
+#[derive(Clone, Debug)]
+pub enum UiChangeTypes {
+    RemoveVisible{value: ()},
+    AddVisible{value: ()},
+    ChangeVisible{value: ()},
+    ChangeSize {
+        value: (
+            // height_1
+            f32,
+            // height_2
+            f32,
+            // width_1
+            f32,
+            // width_2
+            f32
+        )
+    },
+    UpdateSize {
+        value: (
+            // height
+            f32,
+            // width
+            f32
+        )
+    },
+    Selected {
+        value: ()
+    },
+    DragXPosition{
+        value: ()
+    },
+    DragYPosition{
+        value: ()
+    },
+    ScrollX{
+        value: ()
+    },
+    ScrollY{
+        value: ()
+    },
+}
+
+fn do_remove_visible(value: (), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
+    if starting_state.display != Display::None {
+        let mut s = starting_state.clone();
+        s.display = Display::None;
+        return Some(UiEventArgs::Event(UiClickStateChange::ChangeDisplay {
+            entity,
+            update_display: Update {
+                update_to: Some(Display::None),
+            }}
+        ))
+    }
+    None
+}
+
+fn do_add_visible(value: (), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
+    if starting_state.display != Display::Flex {
+        let mut s = starting_state.clone();
+        s.display = Display::None;
+        return Some(UiEventArgs::Event(UiClickStateChange::ChangeDisplay {
+            entity,
+            update_display: Update {
+                update_to: Some(Display::Flex),
+            }}
+        ))
+    }
+    None
+}
+
+fn do_change_visible(value: (), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
+    if starting_state.display == Display::None {
+        do_add_visible(value, starting_state, entity, style_context)
+    } else if starting_state.display == Display::Flex {
+        do_remove_visible(value, starting_state, entity, style_context)
+    } else {
+        None
+    }
+}
+
+fn create_update_size_value(value: (f32, f32), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
+    let size = Size::new(Val::Percent(value.1), Val::Percent(value.0));
+    let created = do_create_updates(
+        starting_state,
+        &|style| Some(size),
+    );
+    if created.is_none() {
+        return None;
+    }
+    do_create_change_size_ui_event(created.unwrap(), entity)
+}
+
+fn create_change_size_value(value: (f32, f32, f32, f32), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
+    create_change_size(starting_state, entity, value.0, value.1, value.2, value.3)
+}
+
+pub trait DoChange<T> {
+    fn do_change(&self, starting_state: &T, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs>;
+}
+
+macro_rules! updates {
+    ($state:ty, $($update_fn:ident, $enum_variant:ident),*) => {
+            impl DoChange<$state> for UiChangeTypes {
+                    fn do_change(&self, starting_state: &$state, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
+                        info!("Creating UI event for {:?}.", &entity);
+                        match self {
+                            $(
+                                UiChangeTypes::$enum_variant { value } => {
+                                    $update_fn(*value, starting_state, entity, style_context)
+                                }
+                            )*
+                            _ => {
+                                None
+                            }
+                        }
+                    }
+            }
+    }
+}
+
+updates!(
+    Style,
+    do_remove_visible, RemoveVisible,
+    do_add_visible, AddVisible,
+    do_change_visible, ChangeVisible,
+    create_update_size_value, UpdateSize,
+    create_change_size_value, ChangeSize,
+    create_drag_x, DragXPosition
+);
+
+#[derive(Clone, Debug)]
+pub struct TextEventArgsFactory;
+impl TextEventArgsFactory {
+    fn do_create_ui_event(&self, starting_state: &Text, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
+        todo!()
+    }
+
+    fn get_change(&self, starting_state: &Text, entity: Entity, style_context: &mut ResMut<UiContext>) -> Text {
+        todo!()
+    }
+}
+
+fn create_drag_x(value: (), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
+    if !style_context.is_dragging || style_context.delta.is_none() {
+        return None;
+    }
+    let mut style = starting_state.clone();
+    let updated_drag = match &style.position.left {
+        Val::Px(mut px) => {
+            let prev = px;
+            px += style_context.delta.unwrap().x;
+            style_context.delta = None;
+            let mut pos = style.position.clone();
+            pos.left = Val::Px(px);
+            Some(pos)
+        }
+        Val::Percent(mut percent) => {
+            error!("Drag implemented with percentages. Not good.");
+            None
+        }
+        _ => {
+            None
+        }
+    }.map(|updated_drag| {
+        Update::<UiRect> {
+            update_to: Some(updated_drag),
+        }
+    }).map(|updated| {
+        Some(UiEventArgs::Event(UiClickStateChange::Slider {
+            update_scroll: updated,
+            entity,
+        }))
+    }).flatten();
+    updated_drag
+}
+
+fn create_update_size(starting_state: &Style, entity: Entity, width_1: f32, height_1: f32) -> Option<UiEventArgs> {
+    let size = Size::new(Val::Percent(width_1), Val::Percent(height_1));
+    let created = do_create_updates(
+        starting_state,
+        &|style| Some(size),
+    );
+    if created.is_none() {
+        return None;
+    }
+    do_create_change_size_ui_event(created.unwrap(), entity)
+}
+
+fn create_change_size(starting_state: &Style, entity: Entity, width_1: f32, width_2: f32, height_1: f32, height_2: f32) -> Option<UiEventArgs> {
+    let created = do_create_updates(
+        starting_state,
+        &|style| size(height_1, height_2, width_1, width_2, style),
+    );
+    if created.is_none() {
+        return None;
+    }
+    do_create_change_size_ui_event(created.unwrap(), entity)
+}
+
+pub(crate) fn size(height_1: f32, height_2: f32, width_1: f32, width_2: f32, starting_state: &Style) -> Option<Size> {
+    let mut size = None;
+    info!("{:?} is starting and height_1: {}, height_2: {}, width_1: {}, width_2: {}", starting_state.size, height_1, height_2, width_1, width_2);
+    if let Val::Percent(height) = starting_state.size.height {
+        info!("{} is height and {} is height_1", height, height_1);
+        if height == height_1 {
+            if let Val::Percent(width) = starting_state.size.width {
+                info!("{} is width and {} is width_1", width, width_1);
+                if width == width_1 {
+                    return Some(Size::new(Val::Percent(width_2), Val::Percent(height_2)));
+                } else if height_1 == height_2 {
+                    if width == width_2 {
+                        return Some(Size::new(Val::Percent(width_1), Val::Percent(height_1)));
+                    }
+                }
+            }
+        } else if height == height_2 {
+            if let Val::Percent(width) = starting_state.size.width {
+                if width == width_2 {
+                    return Some(Size::new(Val::Percent(width_1), Val::Percent(height_1)));
+                } else if height_1 == height_2 {
+                    info!("{} is width and {} is width_1", width, width_1);
+                    if width == width_1 {
+                        return Some(Size::new(Val::Percent(width_2), Val::Percent(height_2)));
+                    }
+                }
+            }
+        }
+    }
+    info!("Sizes did not match");
+    size
+}
 
 /// Need to translate StyleChangeType to UiComponentFilters, and then pass the UiComponentFilters to
 /// a general function or trait to execute behavior for all UiComponentFilters.
 /// UiComponentType (Type of node) -> UiComponentFilter
 /// UiComponentFilter -> ChangeStyleBehavior
-impl ChangeStyleTypes {
-
-    fn is_excluded(component_id: f32, exclude: &Option<Vec<f32>>) -> bool {
-        if exclude.is_some() && exclude.as_ref().unwrap().iter().any(|e| *e == component_id) {
-            info!("Was excluded");
-            return true;
-        }
-        false
-    }
-
-    fn do_create_change_size_ui_event(update_display: Update<Size>, entity: Entity) -> Option<UiEventArgs> {
-        return Some(UiEventArgs::Event(UiClickStateChange::ChangeSize {
-            update_display,
-            entity
-        }));
-    }
-
-    fn do_create_display_ui_event(update_display: Update<Display>, entity: Entity) -> Option<UiEventArgs> {
-        return Some(UiEventArgs::Event(UiClickStateChange::ChangeDisplay {
-            update_display,
-            entity
-        }));
-    }
-
-    fn do_create_updates<T: Clone + Debug + Default + Send + Sync>(
-        to_update: &Style,
-        get_next_state_component: &dyn Fn(&Style) -> Option<T>,
-    ) -> Option<Update<T>> {
-        let opt: Option<T> = get_next_state_component(to_update);
-        opt.map(|update_to| Update { update_to: Some(update_to) })
-    }
-
-    fn get_change_display(style: &Style) -> Display {
-        let mut display = style.display.clone();
-        if display == Display::None {
-            display = Display::Flex;
-        } else {
-            display = Display::None;
-        }
-        display
-    }
+fn do_create_change_size_ui_event(update_display: Update<Size>, entity: Entity) -> Option<UiEventArgs> {
+    return Some(UiEventArgs::Event(UiClickStateChange::ChangeSize {
+        update_display,
+        entity,
+    }));
 }
 
-pub trait ChangeStyle<T, S>: Send + Sync + Debug + Clone {
-    fn do_create_ui_event(&self,
-                          update_display: HashMap<Entity, T>,
-                          current_display: HashMap<Entity, T>
-    ) -> Option<UiEventArgs>;
-    fn get_change(&self, value: &S) -> T;
+fn do_create_display_ui_event(update_display: Update<Display>, entity: Entity) -> Option<UiEventArgs> {
+    return Some(UiEventArgs::Event(UiClickStateChange::ChangeDisplay {
+        update_display,
+        entity,
+    }));
 }
 
-macro_rules! gen_style_types {
-
-    ($($name:ident, $value:ty),*) => {
-
-        #[derive(Clone, Debug)]
-        pub enum ChangeStyleTypes {
-            RemoveVisible(Option<UiComponentFilters>),
-            AddVisible(Option<UiComponentFilters>),
-            ChangeVisible(Option<UiComponentFilters>),
-            ChangeSize {
-                height_1: f32,
-                height_2: f32,
-                width_1: f32,
-                width_2: f32,
-                filters: Option<UiComponentFilters>
-            },
-            $(
-               $name($value, Option<UiComponentFilters>),
-            )*
-        }
-
-        impl ChangeStyleTypes {
-            pub(crate) fn do_change(&self, starting_state: &Style, entities: HashMap<Entity, StyleNode>) -> Option<UiEventArgs> {
-                info!("Creating UI event for {:?}.", &entities);
-                match self {
-                    ChangeStyleTypes::RemoveVisible(_) => {
-                        let values = Self::do_create_updates(&entities, &Display::None, &|node| node.get_style().display);
-                        Self::do_create_display_ui_event(values.0)
-                    }
-                    ChangeStyleTypes::AddVisible(_) => {
-                        let values = Self::do_create_updates(&entities, &Display::Flex, &|node| node.get_style().display);
-                        Self::do_create_display_ui_event(values.0)
-                    }
-                    ChangeStyleTypes::ChangeVisible(_) => {
-                        let display = Self::get_change_display(starting_state);
-                        let values = Self::do_create_updates(&entities, &display, &|node| node.get_style().display);
-                        info!("Found values: {:?} for changin visible.", values);
-                        Self::do_create_display_ui_event(values.0)
-                    }
-                    ChangeStyleTypes::ChangeSize { width_1,width_2, height_1,height_2, .. } => {
-                        let size = Self::size(height_1, height_2, width_1, width_2, starting_state);
-                        size.map(|new_size| {
-                                Self::do_create_updates(&entities, &new_size, &|node| node.get_style().size)
-                            })
-                            .map(|created| Self::do_create_change_size_ui_event(created.0))
-                            .flatten()
-                            .or_else(|| {
-                                info!("Sizes did not match.");
-                                None
-                            })
-                    }
-                    $(
-                       ChangeStyleTypes::$name(value, _) => {
-                           let changed = value.get_change(starting_state);
-                           let values = Self::do_create_updates(&entities, &changed, &value.get_value);
-                           value.do_create_ui_event(values.0)
-                       }
-                    )*
-                }
-            }
-
-
-            pub(crate) fn filter_entities(&self,
-                                          entities: HashMap<Entity, StyleNode>
-            ) ->  HashMap<Entity, StyleNode> {
-                match self {
-                    ChangeStyleTypes::RemoveVisible(remove_visible) => {
-                        Self::get_filter(entities, remove_visible)
-                    }
-                    ChangeStyleTypes::AddVisible(add_visible) => {
-                        Self::get_filter(entities, add_visible)
-                    }
-                    ChangeStyleTypes::ChangeVisible(change_visible) => {
-                        Self::get_filter(entities, change_visible)
-                    }
-                    ChangeStyleTypes::ChangeSize { filters, .. } => {
-                        Self::get_filter(entities, filters)
-                    }
-                    $(
-                       ChangeStyleTypes::$name(_, filters) => {
-                            Self::get_filter(entities, filters)
-                       }
-                    )*
-                    _ => {
-                        entities
-                    }
-                }
-            }
-
-        }
-    }
+fn do_create_updates<T: Clone + Debug + Default + Send + Sync>(
+    to_update: &Style,
+    get_next_state_component: &dyn Fn(&Style) -> Option<T>,
+) -> Option<Update<T>> {
+    let opt: Option<T> = get_next_state_component(to_update);
+    opt.map(|update_to| Update { update_to: Some(update_to) })
 }
 
-// gen_style_types!();
-
-#[derive(Clone, Debug)]
-pub enum ChangeStyleTypes {
-    RemoveVisible,
-    AddVisible,
-    ChangeVisible,
-    ChangeSize {
-        height_1: f32,
-        height_2: f32,
-        width_1: f32,
-        width_2: f32,
-    },
-    UpdateSize {
-        height_1: f32,
-        width_1: f32,
-    },
-    Selected {
-
-    },
-    DragXPosition,
-    DragYPosition,
-    ScrollX,
-    ScrollY,
-}
-
-pub enum SelectionType {
-
-}
-
-impl ChangeStyleTypes {
-    pub(crate) fn do_change(
-        &self,
-        starting_state: &Style,
-        entity: Entity,
-        style_context: &mut ResMut<UiContext>
-    ) -> Option<UiEventArgs> {
-        match self {
-            ChangeStyleTypes::RemoveVisible => {
-                let values = Self::do_create_updates(
-                    starting_state,
-                        &|style| {
-                        if style.display == Display::Flex {
-                            return Some(Display::None);
-                        }
-                        None
-                    }
-                );
-                if values.is_none() {
-                    return None;
-                }
-                Self::do_create_display_ui_event(values.unwrap(), entity)
-            }
-            ChangeStyleTypes::AddVisible => {
-                let values = Self::do_create_updates(
-                    starting_state,
-                    &|style| {
-                        if style.display == Display::None {
-                            return Some(Display::Flex);
-                        }
-                        None
-                    }
-                );
-                if values.is_none() {
-                    return None;
-                }
-                Self::do_create_display_ui_event(values.unwrap(), entity)
-            }
-            ChangeStyleTypes::ChangeVisible => {
-                let values = Self::do_create_updates(
-                    starting_state,
-                    &|style| {
-                        if style.display == Display::Flex {
-                            return Some(Display::None);
-                        }
-                        Some(Display::Flex)
-                    }
-                );
-                if values.is_none() {
-                    return None;
-                }
-                Self::do_create_display_ui_event(values.unwrap(), entity)
-            }
-            ChangeStyleTypes::ChangeSize { width_1,width_2, height_1,height_2, .. } => {
-                let created = Self::do_create_updates(
-                        starting_state,
-                        &|style| Self::size(height_1, height_2, width_1, width_2, style)
-                );
-                if created.is_none() {
-                    return None;
-                }
-                Self::do_create_change_size_ui_event(created.unwrap(), entity)
-            }
-            ChangeStyleTypes::UpdateSize { width_1, height_1, .. } => {
-                let size = Size::new(Val::Percent(*width_1), Val::Percent(*height_1));
-                let created = Self::do_create_updates(
-                    starting_state,
-                    &|style| Some(size)
-                );
-                if created.is_none() {
-                    return None;
-                }
-                Self::do_create_change_size_ui_event(created.unwrap(), entity)
-            }
-            ChangeStyleTypes::DragXPosition => {
-                if !style_context.is_dragging || style_context.delta.is_none() {
-                    return None;
-                }
-                let mut style = starting_state.clone();
-                let updated_drag = match &style.position.left {
-                    Val::Px(mut px) => {
-                        let prev = px;
-                        px += style_context.delta.unwrap().x;
-                        style_context.delta = None;
-                        let mut pos = style.position.clone();
-                        info!("Updating from {} to {}", prev, px);
-                        pos.left = Val::Px(px);
-                        Some(pos)
-                    }
-                    Val::Percent(mut percent) => {
-                        error!("Drag implemented with percentages. Not good.");
-                        None
-                    }
-                    _ => {
-                        None
-                    }
-                }.map(|updated_drag| {
-                    Update::<UiRect> {
-                        update_to: Some(updated_drag),
-                    }
-                }).map(|updated| {
-                    Some(UiEventArgs::Event(UiClickStateChange::Slider {
-                        update_scroll: updated,
-                        entity
-                    }))
-                }).flatten();
-                updated_drag
-            }
-            ChangeStyleTypes::Selected { .. } => {
-                error!("In selected!");
-                None
-            },
-            ChangeStyleTypes::DragYPosition => {
-                error!("In drag!");
-                None
-            }
-            ChangeStyleTypes::ScrollX => {
-                error!("In drag!");
-                None
-            }
-            ChangeStyleTypes::ScrollY => {
-                error!("In drag!");
-                None
-            }
-        }
-    }
-
-
-}
-
-impl ChangeStyleTypes {
-
-    pub(crate) fn size(height_1: &f32, height_2: &f32, width_1: &f32, width_2: &f32, starting_state: &Style) -> Option<Size> {
-        let mut size = None;
-        info!("{:?} is starting and height_1: {}, height_2: {}, width_1: {}, width_2: {}", starting_state.size, height_1, height_2, width_1, width_2);
-        if let Val::Percent(height)  = starting_state.size.height {
-            info!("{} is height and {} is height_1", height, height_1);
-            if &height  == height_1 {
-                if let Val::Percent(width) = starting_state.size.width {
-                    info!("{} is width and {} is width_1", width, width_1);
-                    if &width == width_1 {
-                        return Some(Size::new(Val::Percent(*width_2), Val::Percent(*height_2)));
-                    } else if height_1 == height_2 {
-                        if &width == width_2 {
-                            return Some(Size::new(Val::Percent(*width_1), Val::Percent(*height_1)));
-                        }
-                    }
-                }
-            } else if &height  == height_2 {
-                if let Val::Percent(width) = starting_state.size.width {
-                    if &width == width_2 {
-                        return Some(Size::new(Val::Percent(*width_1), Val::Percent(*height_1)));
-                    } else if height_1 == height_2 {
-                        info!("{} is width and {} is width_1", width, width_1);
-                        if &width == width_1 {
-                            return Some(Size::new(Val::Percent(*width_2), Val::Percent(*height_2)));
-                        }
-                    }
-                }
-            }
-        }
-        info!("Sizes did not match");
-        size
-    }
-
-}

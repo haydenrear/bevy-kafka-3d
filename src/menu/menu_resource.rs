@@ -5,7 +5,7 @@ use bevy::ui::{Size, Val};
 use bevy::utils::default;
 use crate::graph::GraphParent;
 use crate::graph::graph_plugin::GraphPlugin;
-use crate::menu::{MetricsConfigurationOption, DataType, MenuData, MenuOption, MenuInputType, MenuItemMetadata, MenuOptionType, Position, ConfigurationOptionEnum, Menu, MenuType, SliderData, MenuOptionInputType};
+use crate::menu::{MetricsConfigurationOption, DataType, MenuData, MenuOption, MenuInputType, MenuItemMetadata, MenuOptionType, Position, ConfigurationOptionEnum, Menu, MenuType, SliderData, MenuOptionInputType, SelectableType};
 use crate::menu::config_menu_event::config_menu_event_plugin::ConfigMenuEventPlugin;
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, Network, Node};
@@ -27,7 +27,7 @@ impl Default for MenuResource {
                 sub_menus: vec![],
                 selectables: vec![
 
-                    MenuInputType::CollapsableMenu {
+                    MenuInputType::CollapsableMenuInputType {
                         options: vec![
                             MenuOption {
                                 data_type: MenuOptionType::SubMenu {
@@ -61,7 +61,7 @@ impl Default for MenuResource {
                                                                     ..default()
                                                                 },
                                                                 swing_out: true,
-                                                                ui_option_type: MenuOptionInputType::Selected,
+                                                                ui_option_type: MenuOptionInputType::Activated,
                                                             },
                                                             // variance
                                                             MenuOption {
@@ -85,7 +85,7 @@ impl Default for MenuResource {
                                                                     ..default()
                                                                 },
                                                                 swing_out: true,
-                                                                ui_option_type: MenuOptionInputType::Selected,
+                                                                ui_option_type: MenuOptionInputType::Activated,
                                                             },
                                                         ],
                                                         metadata: MenuItemMetadata {
@@ -160,7 +160,7 @@ impl Default for MenuResource {
                                                                     ..default()
                                                                 },
                                                                 swing_out: true,
-                                                                ui_option_type: MenuOptionInputType::Selected,
+                                                                ui_option_type: MenuOptionInputType::Activated,
                                                             },
                                                             // variance
                                                             MenuOption {
@@ -183,7 +183,7 @@ impl Default for MenuResource {
                                                                     ..default()
                                                                 },
                                                                 swing_out: true,
-                                                                ui_option_type: MenuOptionInputType::Selected,
+                                                                ui_option_type: MenuOptionInputType::Activated,
                                                             },
                                                         ],
                                                         metadata: MenuItemMetadata {
@@ -256,7 +256,7 @@ impl Default for MenuResource {
                                                                     ..default()
                                                                 },
                                                                 swing_out: true,
-                                                                ui_option_type: MenuOptionInputType::Selected,
+                                                                ui_option_type: MenuOptionInputType::Activated,
                                                             },
                                                             // variance
                                                             MenuOption {
@@ -279,7 +279,7 @@ impl Default for MenuResource {
                                                                     ..default()
                                                                 },
                                                                 swing_out: true,
-                                                                ui_option_type: MenuOptionInputType::Selected,
+                                                                ui_option_type: MenuOptionInputType::Activated,
                                                             },
                                                         ],
                                                         metadata: MenuItemMetadata {

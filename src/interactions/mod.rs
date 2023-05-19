@@ -4,9 +4,9 @@ use bevy::prelude::{Entity, Interaction};
 use ndarray::s;
 
 /// Convert all interactions to these events so that ui and 3d are comparable.
-pub enum InteractionEvent<T: ReadOnlyWorldQuery> {
-    BevyUiInteraction{event: Interaction},
-    RaycastInteraction{event: PickingEvent<T>}
+pub enum InteractionEvent<QueryFilterT: ReadOnlyWorldQuery> {
+    UiComponentInteraction { event: Interaction, entity: Entity },
+    RayCastInteraction { event: PickingEvent<QueryFilterT> },
 }
 
 /// An event that triggers when the selection state of a [Selection] enabled [PickableMesh] changes.
@@ -25,13 +25,13 @@ pub enum HoverEvent {
 
 /// An event that wraps selection and hover events
 #[derive(Debug, Clone)]
-pub enum PickingEvent<Q: ReadOnlyWorldQuery> {
-    Selection(SelectionEvent, PhantomData<Q>),
-    Hover(HoverEvent, PhantomData<Q>),
-    Clicked(Entity, PhantomData<Q>),
+pub enum PickingEvent<QueryFilterT: ReadOnlyWorldQuery> {
+    Selection(SelectionEvent, PhantomData<QueryFilterT>),
+    Hover(HoverEvent, PhantomData<QueryFilterT>),
+    Clicked(Entity, PhantomData<QueryFilterT>),
 }
 
-impl <Q: ReadOnlyWorldQuery> From<&bevy_mod_picking::PickingEvent> for PickingEvent<Q> {
+impl<QueryFilterT: ReadOnlyWorldQuery> From<&bevy_mod_picking::PickingEvent> for PickingEvent<QueryFilterT> {
     fn from(value: &bevy_mod_picking::PickingEvent) -> Self {
         match value {
             bevy_mod_picking::PickingEvent::Selection(selected) => {

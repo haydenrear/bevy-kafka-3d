@@ -1,10 +1,11 @@
 use bevy::prelude::{Button, Changed, Entity, Interaction, Style, With};
+use bevy::text::Text;
 use crate::event::event_descriptor::EventDescriptor;
 use crate::event::event_state::StyleStateChangeEventData;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::ui_menu_event::next_action::UiComponentState;
-use crate::menu::ui_menu_event::style_context::UiContext;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, UiEntityComponentStateTransitions, UiEventArgs};
+use crate::menu::ui_menu_event::ui_context::UiContext;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{PropagateDisplay, SelectOptions, StateChangeActionType, UiEntityComponentStateTransitions, UiEventArgs};
 use crate::menu::{DraggableComponent, ScrollableComponent, UiComponent};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
@@ -19,36 +20,39 @@ pub type PropagationQueryFilter<C> = (With<C>);
 
 
 pub type PropagationQuery<'a, C> = (Entity, &'a C, &'a UiIdentifiableComponent);
-pub type StateTransitionsQuery<'a, ComponentT, StateMachineT, MatchesT, Ctx, EventArgsT> =
+pub type StateTransitionsQuery<'a, ComponentT, StateMachineT, MatchesT, Ctx, EventArgsT, TransitionGroupT> =
 (Entity,
  &'a UiComponent,
  &'a ComponentT,
  &'a UiIdentifiableComponent,
- &'a UiEntityComponentStateTransitions<StateMachineT, ComponentT, MatchesT, Ctx, EventArgsT>);
+ &'a UiEntityComponentStateTransitions<StateMachineT, ComponentT, MatchesT, Ctx, EventArgsT, TransitionGroupT>);
 
 
-pub type StyleUiComponentStateTransitionsQuery<'a> = StateTransitionsQuery<'a, Style, StyleStateChangeEventData, UiComponentState, UiContext, UiEventArgs>;
+pub type StyleUiComponentStateTransitionsQuery<'a> = StateTransitionsQuery<'a, Style, StyleStateChangeEventData, UiComponentState, UiContext, UiEventArgs, PropagateDisplay>;
 pub type StylePropagationQuery<'a> = PropagationQuery<'a, Style>;
 pub type StylePropagationQueryFilter = PropagationQueryFilter<Style>;
 
 
 pub type UiStateChange<C, S> = StateChangeActionType<S, C, UiContext, UiEventArgs>;
 pub type StyleStateChange = StateChangeActionType<StyleStateChangeEventData, Style, UiContext, UiEventArgs>;
-pub type UiStyleComponentStateTransitions = UiEntityComponentStateTransitions<StyleStateChangeEventData, Style, UiComponentState, UiContext, UiEventArgs>;
+pub type UiStyleComponentStateTransitions = UiEntityComponentStateTransitions<StyleStateChangeEventData, Style, UiComponentState, UiContext, UiEventArgs, PropagateDisplay>;
 
 
 pub type DraggableStateChangeRetriever = StateChangeActionTypeStateRetriever<
     DraggableUiComponentFilter, DraggableUiComponentIxnFilter, Style,
-    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState>;
+    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState, PropagateDisplay>;
 
 pub type ScrollableStateChangeRetriever = StateChangeActionTypeStateRetriever<
     ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, Style, UiContext,
-    UiEventArgs, StyleStateChangeEventData, UiComponentState>;
+    UiEventArgs, StyleStateChangeEventData, UiComponentState, PropagateDisplay>;
 
 pub type ClickEvents = StateChangeActionTypeStateRetriever<
     UiComponentStyleFilter, UiComponentStyleIxnFilter, Style,
-    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState>;
+    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState, PropagateDisplay>;
 
+pub type ClickSelectionEvents = StateChangeActionTypeStateRetriever<
+    UiComponentStyleFilter, UiComponentStyleIxnFilter, Text,
+    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState, SelectOptions>;
 
 pub type UiComponentEventDescriptor = EventDescriptor<StyleStateChangeEventData, UiEventArgs, Style>;
 
@@ -56,5 +60,7 @@ pub type UiComponentEventDescriptor = EventDescriptor<StyleStateChangeEventData,
 pub type UiStyleEntityComponentStateTransitions = UiEntityComponentStateTransitions<
     StyleStateChangeEventData, Style,
     UiComponentState, UiContext,
-    UiEventArgs>;
+    UiEventArgs,
+    PropagateDisplay
+>;
 

@@ -20,7 +20,7 @@ use network::draw_network::{create_network, draw_network_initial, draw_node_conn
 use crate::camera::lerping_camera::camera_rotation_system;
 use crate::camera::raycast_select::BevyPickingState;
 use crate::config::ConfigurationProperties;
-use crate::cursor_adapter::calculate_picks;
+use crate::cursor_adapter::{calculate_picks, event_merge_propagate};
 use crate::data_subscriber::data_subscriber_plugin::DataSubscriberPlugin;
 use crate::event::event_propagation::{component_propagation_system, PropagateComponentEvent};
 use crate::graph::draw_graph_points::draw_graph_points;
@@ -84,7 +84,6 @@ async fn main() {
         .add_system(draw_network_initial)
         .add_system(component_propagation_system)
         .add_event::<PropagateComponentEvent>()
-        .add_event::<InteractionEvent<()>>()
         .run();
 }
 

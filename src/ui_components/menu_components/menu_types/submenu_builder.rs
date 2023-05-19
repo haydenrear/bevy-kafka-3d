@@ -1,10 +1,11 @@
 use bevy::prelude::*;
 use bevy::utils::HashMap;
-use crate::menu::{ConfigurationOptionEnum, Dropdown, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionType, UiComponent};
-use crate::ui_components::menu_components::base_menu::BaseMenu;
+use crate::menu::{ConfigurationOptionEnum, Dropdown, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionType, SelectableType, UiComponent};
+use crate::ui_components::get_menu_option_names;
 use crate::ui_components::menu_components::BuilderResult;
-use crate::ui_components::menu_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
-use crate::ui_components::ui_menu_component::menu_options;
+use crate::ui_components::menu_components::menu_types::base_menu::BaseMenu;
+use crate::ui_components::menu_components::menu_types::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
+use crate::ui_components::ui_menu_component::{dropdown_component, menu_options};
 
 pub struct SubmenuBuilder<'a> {
     pub(crate) parent: Option<Entity>,
@@ -15,7 +16,7 @@ pub struct SubmenuBuilder<'a> {
     pub(crate) sub_menu: &'a MenuInputType,
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Clone, Debug)]
 pub struct DrawSubmenuResult {
     pub(crate) dropdown_menu_result: DrawDropdownMenuResult,
     with_submenu_added: Vec<MenuItemMetadata>
@@ -32,37 +33,30 @@ impl <'a> SubmenuBuilder<'a> {
         mut asset_server: &mut Res<AssetServer>,
     ) -> Option<DrawSubmenuResult> {
         match self.sub_menu {
-            MenuInputType::Dropdown { options, metadata, option } => {
-                self.parent_menus.push(metadata.clone());
+            MenuInputType::Dropdown { options, metadata: menu_metadata, option } => {
+                self.parent_menus.push(menu_metadata.clone());
                 let base_menu = BaseMenu {
-                    menu_metadata: metadata,
+                    menu_metadata,
                     config_option: option,
                     parent_menus: self.parent_menus.clone(),
-                    component: UiComponent::Dropdown(Dropdown {
-                        selected_index: 0,
-                        selectable: false,
-                        options: options.iter()
-                            .map(|opt| opt.metadata.name.clone())
-                            .collect(),
-                    }),
+                    component: dropdown_component(options),
                     parent: self.parent.unwrap(),
-                    selectable: false,
                 };
                 let mut dropdown_menu_builder = DropdownMenuBuilder {
-                    menu_metadata: metadata,
+                    menu_metadata,
                     config_option: option,
                     parent_menus: self.parent_menus.clone(),
                     base_menu,
-                    menu_option_builders: menu_options(options, self.parent_menus.clone()),
+                    menu_option_builders: menu_options(options, &self.parent_menus),
                 };
                 let result = dropdown_menu_builder
                     .build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
-                self.parent_menus.push(metadata.clone());
+                self.parent_menus.push(menu_metadata.clone());
                 Some(DrawSubmenuResult {
                     dropdown_menu_result: result,
                     with_submenu_added: self.parent_menus.clone(),
                 })
-            },
+            }
             _ => {
                 None
             }

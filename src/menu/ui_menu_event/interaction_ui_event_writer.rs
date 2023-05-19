@@ -1,4 +1,5 @@
 use std::env::Args;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::PropagateDisplay;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use std::os::macos::raw::stat;
@@ -14,23 +15,24 @@ use crate::event::event_propagation::{ChangePropagation, PropagateComponentEvent
 use crate::event::event_actions::{ClickWriteEvents, RetrieveState};
 use crate::event::event_state::{Context, StyleStateChangeEventData};
 use crate::menu::{DraggableComponent, ScrollableComponent, UiComponent};
-use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
+use crate::menu::ui_menu_event::change_style::UiChangeTypes;
 use crate::menu::ui_menu_event::next_action::{Matches, UiComponentState};
-use crate::menu::ui_menu_event::style_context::UiContext;
+use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::types::{ClickEvents, DraggableStateChangeRetriever, DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, StateTransitionsQuery, StyleStateChange, StyleUiComponentStateTransitionsQuery, UiComponentStyleFilter, UiComponentStyleIxnFilter, UiStateChange};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntityComponentStateTransition, StateChangeActionType, UiComponentStateFilter, UiComponentStateTransition, UiComponentStateTransitions, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntityComponentStateTransition, StateChangeActionType, TransitionGroup, UiComponentStateTransition, UiComponentStateTransitions, UiEventArgs};
 use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 #[derive(Resource, Debug)]
-pub struct StateChangeActionTypeStateRetriever<SELF, IXN, S, Ctx, Args, StateMachine, MatchesT> (
+pub struct StateChangeActionTypeStateRetriever<SELF, IXN, S, Ctx, Args, StateMachine, MatchesT, TransitionGroupT> (
     PhantomData<SELF> ,
     PhantomData<IXN>,
     PhantomData<S>,
     PhantomData<Ctx>,
     PhantomData<Args>,
     PhantomData<StateMachine>,
-    PhantomData<MatchesT>
+    PhantomData<MatchesT>,
+    PhantomData<TransitionGroupT>,
 )
 where
     SELF: ReadOnlyWorldQuery,
@@ -39,7 +41,9 @@ where
     Ctx: Context,
     Args: EventArgs,
     StateMachine: StateChangeMachine<S, Ctx, Args>,
-    MatchesT: Matches<S>;
+    MatchesT: Matches<S>,
+    TransitionGroupT: TransitionGroup
+;
 
 impl ClickWriteEvents<
     ClickEvents,
@@ -77,7 +81,6 @@ impl ClickWriteEvents<
 #[derive(Default, Resource, Debug)]
 pub struct ScrollEvents;
 
-
 impl ClickWriteEvents<
     ScrollableStateChangeRetriever,
     UiEventArgs, StyleStateChangeEventData, Style, UiContext,
@@ -94,12 +97,31 @@ impl ClickWriteEvents<
 > for ScrollEvents {
 }
 
-impl <SelfFilterQuery, SelfIxnFilter, ComponentT, Ctx, EventArgsT, EventDataT, MatchesT> RetrieveState<
+#[derive(Default, Resource, Debug)]
+pub struct ClickSelectOptions;
+
+impl ClickWriteEvents<
+    ScrollableStateChangeRetriever,
+    UiEventArgs, StyleStateChangeEventData, Style, UiContext,
+    // self query
+    StyleUiComponentStateTransitionsQuery<'_>,
+    // self filter
+    ScrollableUiComponentFilter,
+    // parent query
+    PropagationQuery<'_, Style>,
+    // parent filter
+    PropagationQueryFilter<Style>,
+    // interaction filter
+    ScrollableIxnFilterQuery
+> for ClickSelectOptions {
+}
+
+impl <SelfFilterQuery, SelfIxnFilter, ComponentT, Ctx, EventArgsT, EventDataT, MatchesT, TransitionGroupT> RetrieveState<
     EventArgsT,
     EventDataT,
     ComponentT,
     Ctx,
-    StateTransitionsQuery<'_, ComponentT, EventDataT, MatchesT, Ctx, EventArgsT>,
+    StateTransitionsQuery<'_, ComponentT, EventDataT, MatchesT, Ctx, EventArgsT, TransitionGroupT>,
     PropagationQuery<'_, ComponentT>,
     SelfFilterQuery,
     PropagationQueryFilter<ComponentT>,
@@ -107,7 +129,7 @@ impl <SelfFilterQuery, SelfIxnFilter, ComponentT, Ctx, EventArgsT, EventDataT, M
 for StateChangeActionTypeStateRetriever<
     SelfFilterQuery, SelfIxnFilter,
     ComponentT, Ctx, EventArgsT, EventDataT,
-    MatchesT
+    MatchesT, TransitionGroupT
 >
 where
     SelfIxnFilter: ReadOnlyWorldQuery + Send + Sync + 'static,
@@ -116,14 +138,15 @@ where
     Ctx: Context,
     EventArgsT: EventArgs + Debug + 'static,
     EventDataT: StateChangeMachine<ComponentT, Ctx, EventArgsT> + EventData + 'static + Clone,
-    MatchesT: Matches<ComponentT>
+    MatchesT: Matches<ComponentT>,
+    TransitionGroupT: TransitionGroup
 {
     fn create_event(
         mut commands: &mut Commands,
         entity: Entity,
         mut style_context: &mut ResMut<Ctx>,
         entity_query: &Query<
-            StateTransitionsQuery<'_, ComponentT, EventDataT, MatchesT, Ctx, EventArgsT>,
+            StateTransitionsQuery<'_, ComponentT, EventDataT, MatchesT, Ctx, EventArgsT, TransitionGroupT>,
             SelfFilterQuery
         >,
         propagation_query: &Query<
@@ -146,8 +169,8 @@ where
     }
 }
 
-impl<SelfFilterQuery, IXN, C, StateMachine, MatchesT, Ctx, EventArgsT>
-StateChangeActionTypeStateRetriever<SelfFilterQuery, IXN, C, Ctx, EventArgsT, StateMachine, MatchesT>
+impl<SelfFilterQuery, IXN, C, StateMachine, MatchesT, Ctx, EventArgsT, TransitionGroupT>
+StateChangeActionTypeStateRetriever<SelfFilterQuery, IXN, C, Ctx, EventArgsT, StateMachine, MatchesT, TransitionGroupT>
     where
         SelfFilterQuery: ReadOnlyWorldQuery + Send + Sync + 'static,
         IXN: ReadOnlyWorldQuery + Send + Sync + 'static,
@@ -155,11 +178,12 @@ StateChangeActionTypeStateRetriever<SelfFilterQuery, IXN, C, Ctx, EventArgsT, St
         StateMachine: StateChangeMachine<C, Ctx, EventArgsT> + Send + Sync + EventData + 'static + Clone,
         MatchesT: Matches<C>,
         Ctx: Context,
-        EventArgsT: EventArgs + 'static
+        EventArgsT: EventArgs + 'static,
+        TransitionGroupT: TransitionGroup
 {
     fn create_ui_event(
         entity_query: &Query<
-            StateTransitionsQuery<'_, C, StateMachine, MatchesT, Ctx, EventArgsT>,
+            StateTransitionsQuery<'_, C, StateMachine, MatchesT, Ctx, EventArgsT, TransitionGroupT>,
             SelfFilterQuery
         >,
         propagation_query: &Query<
@@ -233,9 +257,10 @@ macro_rules! state_change_action_retriever_default {
     ($($ty1:ty, $ty2:ty, $ty3:ty, $ty4:ty, $ty5:ty),*) => {
         use crate::menu::Menu;
         $(
-            impl Default for StateChangeActionTypeStateRetriever<$ty1, $ty2, $ty3, $ty4, $ty5, StyleStateChangeEventData, UiComponentState>  {
+            impl Default for StateChangeActionTypeStateRetriever<$ty1, $ty2, $ty3, $ty4, $ty5, StyleStateChangeEventData, UiComponentState, PropagateDisplay>  {
                 fn default() -> Self {
                     Self(
+                        PhantomData::default(),
                         PhantomData::default(),
                         PhantomData::default(),
                         PhantomData::default(),

@@ -2,14 +2,14 @@ use std::default::default;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::menu::{ConfigurationOptionEnum, MenuItemMetadata, MenuOption, MenuOptionType, UiComponent};
-use crate::menu::UiComponent::CollapsableMenuComponent;
-use crate::ui_components::menu_components::base_menu::BaseMenu;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::PropagateDisplay;
+use crate::menu::UiComponent::CollapsableMenu;
 use crate::ui_components::menu_components::{add_config_opt, BuilderResult, do_submenu_menu_building};
-use crate::ui_components::menu_components::dropdown_menu::set_parent;
+use crate::ui_components::menu_components::menu_types::dropdown_menu::set_parent;
 use crate::ui_components::menu_components::menu_options::dropdown_menu_option::DropdownMenuOptionResult;
 use crate::ui_components::menu_components::menu_options::MenuOptionBuilder;
 use crate::ui_components::menu_components::menu_options::slider_menu_option::SliderMenuOptionResult;
-use crate::ui_components::menu_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
+use crate::ui_components::menu_components::menu_types::submenu_builder::DrawSubmenuResult;
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 
 pub struct CollapsableMenuBuilder<'a> {
@@ -67,7 +67,15 @@ impl <'a> CollapsableMenuBuilder<'a> {
         let mut collapsable = DrawCollapsableMenuResult::new(collapsable_menu_parent, text_child);
 
         let (submenu, menu_option, slider)
-            = do_submenu_menu_building(&mut commands, &mut self.menu_option_builders, Some(collapsable_menu_parent), materials, meshes, asset_server);
+            = do_submenu_menu_building(
+            &mut commands,
+            &mut self.menu_option_builders,
+            &None,
+            &Some(&collapsable),
+            materials,
+            meshes,
+            asset_server
+        );
 
         collapsable.submenu_results = submenu;
         collapsable.dropdown_menu_option_results = menu_option;
@@ -91,25 +99,29 @@ impl <'a> CollapsableMenuBuilder<'a> {
                 background_color: BackgroundColor(Color::BLACK),
                 ..default()
             },
+            PropagateDisplay::default(),
             self.menu_component.clone(),
             UiIdentifiableComponent(self.menu_metadata.id),
         )
     }
 
     pub(crate) fn text_child(&self, mut asset_server: &mut Res<AssetServer>) -> impl Bundle {
-        TextBundle {
-            style: Style {
-                size: Size::new(Val::Percent(95.0), Val::Px(30.0)),
+        (
+            TextBundle {
+                style: Style {
+                    size: Size::new(Val::Percent(95.0), Val::Px(30.0)),
+                    ..default()
+                },
+                text: Text::from_section(self.menu_metadata.name.to_string(), TextStyle {
+                    font_size: 16.0,
+                    font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                    color: Color::BLACK,
+                    ..default()
+                }),
                 ..default()
             },
-            text: Text::from_section(self.menu_metadata.name.to_string(), TextStyle {
-                font_size: 16.0,
-                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
-                color: Color::BLACK,
-                ..default()
-            }),
-            ..default()
-        }
+            PropagateDisplay::default()
+        )
     }
 }
 

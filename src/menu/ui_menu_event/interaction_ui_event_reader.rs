@@ -6,7 +6,7 @@ use crate::menu::config_menu_event::config_event::{ConfigEventStateFactory, Conf
 use crate::menu::{DataType, MetricsConfigurationOption, UiComponent};
 use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
 use crate::menu::ui_menu_event::next_action::NextUiState;
-use crate::menu::ui_menu_event::style_context::UiContext;
+use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::types::StyleStateChange;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionComponentStateFactory, StateChangeActionType, UiEventArgs};
 

@@ -4,10 +4,9 @@ use bevy::prelude::*;
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
 use crate::menu::{ConfigurationOptionEnum, DraggableComponent, MenuInputType, MenuItemMetadata, MenuOption, Slider, SliderKnob, UiComponent};
-use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
+use crate::menu::ui_menu_event::change_style::UiChangeTypes;
 use crate::menu::ui_menu_event::next_action::UiComponentState;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions};
-use crate::ui_components::menu_components::base_menu::BaseMenu;
 use crate::ui_components::menu_components::BuilderResult;
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 
@@ -120,7 +119,7 @@ impl <'a> SliderMenuOptionBuilder<'a> {
                     UiComponentStateTransition {
                         filter_state: UiComponentState::Any,
                         state_change: vec![StateChangeActionType::Dragged {
-                            value: ChangeComponentStyle(ChangeStyleTypes::DragXPosition),
+                            value: ChangeComponentStyle(UiChangeTypes::DragXPosition{value: ()}),
                             p: PhantomData::default(),
                             p1: PhantomData::default(),
                             p2: PhantomData::default()

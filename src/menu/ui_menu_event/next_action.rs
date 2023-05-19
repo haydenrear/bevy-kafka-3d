@@ -2,8 +2,7 @@ use std::marker::PhantomData;
 use bevy::prelude::{Commands, Component, Display, Entity, ResMut, Size, Style, Text, UiRect, Val};
 use bevy::log::info;
 use crate::event::event_state::{Update, UpdateStateInPlace};
-use crate::menu::ui_menu_event::style_context::UiContext;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::UiComponentStateFilter;
+use crate::menu::ui_menu_event::ui_context::UiContext;
 
 #[derive(Debug)]
 pub enum NextUiState {
@@ -94,7 +93,7 @@ pub trait Matches<T> : Send + Sync + 'static{
     fn matches(&self, other: &T) -> bool;
 }
 
-impl UiComponentStateFilter<Display> for DisplayState {
+impl Matches<Display> for DisplayState {
     fn matches(&self, other: &Display) -> bool {
         if let DisplayState::DisplayAny = self {
             return true;
@@ -122,7 +121,7 @@ impl SizeState {
 
 }
 
-impl UiComponentStateFilter<Size> for SizeState {
+impl Matches<Size> for SizeState {
     fn matches(&self, starting_state: &Size) -> bool {
         let (height_state, width_state) = self.get_width_height();
         info!("{} is height and {} is width, and {:?} is starting_state.", height_state, width_state, starting_state);

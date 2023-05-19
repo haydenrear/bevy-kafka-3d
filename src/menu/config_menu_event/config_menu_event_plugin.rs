@@ -1,9 +1,10 @@
 use bevy::prelude::*;
-use crate::cursor_adapter::CursorResource;
+use crate::cursor_adapter::event_merge_propagate;
 use crate::event::event_actions::{ClickWriteEvents, InteractionEventReader};
 use crate::event::event_descriptor::EventDescriptor;
 use crate::event::event_state::NextStateChange;
 use crate::graph::GraphParent;
+use crate::interactions::InteractionEvent;
 use crate::menu::config_menu_event::config_event::{ConfigEventStateFactory, ConfigurationOptionChange, ConfigurationOptionEventArgs, NextConfigurationOptionState};
 use crate::menu::config_menu_event::interaction_config_event_writer::{ConfigOptionActionStateRetriever, ConfigOptionContext};
 use crate::menu::{DataType, Menu, MetricsConfigurationOption};
@@ -23,6 +24,8 @@ impl Plugin for ConfigMenuEventPlugin {
             .insert_resource(ConfigOptionActionStateRetriever::<Menu>::default())
             .add_system(ConfigOptionActionStateRetriever::<Menu>::click_write_events)
             .add_system(ConfigEventReader::<Menu>::read_events)
+            .add_system(event_merge_propagate::<MetricsSelfIxnQueryFilter<Menu>>)
+            .add_event::<InteractionEvent<MetricsSelfIxnQueryFilter<Menu>>>()
             .add_event::<EventDescriptor<DataType, ConfigurationOptionEventArgs<Menu>, MetricsConfigurationOption<Menu>>>();
     }
 }

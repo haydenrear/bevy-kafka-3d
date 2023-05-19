@@ -6,24 +6,26 @@ use bevy::hierarchy::BuildChildren;
 use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::event::event_state::{HoverStateChange, StyleStateChangeEventData, Update, UpdateStateInPlace};
 use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
-use crate::menu::{CollapsableMenu, ConfigurationOptionEnum, DataType, DraggableComponent, Dropdown, DropdownOption, Menu, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionInputType, MenuOptionType, MenuType, MetricsConfigurationOption, Radial, ScrollableMenuComponent, ScrollableMenuItemsBarComponent, ScrollingSidebarComponent, ScrollWheelComponent, Slider, SliderData, SliderKnob, UiBundled, UiComponent};
+use crate::menu::{CollapsableMenuComponent, ConfigurationOptionEnum, DataType, DraggableComponent, Dropdown, DropdownOption, Menu, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionInputType, MenuOptionType, MenuType, MetricsConfigurationOption, Radial, ScrollableMenuComponent, ScrollableMenuItemsBarComponent, ScrollingSidebarComponent, ScrollWheelComponent, SelectableType, Slider, SliderData, SliderKnob, UiComponent};
 use crate::menu::menu_resource::{MENU, MenuResource};
-use crate::menu::ui_menu_event::change_style::ChangeStyleTypes;
+use crate::menu::ui_menu_event::change_style::UiChangeTypes;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{CreateMenu, StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions};
-use crate::menu::UiComponent::CollapsableMenuComponent;
+use crate::menu::UiComponent::CollapsableMenu;
 use crate::ui_components::ui_menu_component;
 use bevy::ecs::system::EntityCommands;
 use bevy::ui::{AlignItems, FocusPolicy, ZIndex};
+use crate::menu::MenuInputType::CollapsableMenuInputType;
 use crate::menu::ui_menu_event::next_action::{DisplayState, SizeState, UiComponentState};
-use crate::ui_components::menu_components::base_menu::BaseMenu;
+use crate::ui_components;
 use crate::ui_components::menu_components::BuildMenuResult;
-use crate::ui_components::menu_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
-use crate::ui_components::menu_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
-use crate::ui_components::menu_components::menu_options::dropdown_menu_option::{SelectionMenuOptionBuilder, DropdownMenuOptionResult};
+use crate::ui_components::menu_components::menu_types::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
+use crate::ui_components::menu_components::menu_options::dropdown_menu_option::{DropdownMenuOptionBuilder, DropdownMenuOptionResult};
 use crate::ui_components::menu_components::menu_options::MenuOptionBuilder;
 use crate::ui_components::menu_components::menu_options::slider_menu_option::SliderMenuOptionResult;
-use crate::ui_components::menu_components::root_collapsable::RootNodeBuilder;
-use crate::ui_components::menu_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
+use crate::ui_components::menu_components::menu_types::base_menu::BaseMenu;
+use crate::ui_components::menu_components::menu_types::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
+use crate::ui_components::menu_components::menu_types::root_collapsable::RootNodeBuilder;
+use crate::ui_components::menu_components::menu_types::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
 
 #[derive(Component, Debug, Clone)]
 pub struct UiIdentifiableComponent(pub f32);
@@ -56,7 +58,7 @@ pub fn create_menu(
                     option
                 );
             }
-            MenuInputType::CollapsableMenu { options, option, metadata } => {
+            MenuInputType::CollapsableMenuInputType { options, option, metadata } => {
                 add_collapsable(
                     &mut commands,
                     &mut build_result,
@@ -96,8 +98,8 @@ fn add_collapsable(
         menu_metadata: &metadata,
         config_option: &option,
         parent_menus: vec![],
-        menu_option_builders: menu_options(options, parents),
-        menu_component: CollapsableMenuComponent(CollapsableMenu::default()),
+        menu_option_builders: menu_options(options, &parents),
+        menu_component: CollapsableMenu(CollapsableMenuComponent::default()),
     };
     let collapsable = collapsable.build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
     add_results_collapsable(&mut build_result, collapsable);
@@ -125,145 +127,123 @@ fn add_dropdown(
             menu_metadata: &metadata,
             config_option: option,
             parent_menus: vec![],
-            component: UiComponent::Dropdown(
-                Dropdown {
-                    selected_index: 0,
-                    selectable: false,
-                    options: get_menu_option_names(options),
-                }
-            ),
-            selectable: false,
+            component: dropdown_component(options),
         },
-        menu_option_builders: menu_options(options, parents),
+        menu_option_builders: menu_options(options, &parents),
     };
     let dropdown = dropdown_builder.build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
     add_results_dropdown(&mut build_result, dropdown);
 }
 
-fn get_menu_option_names(options: &Vec<MenuOption>) -> Vec<String> {
-    options.iter()
-        .map(|opt| opt.metadata.name.to_string())
-        .collect()
+pub(crate) fn dropdown_component(options: &Vec<MenuOption>) -> UiComponent {
+    UiComponent::Dropdown(
+        Dropdown {
+            selected_index: 0,
+            selectable: false,
+            options: ui_components::get_menu_option_names(options),
+        }
+    )
 }
 
-pub(crate) fn menu_options<'a>(options: &'a Vec<MenuOption>, parents: Vec<MenuItemMetadata>) -> Vec<(MenuOption, MenuOptionBuilder<'a>)> {
+pub(crate) fn menu_options<'a>(options: &'a Vec<MenuOption>, parents: &'a Vec<MenuItemMetadata>) -> Vec<(MenuOption, MenuOptionBuilder<'a>)> {
     options.iter().flat_map(|opt| {
         match opt.ui_option_type {
-            MenuOptionInputType::Selected => selected_option_builder(&opt, parents.clone()),
+            MenuOptionInputType::DropdownMenu => submenu_builder(parents, &opt),
+            MenuOptionInputType::CollapsableMenu => submenu_builder(parents, &opt),
+            MenuOptionInputType::SubMenu => submenu_builder(parents, &opt),
+            MenuOptionInputType::Activated => selected_option_builder(&opt, parents),
             MenuOptionInputType::Radial => vec![],
             MenuOptionInputType::FormInput => vec![],
             MenuOptionInputType::Slider => vec![],
-            MenuOptionInputType::DropdownMenu => match &opt.data_type {
-                    MenuOptionType::Primitive(_) => panic!("Dropdown MenuOptionInputType has primitive data type!"),
-                    MenuOptionType::SubMenu {
-                        sub_menu,
-                        parent,
-                        config_option
-                    } => build_submenu(opt, sub_menu, config_option, parents.clone())
-            },
-            MenuOptionInputType::CollapsableMenu => match &opt.data_type {
-                    MenuOptionType::Primitive(_) => panic!("Dropdown MenuOptionInputType has primitive data type!"),
-                    MenuOptionType::SubMenu {
-                        sub_menu,
-                        parent,
-                        config_option
-                    } => build_submenu(opt, sub_menu, config_option, parents.clone())
-                }
-            ,
-            MenuOptionInputType::SubMenu => match &opt.data_type {
-                    MenuOptionType::Primitive(_) => panic!("Dropdown MenuOptionInputType has primitive data type!"),
-                    MenuOptionType::SubMenu {
-                        sub_menu,
-                        parent,
-                        config_option
-                    } => build_submenu(opt, sub_menu, config_option, parents.clone())
-                }
         }
     }).collect()
+}
+
+fn submenu_builder<'a>(parents: &'a Vec<MenuItemMetadata>, opt: &'a MenuOption) -> Vec<(MenuOption, MenuOptionBuilder<'a>)> {
+    match &opt.data_type {
+        MenuOptionType::Primitive(_) => panic!("Dropdown MenuOptionInputType has primitive data type!"),
+        MenuOptionType::SubMenu {
+            sub_menu,
+            parent,
+            config_option
+        } => build_submenu(opt, sub_menu, parents.clone())
+    }
 }
 
 fn build_submenu<'a>(
     opt: &MenuOption,
     sub_menu: &'a MenuInputType,
-    config_option: &'a ConfigurationOptionEnum,
     parents: Vec<MenuItemMetadata>
 ) -> Vec<(MenuOption, MenuOptionBuilder<'a>)> {
     match sub_menu {
         MenuInputType::Dropdown { options, option, metadata } => {
             vec![(
                opt.clone(),
-                MenuOptionBuilder::SubmenuBuilder(
-                    SubmenuBuilder {
-                        parent: None,
-                        menu_metadata: metadata.clone(),
-                        config_option: option,
-                        parent_menus: parents.clone(),
-                        menu_component: UiComponent::Dropdown(Dropdown {
-                            selected_index: 0,
-                            selectable: false,
-                            options: get_menu_option_names(options),
-                        }),
-                        sub_menu,
-                    }
-                )
+               get_submenu_builder(sub_menu, &parents, option, metadata, dropdown_component(options))
             )]
         }
         MenuInputType::ScrollableMenu { option, options, metadata } => {
             vec![(
                 opt.clone(),
-                MenuOptionBuilder::SubmenuBuilder(
-                    SubmenuBuilder {
-                        parent: None,
-                        menu_metadata: opt.metadata.clone(),
-                        config_option,
-                        parent_menus: parents.clone(),
-                        menu_component: UiComponent::ScrollableMenuComponent(ScrollableMenuComponent {}),
-                        sub_menu,
-                    }
-                )
+                get_submenu_builder(sub_menu, &parents, option, metadata, UiComponent::ScrollableMenuComponent(ScrollableMenuComponent {}))
             )]
         }
-        MenuInputType::CollapsableMenu { option, options, metadata } => {
+        MenuInputType::CollapsableMenuInputType { option, options, metadata } => {
             vec![(
                 opt.clone(),
-                MenuOptionBuilder::SubmenuBuilder(
-                    SubmenuBuilder {
-                        parent: None,
-                        menu_metadata: opt.metadata.clone(),
-                        config_option,
-                        parent_menus: parents.clone(),
-                        menu_component: CollapsableMenuComponent(CollapsableMenu {}),
-                        sub_menu,
-                    }
-                )
+                get_submenu_builder(sub_menu, &parents, option, metadata, UiComponent::CollapsableMenu(CollapsableMenuComponent {}))
             )]
         }
         _ => panic!("Submenu has incompatible menu input type")
     }
 }
 
-fn selected_option_builder<'a>(opt: &'a MenuOption, vec1: Vec<MenuItemMetadata>) -> Vec<(MenuOption, MenuOptionBuilder<'a>)> {
+fn get_submenu_builder<'a>(
+    sub_menu: &'a MenuInputType,
+    parents: &Vec<MenuItemMetadata>,
+    option: &'a ConfigurationOptionEnum,
+    metadata: &'a MenuItemMetadata,
+    ui_component: UiComponent
+) -> MenuOptionBuilder<'a> {
+    MenuOptionBuilder::SubmenuBuilder(
+        SubmenuBuilder {
+            parent: None,
+            menu_metadata: metadata.clone(),
+            config_option: option,
+            parent_menus: parents.clone(),
+            menu_component: ui_component,
+            sub_menu,
+        }
+    )
+}
+
+fn selected_option_builder<'a>(opt: &'a MenuOption, parent_metadata: &'a Vec<MenuItemMetadata>) -> Vec<(MenuOption, MenuOptionBuilder<'a>)> {
     match &opt.data_type {
         MenuOptionType::Primitive(option) => {
             vec![(
                 opt.clone(),
-                MenuOptionBuilder::SelectionOptionBuilder(
-                    SelectionMenuOptionBuilder {
+                MenuOptionBuilder::DropdownMenuOptionBuilder(
+                    DropdownMenuOptionBuilder {
                         parent: None,
                         menu_option: opt,
                         config_option: option,
-                        parents: vec1,
-                        menu_option_component: UiComponent::MenuOption(DropdownOption {
-                            index: opt.index,
-                            option_name: opt.metadata.name.clone(),
-                        }),
+                        parents: parent_metadata.clone(),
+                        menu_option_component: menu_option(opt),
                         id_component: UiIdentifiableComponent(opt.metadata.id),
+                        selectable: SelectableType::DropdownSelectableCheckmarkActivate
                     }
                 )
             )]
         }
         _ => panic!("Selected menu option have MenuOptionType of Primitive.")
     }
+}
+
+fn menu_option(opt: &MenuOption) -> UiComponent {
+    UiComponent::MenuOption(DropdownOption {
+        index: opt.index,
+        option_name: opt.metadata.name.clone(),
+    })
 }
 
 fn add_results_collapsable(mut build_result: &mut ResMut<BuildMenuResult>, dropdown: DrawCollapsableMenuResult) {
@@ -276,8 +256,8 @@ fn add_results_collapsable(mut build_result: &mut ResMut<BuildMenuResult>, dropd
 }
 
 fn add_results_dropdown(mut build_result: &mut ResMut<BuildMenuResult>, dropdown: DrawDropdownMenuResult) {
-    build_result.dropdown.insert(dropdown.base_menu_result.base_menu_parent.unwrap(), dropdown.clone());
-    build_result.base_menu_results.insert(dropdown.base_menu_result.base_menu_parent.unwrap(),
+    build_result.dropdown.insert(dropdown.base_menu_result.base_menu_parent, dropdown.clone());
+    build_result.base_menu_results.insert(dropdown.base_menu_result.base_menu_parent,
                                           dropdown.base_menu_result);
     add_results(&mut build_result,
                 &dropdown.dropdown_menu_option_results,

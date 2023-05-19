@@ -7,3 +7,4 @@ pub(crate) mod config_event;
 pub(crate) mod config_event_reader;
 pub(crate) mod network_component_interaction_system;
 pub(crate) mod config_menu_event_plugin;
+pub(crate) mod config_event_state_change;

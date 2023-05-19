@@ -9,7 +9,7 @@ use crate::menu::ui_menu_event::next_action::Matches;
 use crate::menu::ui_menu_event::types::UiStyleEntityComponentStateTransitions;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentStateTransitions, UiEntityComponentStateTransitions, UiEventPlugin};
 use crate::test::bevy_tests::default_plugins::NoRenderBevyIntegrationTestPlugin;
-use crate::ui_components::state_transitions::insert_state_transitions;
+use crate::ui_components::state_transitions_system::insert_state_transitions;
 use crate::ui_components::menu_components::BuildMenuResult;
 
 #[test]

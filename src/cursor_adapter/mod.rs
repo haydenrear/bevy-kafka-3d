@@ -13,41 +13,31 @@ use bevy_mod_picking::{HoverEvent, PickingEvent, PickingRaycastSet, RaycastSourc
 use crate::camera::ZoomableDraggableCamera;
 
 
-#[derive(Resource, Default)]
-pub struct CursorResource {
-    pub(crate) cursor_pos: Vec2,
-    pub(crate) cursor_delta: Vec2,
-    pub(crate) click_hover_ui: bool,
-    pub(crate) hover_ui: bool,
-    pub(crate) scroll_wheel_delta: Vec2,
-    pub(crate) wheel_units: Option<MouseScrollUnit>
-}
-
 /// Will be used to adapt all events into a single InteractionEvent type, which is generic over
 /// the query which is used, so that events can be filtered for the different Ui systems. Ultimately,
 /// the event system needs to be used for both UI events and other event types, updating the state
 /// of 3d elements and UI elements.
-pub(crate) fn click_write_events<IXN: ReadOnlyWorldQuery + Send + Sync + 'static>(
-    mut event_writer: EventWriter<InteractionEvent<IXN>>,
-    interaction_query: Query<(Entity, &Interaction), IXN>,
+pub(crate) fn event_merge_propagate<InteractionFilterQueryT: ReadOnlyWorldQuery + Send + Sync + 'static>(
+    mut event_writer: EventWriter<InteractionEvent<InteractionFilterQueryT>>,
+    interaction_query: Query<(Entity, &Interaction), InteractionFilterQueryT>,
 )
 {
     let _ = interaction_query
         .into_iter()
-        .for_each(|(_, interaction)| {
-            event_writer.send(InteractionEvent::BevyUiInteraction {
-                event: *interaction
-            })
+        .for_each(|(entity, interaction)| {
+            event_writer.send(InteractionEvent::UiComponentInteraction {
+                event: *interaction,
+                entity
+            });
         });
 }
 
-
 pub trait MatchesPickingEvent {
-    fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &RaycastActionable), QueryEntityError>) -> bool ;
+    fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &RayCastActionable), QueryEntityError>) -> bool;
 }
 
 impl MatchesPickingEvent for InteractionEvent<()> {
-    fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &RaycastActionable), QueryEntityError>) -> bool {
+    fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &RayCastActionable), QueryEntityError>) -> bool {
         raycast_actionable
             .map(|(entity, r)| {
                 r.is_ui_interactable
@@ -61,7 +51,7 @@ impl MatchesPickingEvent for InteractionEvent<()> {
 /// action can be taken. This allows interaction between the 3d and the UI event system. When the
 /// nodes are selected, a menu needs to pop up.
 #[derive(Component)]
-pub struct RaycastActionable {
+pub struct RayCastActionable {
     is_ui_interactable: bool,
 }
 
@@ -94,11 +84,11 @@ fn get_entity(picking_event: &PickingEvent) -> Entity {
 }
 
 
-macro_rules! ray_cast_system {
+macro_rules! interactable_event_system {
     () => {
         pub(crate) fn calculate_picks(
             mut raycast_source: EventReader<PickingEvent>,
-            raycast_actionable: Query<(Entity, &RaycastActionable), (With<RaycastActionable>)>,
+            raycast_actionable: Query<(Entity, &RayCastActionable), (With<RayCastActionable>)>,
             mut intersected: ResMut<BevyPickingState>,
             cam: Res<ZoomableDraggableCamera>,
             mouse_button_input: Res<Input<MouseButton>>,
@@ -168,4 +158,4 @@ macro_rules! ray_cast_system {
 
 }
 
-ray_cast_system!();
+interactable_event_system!();

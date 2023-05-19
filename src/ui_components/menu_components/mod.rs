@@ -1,22 +1,18 @@
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::menu::{ConfigurationOptionEnum, MenuOption, MenuOptionInputType, MenuOptionType};
-use crate::ui_components::menu_components::base_menu::BuildBaseMenuResult;
-use crate::ui_components::menu_components::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
-use crate::ui_components::menu_components::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
-use crate::ui_components::menu_components::menu_options::dropdown_menu_option::{SelectionMenuOptionBuilder, DropdownMenuOptionResult};
+use menu_types::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
+use crate::ui_components::menu_components::menu_options::dropdown_menu_option::{DropdownMenuOptionBuilder, DropdownMenuOptionResult};
 use crate::ui_components::menu_components::menu_options::MenuOptionBuilder;
 use crate::ui_components::menu_components::menu_options::slider_menu_option::{SliderMenuOptionBuilder, SliderMenuOptionResult};
-use crate::ui_components::menu_components::root_collapsable::{DrawRootNodeResult, RootNodeBuilder};
-use crate::ui_components::menu_components::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
+use menu_types::submenu_builder::{DrawSubmenuResult, SubmenuBuilder};
+use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;
+use crate::ui_components::menu_components::menu_types::collapsable_menu::{CollapsableMenuBuilder, DrawCollapsableMenuResult};
+use crate::ui_components::menu_components::menu_types::root_collapsable::{DrawRootNodeResult, RootNodeBuilder};
 use crate::ui_components::ui_menu_component::insert_config_option;
 
-pub(crate) mod dropdown_menu;
-pub(crate) mod base_menu;
-pub(crate) mod submenu_builder;
-pub(crate) mod collapsable_menu;
-pub(crate) mod root_collapsable;
 pub(crate) mod menu_options;
+pub(crate) mod menu_types;
 
 pub trait BuilderResult {}
 
@@ -50,7 +46,7 @@ fn add_config_opt(mut commands: &mut Commands, base_menu_result: Option<Entity>,
 
 pub(crate) fn get_swing_out(menu_option: &MenuOption) -> f32 {
     let swing_out = match menu_option.ui_option_type  {
-        MenuOptionInputType::Selected => false,
+        MenuOptionInputType::Activated {} => false,
         MenuOptionInputType::Radial => false,
         MenuOptionInputType::FormInput => false,
         MenuOptionInputType::Slider => false,
@@ -68,7 +64,8 @@ pub(crate) fn get_swing_out(menu_option: &MenuOption) -> f32 {
 fn do_submenu_menu_building<'a>(
     mut commands: &mut Commands,
     mut builders: &'a mut Vec<(MenuOption, MenuOptionBuilder<'a>)>,
-    parent: Option<Entity>,
+    base_menu_parent: &Option<&BuildBaseMenuResult>,
+    collapsable_result: &Option<&DrawCollapsableMenuResult>,
     mut materials: &mut ResMut<Assets<ColorMaterial>>,
     mut meshes: &mut ResMut<Assets<Mesh>>,
     mut asset_server: &mut Res<AssetServer>,
@@ -79,19 +76,19 @@ fn do_submenu_menu_building<'a>(
     for (option, builder) in builders.iter_mut() {
         match &option.data_type {
             MenuOptionType::Primitive(config_type) => {
-                if let MenuOptionBuilder::SelectionOptionBuilder(builder) = builder {
-                    builder.parent = parent;
+                if let MenuOptionBuilder::DropdownMenuOptionBuilder(builder) = builder {
+                    builder.parent = base_menu_parent.cloned();
                     let menu_option = builder.build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
                     draw_menu_option.push(menu_option);
                 } else if let MenuOptionBuilder::SliderMenuOptionBuilder(slider) = builder {
-                    slider.parent = parent;
+                    slider.parent = get_parent_entity(&base_menu_parent, &collapsable_result);
                     let menu_option = slider.build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
                     slider_menu.push(menu_option);
                 }
             }
             MenuOptionType::SubMenu { .. } => {
                 if let MenuOptionBuilder::SubmenuBuilder(builder) = builder {
-                    builder.parent = parent;
+                    builder.parent = get_parent_entity(&base_menu_parent, &collapsable_result);
                     builder.build(&mut commands, &mut materials, &mut meshes, &mut asset_server)
                         .map(|submenu| draw_submenu.push(submenu));
                 }
@@ -99,4 +96,12 @@ fn do_submenu_menu_building<'a>(
         };
     }
     (draw_submenu, draw_menu_option, slider_menu)
+}
+
+pub(crate) fn get_parent_entity(base_menu_parent: &Option<&BuildBaseMenuResult>, collapsable_result: &Option<&DrawCollapsableMenuResult>) -> Option<Entity> {
+    base_menu_parent
+        .map(|base| base.base_menu_parent)
+        .or_else(|| collapsable_result
+            .map(|collapsable| collapsable.collapsable_menu_button)
+        )
 }

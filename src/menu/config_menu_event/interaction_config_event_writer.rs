@@ -3,7 +3,6 @@ use std::marker::PhantomData;
 use bevy::input::mouse::MouseScrollUnit;
 use bevy::prelude::*;
 use bevy::utils::hashbrown::HashMap;
-use crate::cursor_adapter::CursorResource;
 use crate::event::event_actions::{ClickWriteEvents, RetrieveState};
 use crate::event::event_descriptor::EventDescriptor;
 use crate::event::event_propagation::PropagateComponentEvent;
@@ -23,7 +22,8 @@ pub struct ConfigOptionActionStateRetriever<T: Component>
     phantom: PhantomData<T>,
 }
 
-impl <T> UpdateGlobalState<MetricsSelfQueryFilter<T>,MetricsSelfIxnQueryFilter<T>> for ConfigOptionActionStateRetriever<T>
+impl <T> UpdateGlobalState<MetricsSelfQueryFilter<T>,MetricsSelfIxnQueryFilter<T>>
+for ConfigOptionActionStateRetriever<T>
     where T: Component + Send + Sync + Default + Clone + Debug + 'static
 {
 }

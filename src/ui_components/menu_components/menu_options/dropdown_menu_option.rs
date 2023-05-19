@@ -1,30 +1,35 @@
 use std::default::default;
 use bevy::prelude::*;
-use crate::menu::{ConfigurationOptionEnum, MenuInputType, MenuItemMetadata, MenuOption, UiComponent};
-use crate::ui_components::menu_components::base_menu::BaseMenu;
-use crate::ui_components::menu_components::{add_config_opt, BuilderResult, get_swing_out};
+use crate::menu::{ConfigurationOptionEnum, MenuInputType, MenuItemMetadata, MenuOption, SelectableType, UiComponent};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{PropagateDisplay, SelectOptions};
+use crate::ui_components::menu_components::{add_config_opt, BuilderResult, get_parent_entity, get_swing_out};
+use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 
-pub struct SelectionMenuOptionBuilder<'a> {
-    pub(crate) parent: Option<Entity>,
+pub struct DropdownMenuOptionBuilder<'a> {
+    pub(crate) parent: Option<BuildBaseMenuResult>,
     pub(crate) menu_option: &'a MenuOption,
     pub(crate) config_option: &'a ConfigurationOptionEnum,
     pub(crate) parents: Vec<MenuItemMetadata>,
     pub(crate) menu_option_component: UiComponent,
     pub(crate) id_component: UiIdentifiableComponent,
+    pub(crate) selectable: SelectableType,
 }
 
 #[derive(Default, Clone, Debug)]
 pub struct DropdownMenuOptionResult {
     pub(crate) menu_option_entity: Option<Entity>,
     pub(crate) breadcrumbs_entity: Option<Entity>,
-    pub(crate) selected_entity: Option<Entity>,
-    pub(crate) text_entity: Option<Entity>
+    pub(crate) selected_checkmark_entity: Option<Entity>,
+    pub(crate) text_entity: Option<Entity>,
+    pub(crate) parent_entity: Option<Entity>,
+    pub(crate) parent_text_entity: Option<Entity>,
+    pub(crate) dropdown_selectable_menu_option: bool
 }
 
 impl BuilderResult for DropdownMenuOptionResult {}
 
-impl <'a> SelectionMenuOptionBuilder<'a> {
+impl <'a> DropdownMenuOptionBuilder<'a> {
 
     pub(crate) fn build(
         &self,
@@ -49,13 +54,19 @@ impl <'a> SelectionMenuOptionBuilder<'a> {
                     // creates a blue mark to show inside of submenu
                     result.breadcrumbs_entity = Some(child_builder.spawn(self.breadcrumbs_entity()).id());
                     result.text_entity = Some(child_builder.spawn(self.text_entity(&mut asset_server)).id());
+                    if matches!(self.selectable, SelectableType::DropdownSelectableCheckmarkActivate) {
+                        result.selected_checkmark_entity = Some(child_builder.spawn(self.selected_entity()).id());
+                        info!("{:?} is selected checkmark entity.", &result.selected_checkmark_entity);
+                    }
                 })
             );
 
-        commands.get_entity(self.parent.unwrap())
+        let parent_entity = get_parent_entity(&self.parent.as_ref(), &None).unwrap();
+
+        commands.get_entity(parent_entity)
             .as_mut()
             .map(|parent| {
-                info!("Adding child to {:?}", self.parent.unwrap());
+                info!("Adding child to {:?}", parent_entity);
                 parent.add_child(menu_option_button)
             });
 
@@ -85,13 +96,28 @@ impl <'a> SelectionMenuOptionBuilder<'a> {
                 background_color: BackgroundColor(Color::BLACK),
                 ..default()
             },
+            PropagateDisplay::default(),
             self.id_component.clone(),
             self.menu_option_component.clone()
         )
     }
 
     pub(crate) fn selected_entity(&self) -> impl Bundle {
-        ()
+        (
+            NodeBundle {
+                style: Style {
+                    display: Display::None,
+                    position: UiRect::right(Val::Percent(10.0)),
+                    size: Size::all(Val::Percent(10.0)),
+                    ..default()
+                },
+                background_color: BackgroundColor(Color::GREEN),
+                ..default()
+            },
+            UiComponent::MenuOptionCheckmark,
+            SelectOptions::default(),
+            self.id_component.clone()
+        )
     }
 
     pub(crate) fn text_entity(&self, mut asset_server: &mut Res<AssetServer>) -> impl Bundle {
@@ -111,6 +137,7 @@ impl <'a> SelectionMenuOptionBuilder<'a> {
                 ..default()
             },
             Label,
+            PropagateDisplay::default(),
             self.id_component.clone()
         )
     }
@@ -127,6 +154,7 @@ impl <'a> SelectionMenuOptionBuilder<'a> {
                 ..default()
             },
             Label,
+            PropagateDisplay::default(),
             self.id_component.clone()
         )
     }
