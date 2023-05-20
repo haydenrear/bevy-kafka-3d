@@ -1,12 +1,17 @@
+use std::io::Cursor;
 use std::marker::PhantomData;
 use bevy::ecs::query::ReadOnlyWorldQuery;
+use bevy::input::mouse::MouseWheel;
 use bevy::prelude::{Entity, Interaction};
+use bevy::window::CursorMoved;
 use ndarray::s;
 
 /// Convert all interactions to these events so that ui and 3d are comparable.
 pub enum InteractionEvent<QueryFilterT: ReadOnlyWorldQuery> {
     UiComponentInteraction { event: Interaction, entity: Entity },
     RayCastInteraction { event: PickingEvent<QueryFilterT> },
+    ScrollWheelEvent { event: MouseWheel },
+    CursorEvent {event: CursorMoved }
 }
 
 /// An event that triggers when the selection state of a [Selection] enabled [PickableMesh] changes.

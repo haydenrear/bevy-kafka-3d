@@ -1,7 +1,7 @@
 use bevy::prelude::*;
 use bevy::prelude::KeyCode::A;
 use crate::camera::raycast_select::BevyPickingState;
-use crate::event::event_propagation::{component_propagation_system, PropagateComponentEvent};
+use crate::event::event_propagation::{component_propagation_system, SideEffectWriter};
 use crate::interactions::InteractionEvent;
 use crate::menu::menu_resource::MenuResource;
 use crate::menu::ui_menu_event::ui_state_change::GlobalState;
@@ -9,8 +9,9 @@ use crate::menu::ui_menu_event::next_action::Matches;
 use crate::menu::ui_menu_event::types::UiStyleEntityComponentStateTransitions;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentStateTransitions, UiEntityComponentStateTransitions, UiEventPlugin};
 use crate::test::bevy_tests::default_plugins::NoRenderBevyIntegrationTestPlugin;
-use crate::ui_components::state_transitions_system::insert_state_transitions;
 use crate::ui_components::menu_components::BuildMenuResult;
+
+pub(crate) mod html_parsing_tests;
 
 #[test]
 pub(crate) fn test_state_transitions_added() {
@@ -59,7 +60,7 @@ fn create_app<'a>(app: &'a mut App) -> &'a mut App {
         .insert_resource(MenuResource::default())
         .insert_resource(GlobalState::default())
         .insert_resource(BevyPickingState::default())
-        .add_event::<PropagateComponentEvent>()
+        .add_event::<SideEffectWriter>()
         .add_event::<InteractionEvent<()>>()
         .add_plugins(NoRenderBevyIntegrationTestPlugin)
         .add_plugin(UiEventPlugin);

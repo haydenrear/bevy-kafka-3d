@@ -5,7 +5,7 @@ use bevy::prelude::*;
 use bevy::utils::hashbrown::HashMap;
 use crate::event::event_actions::{ClickWriteEvents, RetrieveState};
 use crate::event::event_descriptor::EventDescriptor;
-use crate::event::event_propagation::PropagateComponentEvent;
+use crate::event::event_propagation::SideEffectWriter;
 use crate::event::event_state::{ClickContext, Context};
 use crate::menu::{ConfigurationOptionComponent, ConfigurationOptionEnum, DataType, MenuType, MetricsConfigurationOption};
 use crate::menu::config_menu_event::config_event::{ConfigurationOptionChange, ConfigurationOptionEventArgs};
@@ -40,7 +40,7 @@ impl <T> ClickContext<MetricsSelfQueryFilter<T>, MetricsSelfIxnQueryFilter<T>>
 for ConfigOptionContext
 where T: Component + Send + Sync + Default + Clone + Debug + 'static
 {
-    fn clicked(&mut self) {
+    fn clicked(&mut self, entity: Entity) {
     }
 
     fn un_clicked(&mut self) {
@@ -91,7 +91,7 @@ for ConfigOptionActionStateRetriever<T>
         >,
     ) -> (
         Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
-        Vec<PropagateComponentEvent>
+        Vec<SideEffectWriter>
     )
     {
         let mut event_descriptors = vec![];
@@ -105,7 +105,7 @@ for ConfigOptionActionStateRetriever<T>
 impl<T> ConfigOptionActionStateRetriever<T>
 where T: Component + Send + Sync + Default + Clone + Debug + 'static
 {
-    fn set_menu_events(entity: Entity, mut context: &mut ResMut<ConfigOptionContext>, self_query: &Query<(Entity, &MetricsConfigurationOption<T>), With<MetricsConfigurationOption<T>>>, mut event_descriptors: &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>, mut propagate_events: &mut Vec<PropagateComponentEvent>) {
+    fn set_menu_events(entity: Entity, mut context: &mut ResMut<ConfigOptionContext>, self_query: &Query<(Entity, &MetricsConfigurationOption<T>), With<MetricsConfigurationOption<T>>>, mut event_descriptors: &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>, mut propagate_events: &mut Vec<SideEffectWriter>) {
         let _ = self_query.get(entity)
             .map(|(entity, config)| {
                 info!("Here is config for creating event: {:?}", config);
@@ -189,7 +189,7 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
 
 fn create_add_events<T>(
     mut event_descriptors: &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
-    mut propagate_events: &mut Vec<PropagateComponentEvent>,
+    mut propagate_events: &mut Vec<SideEffectWriter>,
     entity: Entity,
     config: MetricsConfigurationOption<T>,
     data_type: DataType,
@@ -202,7 +202,7 @@ fn create_add_events<T>(
     let event_descriptor = create_graph_menu_event(entity, data_type, config);
     let event = create_event_tuple(
         event_descriptor,
-        &|entity| Some(PropagateComponentEvent::ChangeVisible(entity, visible)),
+        &|entity| Some(SideEffectWriter::ChangeVisible(entity, visible)),
         other_entity,
     );
     add_to_events(&mut event_descriptors, &mut propagate_events, event);
@@ -211,8 +211,8 @@ fn create_add_events<T>(
 fn add_to_events<T>(
     mut event_descriptors:
     &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
-    mut propagate_events: &mut Vec<PropagateComponentEvent>,
-    event: Vec<(EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>, Vec<PropagateComponentEvent>)>,
+    mut propagate_events: &mut Vec<SideEffectWriter>,
+    event: Vec<(EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>, Vec<SideEffectWriter>)>,
 )
     where
         T: Component + Send + Sync + Default + Clone + Debug + 'static
@@ -226,9 +226,9 @@ fn add_to_events<T>(
 
 fn create_event_tuple<T>(
     event_descriptor: EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>,
-    option: &dyn Fn(Entity) -> Option<PropagateComponentEvent>,
+    option: &dyn Fn(Entity) -> Option<SideEffectWriter>,
     entity: Option<Entity>,
-) -> Vec<(EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>, Vec<PropagateComponentEvent>)>
+) -> Vec<(EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>, Vec<SideEffectWriter>)>
     where
         T: Component + Send + Sync + Default + Clone + Debug + 'static
 {

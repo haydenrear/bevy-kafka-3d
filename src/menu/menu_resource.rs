@@ -406,81 +406,85 @@ impl Default for MenuResource {
                         ),
                     },
 
-                    // MenuInputType::CollapsableMenu {
-                    //     options: vec![
-                    //
-                    //         MenuOption {
-                    //             data_type: MenuOptionType::Primitive(
-                    //                 ConfigurationOptionEnum::Menu(
-                    //                     MetricsConfigurationOption::GraphMenu(
-                    //                         PhantomData::<Menu>::default(),
-                    //                         DataType::Deselected,
-                    //                         MENU,
-                    //                         MenuType::Graph
-                    //                     ))
-                    //             ),
-                    //             index: 0,
-                    //             metadata: MenuItemMetadata {
-                    //                 icon: "".to_string(),
-                    //                 font: Default::default(),
-                    //                 name: "Display Graph".to_string(),
-                    //                 icon_pos: Default::default(),
-                    //                 size: None,
-                    //                 color: Default::default(),
-                    //                 description: "".to_string(),
-                    //                 id: 101.0,
-                    //                 swing_out: false,
-                    //             },
-                    //             swing_out: false,
-                    //             ui_option_type: MenuOptionInputType::CollapsableMenu,
-                    //         },
-                    //         MenuOption {
-                    //             data_type: MenuOptionType::Primitive(
-                    //                 ConfigurationOptionEnum::Menu(
-                    //                     MetricsConfigurationOption::NetworkMenu(
-                    //                         PhantomData::<Menu>::default(),
-                    //                         DataType::Deselected,
-                    //                         MENU,
-                    //                         MenuType::Network
-                    //                     ))
-                    //             ),
-                    //             index: 0,
-                    //             metadata: MenuItemMetadata {
-                    //                 icon: "".to_string(),
-                    //                 font: Default::default(),
-                    //                 name: "Display Network".to_string(),
-                    //                 icon_pos: Default::default(),
-                    //                 size: None,
-                    //                 color: Default::default(),
-                    //                 description: "".to_string(),
-                    //                 id: 101.0,
-                    //                 swing_out: true,
-                    //             },
-                    //             swing_out: false,
-                    //         },
-                    //
-                    //     ],
-                    //     metadata: MenuItemMetadata {
-                    //         icon: "".to_string(),
-                    //         font: Default::default(),
-                    //         name: "Display".to_string(),
-                    //         icon_pos: Default::default(),
-                    //         size: None,
-                    //         color: Default::default(),
-                    //         description: "".to_string(),
-                    //         id: 0.0,
-                    //         swing_out: false,
-                    //     },
-                    //     option: ConfigurationOptionEnum::Menu(
-                    //         MetricsConfigurationOption::GraphMenu(
-                    //             PhantomData::<Menu>::default(),
-                    //             DataType::Deselected,
-                    //             MENU,
-                    //             MenuType::Menu
-                    //         )
-                    //     ),
-                    // },
-                    //
+                    MenuInputType::CollapsableMenuInputType {
+                        options: vec![
+
+                            MenuOption {
+                                data_type: MenuOptionType::Primitive(
+                                    ConfigurationOptionEnum::Menu(
+                                        MetricsConfigurationOption::GraphMenu(
+                                            PhantomData::<Menu>::default(),
+                                            DataType::Deselected,
+                                            MENU,
+                                            MenuType::Graph
+                                        ))
+                                ),
+                                index: 0,
+                                metadata: MenuItemMetadata {
+                                    icon: "".to_string(),
+                                    font: Default::default(),
+                                    name: "Display Graph".to_string(),
+                                    initial_value: "".to_string(),
+                                    icon_pos: Default::default(),
+                                    size: None,
+                                    color: Default::default(),
+                                    description: "".to_string(),
+                                    id: 101.0,
+                                    swing_out: false,
+                                },
+                                swing_out: false,
+                                ui_option_type: MenuOptionInputType::Activated,
+                            },
+                            MenuOption {
+                                data_type: MenuOptionType::Primitive(
+                                    ConfigurationOptionEnum::Menu(
+                                        MetricsConfigurationOption::NetworkMenu(
+                                            PhantomData::<Menu>::default(),
+                                            DataType::Deselected,
+                                            MENU,
+                                            MenuType::Network
+                                        ))
+                                ),
+                                index: 0,
+                                metadata: MenuItemMetadata {
+                                    icon: "".to_string(),
+                                    font: Default::default(),
+                                    name: "Display Network".to_string(),
+                                    initial_value: "".to_string(),
+                                    icon_pos: Default::default(),
+                                    size: None,
+                                    color: Default::default(),
+                                    description: "".to_string(),
+                                    id: 101.0,
+                                    swing_out: true,
+                                },
+                                swing_out: false,
+                                ui_option_type: MenuOptionInputType::Activated,
+                            },
+
+                        ],
+                        metadata: MenuItemMetadata {
+                            icon: "".to_string(),
+                            font: Default::default(),
+                            name: "Display".to_string(),
+                            initial_value: "".to_string(),
+                            icon_pos: Default::default(),
+                            size: None,
+                            color: Default::default(),
+                            description: "".to_string(),
+                            id: 0.0,
+                            swing_out: false,
+                        },
+                        option: ConfigurationOptionEnum::Menu(
+                            MetricsConfigurationOption::GraphMenu(
+                                PhantomData::<Menu>::default(),
+                                DataType::Deselected,
+                                MENU,
+                                MenuType::Menu
+                            )
+                        ),
+                    },
+
                     // MenuInputType::Slider {
                     //     metadata: Default::default(),
                     //     slider_data: SliderData {
@@ -489,7 +493,7 @@ impl Default for MenuResource {
                     //     },
                     //     option: Default::default(),
                     // },
-                    //
+
                     // MenuInputType::Radial {
                     //     options: vec![
                     //         MenuOption {
@@ -504,6 +508,7 @@ impl Default for MenuResource {
                     //                 ..default()
                     //             },
                     //             swing_out: false,
+                    //             ui_option_type: MenuOptionInputType::Activated,
                     //         },
                     //         MenuOption {
                     //             data_type: MenuOptionType::Primitive(ConfigurationOptionEnum::LayerVariance(MetricsConfigurationOption::Variance(
@@ -517,6 +522,7 @@ impl Default for MenuResource {
                     //                 ..default()
                     //             },
                     //             swing_out: false,
+                    //             ui_option_type: MenuOptionInputType::Activated,
                     //         }
                     //     ],
                     //     metadata: MenuItemMetadata {

@@ -1,48 +1,25 @@
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashSet};
 use std::fmt::Debug;
-use bevy::ecs::query::QueryEntityError;
 use bevy::prelude::*;
-use bevy::tasks::ParallelSlice;
-use crate::event::event_propagation::Relationship;
 use crate::event::state_transition::get_state_transitions::{ChildFilter, ChildQuery, Entities, EntityFilter, EntityQuery, GetStateTransitions, ParentFilter, ParentQuery};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{PropagateDisplay, TransitionGroup, UiComponentStateTransitions};
-use crate::menu::UiComponent;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{TransitionGroup};
 use crate::ui_components::menu_components::{BuildMenuResult};
-use crate::ui_components::menu_components::menu_options::dropdown_menu_option::DropdownMenuOptionResult;
 
-pub fn insert_state_transitions<TransitionGroupT: TransitionGroup + Debug, GetStateTransitionsT: GetStateTransitions<TransitionGroupT> + Debug>(
+pub fn insert_state_transitions<TransitionGroupT, GetStateTransitionsT>(
     mut commands: Commands,
     build_menu_result: Res<BuildMenuResult>,
     entity_query: Query<EntityQuery<'_, TransitionGroupT>, EntityFilter<TransitionGroupT>>,
     with_children_query: Query<ChildQuery<'_, TransitionGroupT>, ChildFilter<TransitionGroupT>>,
     with_parent_query: Query<ParentQuery<'_, TransitionGroupT>, ParentFilter<TransitionGroupT>>,
 )
+where
+    TransitionGroupT: TransitionGroup + Debug,
+    GetStateTransitionsT: GetStateTransitions<TransitionGroupT> + Debug
 {
-
-    entity_query.for_each(|e| {
-        info!("{:?} here is component with select options.", e.0);
-    });
 
     for entity in GetStateTransitionsT::get_entities(&build_menu_result).iter() {
 
-        let children = get_filter_components::<TransitionGroupT>(&entity_query, child_entities(&entity_query, &with_children_query, *entity));
-        let children_recursive = get_filter_components::<TransitionGroupT>(
-            &entity_query,
-            children_recursive(*entity, &entity_query, &with_children_query, &with_parent_query)
-        );
-        let siblings_children_recursive = get_filter_components::<TransitionGroupT>(
-            &entity_query,
-            siblings_children_recursive(&entity_query, &with_children_query, &with_parent_query, *entity)
-        );
-        let entities = Entities {
-            siblings: vec![],
-            siblings_children: vec![],
-            children,
-            siblings_children_recursive,
-            parent: vec![],
-            self_state: Some(*entity),
-            children_recursive,
-        };
+        let entities = populate_entities_filtered::<TransitionGroupT, GetStateTransitionsT>(&entity_query, &with_children_query, &with_parent_query, entity);
 
         GetStateTransitionsT::get_state_transitions(&build_menu_result, &entities)
             .map(|entity_state_transitions| commands.get_entity(*entity)
@@ -53,6 +30,49 @@ pub fn insert_state_transitions<TransitionGroupT: TransitionGroup + Debug, GetSt
             );
     }
 
+}
+
+fn populate_entities_filtered<TransitionGroupT, GetStateTransitionsT>(
+    entity_query: &Query<EntityQuery<TransitionGroupT>, EntityFilter<TransitionGroupT>>,
+    with_children_query: &Query<ChildQuery<TransitionGroupT>, ChildFilter<TransitionGroupT>>,
+    with_parent_query: &Query<ParentQuery<TransitionGroupT>, ParentFilter<TransitionGroupT>>,
+    entity: &Entity
+) -> Entities
+    where
+        TransitionGroupT: TransitionGroup + Debug,
+        GetStateTransitionsT: GetStateTransitions<TransitionGroupT> + Debug
+{
+    let children = get_filter_components::<TransitionGroupT>(&entity_query, child_entities(&entity_query, &with_children_query, *entity));
+    let children_recursive = get_filter_components::<TransitionGroupT>(
+        &entity_query,
+        children_recursive(*entity, &entity_query, &with_children_query, &with_parent_query)
+    );
+    let siblings_children_recursive = get_filter_components::<TransitionGroupT>(
+        &entity_query,
+        siblings_children_recursive(&entity_query, &with_children_query, &with_parent_query, *entity)
+    );
+    let parent = get_filter_components::<TransitionGroupT>(
+        &entity_query,
+        get_parent(&with_parent_query, *entity)
+    );
+    let siblings = get_filter_components::<TransitionGroupT>(
+        &entity_query,
+        sibling_entities(&entity_query, &with_children_query, &with_parent_query, *entity)
+    );
+    let siblings_children = get_filter_components::<TransitionGroupT>(
+        &entity_query,
+        siblings_children_entities(&entity_query, &with_children_query, &with_parent_query, *entity)
+    );
+    let entities = Entities {
+        siblings,
+        siblings_children,
+        children,
+        siblings_children_recursive,
+        parent,
+        self_state: Some(*entity),
+        children_recursive,
+    };
+    entities
 }
 
 fn get_filter_components<T: TransitionGroup>(entity_query: &Query<EntityQuery<T>, EntityFilter<T>>, entities: Vec<Entity>) -> Vec<Entity> {

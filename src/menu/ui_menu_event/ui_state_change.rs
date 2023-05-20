@@ -14,7 +14,7 @@ use crate::menu::ui_menu_event::change_style::{DoChange, UiChangeTypes};
 use crate::menu::ui_menu_event::interaction_ui_event_writer::ClickSelectOptions;
 use crate::menu::ui_menu_event::next_action::{DisplayState, UiComponentState};
 use crate::menu::ui_menu_event::ui_context::UiContext;
-use crate::menu::ui_menu_event::types::{ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, DraggableUiComponentFilter, DraggableUiComponentIxnFilter, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter};
+use crate::menu::ui_menu_event::types::{ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, DraggableUiComponentFilter, DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter};
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiEventArgs};
 
 /// Contains the state data needed in order to generate the UIEvents from the state change required.
@@ -96,8 +96,8 @@ pub struct GlobalState
 {
     pub(crate) cursor_pos: Vec2,
     pub(crate) cursor_delta: Vec2,
-    pub(crate) click_hover_ui: bool,
-    pub(crate) hover_ui: bool,
+    pub(crate) click_hover_ui: Option<Entity>,
+    pub(crate) hover_ui: Option<Entity>,
     pub(crate) scroll_wheel_delta: Vec2,
     pub(crate) wheel_units: Option<MouseScrollUnit>
 }
@@ -107,8 +107,8 @@ impl Default for GlobalState {
         Self {
             cursor_pos: Default::default(),
             cursor_delta: Default::default(),
-            click_hover_ui: false,
-            hover_ui: false,
+            click_hover_ui: None,
+            hover_ui: None,
             scroll_wheel_delta: Default::default(),
             wheel_units: None,
         }
@@ -139,15 +139,20 @@ where SELF: ReadOnlyWorldQuery,
         }
     }
 
-    fn update_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+    fn update_hover_ui(resource: &mut GlobalState, hover_ui: Option<Entity>) {
         resource.hover_ui = hover_ui;
     }
 
-    fn update_click_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+    fn update_click_hover_ui(resource: &mut GlobalState, hover_ui: Option<Entity>) {
         resource.hover_ui = hover_ui;
     }
+
     fn click_hover_ui(resources: &mut GlobalState) -> bool {
-        resources.click_hover_ui
+        resources.click_hover_ui.is_some()
+    }
+
+    fn hover_ui(resources: &mut GlobalState) -> bool {
+        resources.hover_ui.is_some()
     }
 
 }
@@ -158,20 +163,26 @@ for ClickEvents {}
 impl UpdateGlobalState<UiComponentStyleFilter, UiComponentStyleIxnFilter>
 for ClickSelectionEventRetriever {}
 
-impl UpdateGlobalState<ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter>
+impl UpdateGlobalState<ScrollableUiComponentFilter, ScrollableIxnFilterQuery>
 for ScrollableStateChangeRetriever  {
-    fn update_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+    fn update_hover_ui(resource: &mut GlobalState, hover_ui: Option<Entity>) {
+        // in the event when the cursor moves from one button to another, sometimes hover gets
+        // set to false and then never gets set to true again, so we let the hover event propagate
+        // in this case (fixes race condition).
+        if resource.hover_ui.is_none() && hover_ui.is_some() {
+            resource.hover_ui = hover_ui;
+        }
     }
 
-    fn update_click_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+    fn update_click_hover_ui(resource: &mut GlobalState, hover_ui: Option<Entity>) {
     }
 }
 
 impl UpdateGlobalState<DraggableUiComponentFilter, DraggableUiComponentIxnFilter>
 for DraggableStateChangeRetriever  {
-    fn update_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+    fn update_hover_ui(resource: &mut GlobalState, hover_ui: Option<Entity>) {
     }
 
-    fn update_click_hover_ui(resource: &mut GlobalState, hover_ui: bool) {
+    fn update_click_hover_ui(resource: &mut GlobalState, hover_ui: Option<Entity>) {
     }
 }

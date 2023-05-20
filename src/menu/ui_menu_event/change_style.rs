@@ -158,7 +158,7 @@ impl TextEventArgsFactory {
 }
 
 fn create_drag_x(value: (), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
-    if !style_context.is_dragging || style_context.delta.is_none() {
+    if style_context.is_dragging.is_none() || style_context.delta.is_none() {
         return None;
     }
     let mut style = starting_state.clone();

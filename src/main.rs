@@ -21,8 +21,7 @@ use crate::camera::lerping_camera::camera_rotation_system;
 use crate::camera::raycast_select::BevyPickingState;
 use crate::config::ConfigurationProperties;
 use crate::cursor_adapter::{calculate_picks, event_merge_propagate};
-use crate::data_subscriber::data_subscriber_plugin::DataSubscriberPlugin;
-use crate::event::event_propagation::{component_propagation_system, PropagateComponentEvent};
+use crate::event::event_propagation::{component_propagation_system, SideEffectWriter};
 use crate::graph::draw_graph_points::draw_graph_points;
 use crate::graph::graph_plugin::GraphPlugin;
 use crate::graph::setup_graph::setup_graph;
@@ -46,6 +45,7 @@ pub(crate) mod data_subscriber;
 pub(crate) mod ndarray;
 pub(crate) mod cursor_adapter;
 pub(crate) mod interactions;
+pub(crate) mod render_html;
 pub(crate) mod test;
 
 #[tokio::main]
@@ -83,7 +83,7 @@ async fn main() {
         .add_system(create_network)
         .add_system(draw_network_initial)
         .add_system(component_propagation_system)
-        .add_event::<PropagateComponentEvent>()
+        .add_event::<SideEffectWriter>()
         .run();
 }
 

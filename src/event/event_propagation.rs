@@ -36,22 +36,22 @@ use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 // );
 
 #[derive(Debug)]
-pub enum PropagateComponentEvent {
+pub enum SideEffectWriter {
     ChangeVisible(Entity, Visibility),
     ChangeStyle(Entity, Style)
 }
 
 pub fn component_propagation_system(
     mut commands: Commands,
-    mut propagation_reader: EventReader<PropagateComponentEvent>
+    mut propagation_reader: EventReader<SideEffectWriter>
 ) {
     for event in propagation_reader.into_iter() {
         match event {
-            PropagateComponentEvent::ChangeVisible(entity, component) => {
+            SideEffectWriter::ChangeVisible(entity, component) => {
                 info!("Adding propagation visibility event: {:?} with entity {:?}", component, entity);
                 add_component(&mut commands, entity, *component)
             }
-            PropagateComponentEvent::ChangeStyle(entity, component) => {
+            SideEffectWriter::ChangeStyle(entity, component) => {
                 info!("Adding propagation style event: {:?} with entity {:?}", component, entity);
                 add_component(&mut commands, entity, component.clone())
             }

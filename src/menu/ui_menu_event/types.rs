@@ -5,7 +5,7 @@ use crate::event::event_state::StyleStateChangeEventData;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::{ClickSelectOptions, StateChangeActionTypeStateRetriever};
 use crate::menu::ui_menu_event::next_action::UiComponentState;
 use crate::menu::ui_menu_event::ui_context::UiContext;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntityComponentStateTransition, PropagateDisplay, SelectOptions, StateChangeActionType, UiEntityComponentStateTransitions, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntityComponentStateTransition, PropagateDisplay, PropagateDraggable, PropagateScrollable, SelectOptions, StateChangeActionType, UiEntityComponentStateTransitions, UiEventArgs};
 use crate::menu::{DraggableComponent, ScrollableComponent, UiComponent};
 use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
@@ -16,9 +16,7 @@ pub type DraggableUiComponentFilter = (With<UiComponent>, With<Style>, With<Drag
 pub type DraggableUiComponentIxnFilter = (With<UiComponent>, With<Button>, With<DraggableComponent>);
 
 pub type ScrollableUiComponentFilter = (With<UiComponent>, With<Style>, With<ScrollableComponent>);
-pub type ScrollableUiComponentIxnFilter = (With<UiComponent>, With<Button>, With<ScrollableComponent>);
-
-pub type ScrollableIxnFilterQuery = (With<UiComponent>, With<Button>, With<ScrollableComponent>);
+pub type ScrollableIxnFilterQuery = (With<UiComponent>, With<ScrollableComponent>);
 
 pub type PropagationQueryFilter<C> = (With<C>);
 pub type PropagationQuery<'a, C> = (Entity, &'a C, &'a UiIdentifiableComponent);
@@ -34,6 +32,8 @@ pub type StyleUiComponentStateTransitionsQuery<'a> = StateTransitionsQuery<'a, S
 pub type StylePropagationQuery<'a> = PropagationQuery<'a, Style>;
 pub type StylePropagationQueryFilter = PropagationQueryFilter<Style>;
 
+pub type PropagateStateTransitionsQuery<'a, TransitionGroupT> = StateTransitionsQuery<'a, Style, StyleStateChangeEventData, UiComponentState, UiContext, UiEventArgs, TransitionGroupT>;
+
 pub type UiStateChange<C, S> = StateChangeActionType<S, C, UiContext, UiEventArgs>;
 pub type StyleStateChange = StateChangeActionType<StyleStateChangeEventData, Style, UiContext, UiEventArgs>;
 pub type UiStyleComponentStateTransitions = ComponentStateTransitions<PropagateDisplay>;
@@ -47,11 +47,11 @@ pub type UiSelectedComponentStateTransitionsQuery<'a> = StateTransitionsQuery<'a
 
 pub type DraggableStateChangeRetriever = StateChangeActionTypeStateRetriever<
     DraggableUiComponentFilter, DraggableUiComponentIxnFilter, Style,
-    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState, PropagateDisplay>;
+    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState, PropagateDraggable>;
 
 pub type ScrollableStateChangeRetriever = StateChangeActionTypeStateRetriever<
-    ScrollableUiComponentFilter, ScrollableUiComponentIxnFilter, Style, UiContext,
-    UiEventArgs, StyleStateChangeEventData, UiComponentState, PropagateDisplay>;
+    ScrollableUiComponentFilter, ScrollableIxnFilterQuery, Style, UiContext,
+    UiEventArgs, StyleStateChangeEventData, UiComponentState, PropagateScrollable>;
 
 pub type ClickEvents = StateChangeActionTypeStateRetriever<
     UiComponentStyleFilter, UiComponentStyleIxnFilter, Style,

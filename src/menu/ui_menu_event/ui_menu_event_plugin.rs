@@ -8,7 +8,7 @@ use bevy::ecs::system::SystemParam;
 use bevy::input::mouse::{MouseScrollUnit, MouseWheel};
 use bevy::time::TimerMode;
 use bevy::utils::{HashMap, HashSet};
-use crate::cursor_adapter::event_merge_propagate;
+use crate::cursor_adapter::{event_merge_propagate, propagate_drag_events, propagate_scroll_events};
 use crate::event::event_actions::{ClickWriteEvents, InteractionEventReader};
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::{ChangePropagation, Relationship};
@@ -22,7 +22,7 @@ use crate::menu::ui_menu_event::interaction_ui_event_writer::{ClickSelectOptions
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::next_action::DisplayState::DisplayNone;
 use crate::menu::ui_menu_event::next_action::{Matches, NextUiState, UiComponentState};
-use crate::menu::ui_menu_event::types::{ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, DraggableUiComponentIxnFilter, ScrollableStateChangeRetriever, ScrollableUiComponentIxnFilter, StyleStateChange, UiComponentEventDescriptor, UiComponentStyleIxnFilter};
+use crate::menu::ui_menu_event::types::{ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery, ScrollableStateChangeRetriever, StyleStateChange, UiComponentEventDescriptor, UiComponentStyleIxnFilter};
 use crate::menu::ui_menu_event::ui_state_change;
 use crate::menu::ui_menu_event::ui_state_change::{GlobalState, StateChangeMachine, UiClickStateChange};
 use crate::ui_components::menu_components::BuildMenuResult;
@@ -75,10 +75,12 @@ impl Plugin for UiEventPlugin {
             .add_system(UiEventReader::read_events)
             .add_system(ui_state_change::hover_event)
             .add_system(event_merge_propagate::<DraggableUiComponentIxnFilter>)
-            .add_system(event_merge_propagate::<ScrollableUiComponentIxnFilter>)
+            .add_system(event_merge_propagate::<ScrollableIxnFilterQuery>)
             .add_system(event_merge_propagate::<UiComponentStyleIxnFilter>)
+            .add_system(propagate_scroll_events)
+            .add_system(propagate_drag_events)
             .add_event::<InteractionEvent<DraggableUiComponentIxnFilter>>()
-            .add_event::<InteractionEvent<ScrollableUiComponentIxnFilter>>()
+            .add_event::<InteractionEvent<ScrollableIxnFilterQuery>>()
             .add_event::<InteractionEvent<UiComponentStyleIxnFilter>>()
             .add_event::<UiEventArgs>()
             .add_event::<UiComponentEventDescriptor>()
@@ -155,6 +157,14 @@ pub trait TransitionGroup: Component {
 #[derive(Component, Default, Clone, Debug)]
 pub struct PropagateDisplay;
 impl TransitionGroup for PropagateDisplay {}
+
+#[derive(Component, Default, Clone, Debug)]
+pub struct PropagateScrollable;
+impl TransitionGroup for PropagateScrollable {}
+
+#[derive(Component, Default, Clone, Debug)]
+pub struct PropagateDraggable;
+impl TransitionGroup for PropagateDraggable {}
 
 #[derive(Component, Default, Clone, Debug)]
 pub struct SelectOptions;

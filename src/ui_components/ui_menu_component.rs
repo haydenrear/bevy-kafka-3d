@@ -224,7 +224,8 @@ fn selected_option_builder<'a>(opt: &'a MenuOption, parent_metadata: &'a Vec<Men
                 opt.clone(),
                 MenuOptionBuilder::DropdownMenuOptionBuilder(
                     DropdownMenuOptionBuilder {
-                        parent: None,
+                        base_menu_parent: None,
+                        collapsable_menu_parent: None,
                         menu_option: opt,
                         config_option: option,
                         parents: parent_metadata.clone(),

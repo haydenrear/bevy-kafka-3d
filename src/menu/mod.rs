@@ -292,6 +292,9 @@ pub struct DraggableComponent {
 
 #[derive(Component, Debug, Clone, Default)]
 pub struct ScrollableComponent {
+    /// when you enter a scrollable component, set is_attached to true, and then when you scroll,
+    /// you
+    pub(crate) is_attached: bool,
 }
 
 #[derive(Component, Debug, Clone, Default)]

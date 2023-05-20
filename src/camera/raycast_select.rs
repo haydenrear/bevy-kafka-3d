@@ -15,7 +15,7 @@ pub struct BevyPickingState {
 impl Default for BevyPickingState {
     fn default() -> Self {
        Self {
-           picked_ui_flag: true
+           picked_ui_flag: false
        }
     }
 }

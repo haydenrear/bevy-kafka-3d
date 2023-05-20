@@ -78,7 +78,8 @@ fn do_submenu_menu_building<'a>(
         match &option.data_type {
             MenuOptionType::Primitive(config_type) => {
                 if let MenuOptionBuilder::DropdownMenuOptionBuilder(builder) = builder {
-                    builder.parent = base_menu_parent.cloned();
+                    builder.base_menu_parent = base_menu_parent.cloned();
+                    builder.collapsable_menu_parent = collapsable_result.cloned();
                     let menu_option = builder.build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
                     draw_menu_option.push(menu_option);
                 } else if let MenuOptionBuilder::SliderMenuOptionBuilder(slider) = builder {

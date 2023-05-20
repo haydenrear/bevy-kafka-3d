@@ -49,9 +49,16 @@ impl <'a> SubmenuBuilder<'a> {
                     base_menu,
                     menu_option_builders: menu_options(options, &self.parent_menus),
                 };
+
+
+
                 let result = dropdown_menu_builder
                     .build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
+
                 self.parent_menus.push(menu_metadata.clone());
+
+
+
                 Some(DrawSubmenuResult {
                     dropdown_menu_result: result,
                     with_submenu_added: self.parent_menus.clone(),

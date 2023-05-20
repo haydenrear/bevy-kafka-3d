@@ -65,7 +65,7 @@ where
     SelfFilterQuery: Send + Sync + 'static,
     InteractionFilterQuery: Send + Sync + 'static
 {
-    fn clicked(&mut self);
+    fn clicked(&mut self, entity: Entity);
     fn un_clicked(&mut self);
     fn cursor(&mut self, global_stat: &mut ResMut<GlobalState>);
 }
@@ -74,7 +74,7 @@ where
 pub enum StyleStateChangeEventData {
     ChangeComponentColor(Color),
     ChangeComponentStyle(UiChangeTypes),
-    ChangeTextValue(),
+    ChangeTextValue,
     None,
 }
 

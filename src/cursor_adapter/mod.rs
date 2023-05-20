@@ -11,6 +11,7 @@ use bevy::input::mouse::{MouseButtonInput, MouseScrollUnit, MouseWheel};
 use bevy::prelude::{Entity, EventReader, MouseButton, Query, Res, ResMut, Resource};
 use bevy_mod_picking::{HoverEvent, PickingEvent, PickingRaycastSet, RaycastSource, SelectionEvent};
 use crate::camera::ZoomableDraggableCamera;
+use crate::menu::ui_menu_event::types::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery};
 
 
 /// Will be used to adapt all events into a single InteractionEvent type, which is generic over
@@ -30,6 +31,28 @@ pub(crate) fn event_merge_propagate<InteractionFilterQueryT: ReadOnlyWorldQuery 
                 entity
             });
         });
+}
+
+pub(crate) fn propagate_scroll_events(
+    mut event_writer: EventWriter<InteractionEvent<ScrollableIxnFilterQuery>>,
+    mut scroll_wheel_events: EventReader<MouseWheel>
+) {
+    for scroll in scroll_wheel_events.iter() {
+        event_writer.send(InteractionEvent::ScrollWheelEvent {
+            event: scroll.clone()
+        });
+    }
+}
+
+pub(crate) fn propagate_drag_events(
+    mut event_writer: EventWriter<InteractionEvent<DraggableUiComponentIxnFilter>>,
+    mut scroll_wheel_events: EventReader<CursorMoved>
+) {
+    for scroll in scroll_wheel_events.iter() {
+        event_writer.send(InteractionEvent::CursorEvent {
+            event: scroll.clone()
+        });
+    }
 }
 
 pub trait MatchesPickingEvent {

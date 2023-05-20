@@ -1,6 +1,6 @@
 use bevy::ecs::system::EntityCommands;
 use bevy::prelude::*;
-use crate::menu::{ConfigurationOptionEnum, DropdownName, DropdownSelected, MenuItemMetadata, SelectableType, UiComponent};
+use crate::menu::{ConfigurationOptionEnum, DropdownName, DropdownSelected, MenuItemMetadata, ScrollableComponent, SelectableType, UiComponent};
 use crate::menu::ui_menu_event::ui_menu_event_plugin::PropagateDisplay;
 use crate::ui_components::menu_components::BuilderResult;
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
@@ -144,6 +144,7 @@ impl<'a> BaseMenu<'a> {
                 background_color: BackgroundColor(Color::BLUE),
                 ..default()
             },
+            ScrollableComponent::default(),
             PropagateDisplay::default(),
             UiIdentifiableComponent(self.menu_metadata.id),
             self.component.clone(),

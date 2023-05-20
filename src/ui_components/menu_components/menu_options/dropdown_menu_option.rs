@@ -4,10 +4,12 @@ use crate::menu::{ConfigurationOptionEnum, MenuInputType, MenuItemMetadata, Menu
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{PropagateDisplay, SelectOptions};
 use crate::ui_components::menu_components::{add_config_opt, BuilderResult, get_parent_entity, get_swing_out};
 use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;
+use crate::ui_components::menu_components::menu_types::collapsable_menu::DrawCollapsableMenuResult;
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 
 pub struct DropdownMenuOptionBuilder<'a> {
-    pub(crate) parent: Option<BuildBaseMenuResult>,
+    pub(crate) base_menu_parent: Option<BuildBaseMenuResult>,
+    pub(crate) collapsable_menu_parent: Option<DrawCollapsableMenuResult>,
     pub(crate) menu_option: &'a MenuOption,
     pub(crate) config_option: &'a ConfigurationOptionEnum,
     pub(crate) parents: Vec<MenuItemMetadata>,
@@ -61,7 +63,10 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
                 })
             );
 
-        let parent_entity = get_parent_entity(&self.parent.as_ref(), &None).unwrap();
+        let parent_entity = get_parent_entity(
+            &self.base_menu_parent.as_ref(),
+            &self.collapsable_menu_parent.as_ref()
+        ).unwrap();
 
         commands.get_entity(parent_entity)
             .as_mut()
