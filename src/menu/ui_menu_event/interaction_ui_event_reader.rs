@@ -3,13 +3,11 @@ use std::marker::PhantomData;
 use bevy::prelude::{Component, Style, Visibility, With};
 use crate::event::event_actions::{InsertComponentInteractionEventReader, InteractionEventReader};
 use crate::event::event_state::{ComponentChangeEventData, Context, NextComponentInsert, StyleStateChangeEventData};
-use crate::menu::config_menu_event::config_event::{ConfigEventStateFactory, ConfigurationOptionEventArgs, NextConfigurationOptionState};
-use crate::menu::{DataType, MetricsConfigurationOption, UiComponent};
-use crate::menu::config_menu_event::interaction_config_event_writer::NetworkMenuResultBuilder;
+use crate::menu::UiComponent;
 use crate::menu::ui_menu_event::next_action::NextUiState;
+use crate::menu::ui_menu_event::state_change_factory::StateChangeActionComponentStateFactory;
 use crate::menu::ui_menu_event::ui_context::UiContext;
-use crate::menu::ui_menu_event::types::StyleStateChange;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{StateChangeActionComponentStateFactory, StateChangeActionType, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
 
 pub struct UiEventReader;
 
@@ -24,8 +22,8 @@ impl InteractionEventReader<
 pub struct ComponentChangeEventReader<NextEventComponentT, AdviserComponentT, Ctx>
 where
     NextEventComponentT: Component,
+    AdviserComponentT: Component,
     Ctx: Context,
-    AdviserComponentT: Component
 {
     insert_component: PhantomData<NextEventComponentT>,
     ctx: PhantomData<Ctx>,

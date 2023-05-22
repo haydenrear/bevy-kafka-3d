@@ -1,7 +1,7 @@
 use bevy::ecs::system::EntityCommands;
 use bevy::prelude::*;
 use crate::menu::{ConfigurationOptionEnum, DropdownName, DropdownSelected, MenuItemMetadata, ScrollableComponent, SelectableType, UiComponent};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::PropagateDisplay;
+use crate::menu::ui_menu_event::transition_groups::PropagateDisplay;
 use crate::ui_components::menu_components::BuilderResult;
 use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
 

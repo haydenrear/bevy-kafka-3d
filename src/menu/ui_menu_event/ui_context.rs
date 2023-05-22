@@ -1,9 +1,9 @@
-use bevy::prelude::{Entity, ResMut, Resource, Style};
+use bevy::prelude::{Entity, ResMut, Resource};
 use bevy::math::Vec2;
 use bevy::input::mouse::MouseScrollUnit;
 use crate::event::event_state::{ClickContext, Context};
+use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
 use crate::menu::ui_menu_event::ui_state_change::{ChangeVisible, GlobalState};
-use crate::menu::ui_menu_event::types::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
 
 #[derive(Resource, Default, Clone, Debug)]
 pub struct UiContext {

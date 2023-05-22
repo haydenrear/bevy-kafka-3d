@@ -1,22 +1,16 @@
-use bevy::utils::HashMap;
 use bevy::prelude::{BackgroundColor, Button, Changed, Color, Component, Display, Entity, Interaction, Query, ResMut, Resource, Size, Style, Visibility, With};
-use bevy::log::info;
 use bevy::ui::UiRect;
-use bevy_transform::prelude::Transform;
 use bevy::ecs::query::ReadOnlyWorldQuery;
 use bevy::math::Vec2;
 use bevy::input::mouse::MouseScrollUnit;
-use bevy::prelude::Visibility::Visible;
 use crate::event::event_descriptor::{EventArgs, EventData};
-use crate::event::event_state::{ClickContext, ComponentChangeEventData, Context, StyleStateChangeEventData, Update};
-use crate::menu::{Menu, MetricsConfigurationOption, Position, UiComponent};
-use crate::menu::ui_menu_event::change_style::{DoChange, UiChangeTypes};
-use crate::menu::ui_menu_event::interaction_ui_event_writer::ClickSelectOptions;
-use crate::menu::ui_menu_event::next_action::{DisplayState, UiComponentState};
+use crate::event::event_state::{ComponentChangeEventData, Context, StyleStateChangeEventData, Update};
+use crate::menu::{Menu, MetricsConfigurationOption, UiComponent};
+use crate::menu::ui_menu_event::change_style::DoChange;
+use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, RaycastFilter, RaycastIxnFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
+use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, ScrollableStateChangeRetriever};
 use crate::menu::ui_menu_event::ui_context::UiContext;
-use crate::menu::ui_menu_event::types::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, DraggableUiComponentFilter, DraggableUiComponentIxnFilter, RaycastFilter, RaycastIxnFilter, ScrollableIxnFilterQuery, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiEventArgs};
-use crate::network::Network;
+use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
 
 /// Contains the state data needed in order to generate the UIEvents from the state change required.
 #[derive(Clone, Debug)]

@@ -1,11 +1,11 @@
 use std::default::default;
 use bevy::prelude::*;
-use crate::menu::{ConfigurationOptionEnum, MenuInputType, MenuItemMetadata, MenuOption, SelectableType, UiComponent};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{PropagateDisplay, PropagateSelect, PropagateVisible};
+use crate::menu::{ConfigurationOptionEnum, MenuItemMetadata, MenuOption, SelectableType, UiComponent};
+use crate::menu::ui_menu_event::transition_groups::{PropagateDisplay, PropagateSelect, PropagateVisible};
 use crate::ui_components::menu_components::{add_config_opt, BuilderResult, get_parent_entity, get_swing_out};
 use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;
 use crate::ui_components::menu_components::menu_types::collapsable_menu::DrawCollapsableMenuResult;
-use crate::ui_components::ui_menu_component::{insert_config_option, UiIdentifiableComponent};
+use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 pub struct DropdownMenuOptionBuilder<'a> {
     pub(crate) base_menu_parent: Option<BuildBaseMenuResult>,

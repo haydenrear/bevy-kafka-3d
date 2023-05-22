@@ -1,18 +1,14 @@
-use std::marker::PhantomData;
 use bevy::ecs::query::{QueryEntityError, ReadOnlyWorldQuery};
-use bevy::log::info;
-use bevy::math::Vec2;
 use bevy::prelude::*;
 use bevy::window::CursorMoved;
 use crate::camera::raycast_select::BevyPickingState;
 use crate::interactions::InteractionEvent;
 use bevy::input::Input;
-use bevy::input::mouse::{MouseButtonInput, MouseScrollUnit, MouseWheel};
-use bevy::prelude::{Entity, EventReader, MouseButton, Query, Res, ResMut, Resource};
-use bevy_mod_picking::{HoverEvent, PickingEvent, PickingRaycastSet, RaycastSource, SelectionEvent};
+use bevy::input::mouse::MouseWheel;
+use bevy::prelude::{Entity, EventReader, MouseButton, Query, Res, ResMut};
+use bevy_mod_picking::{HoverEvent, PickingEvent, SelectionEvent};
 use crate::camera::ZoomableDraggableCamera;
-use crate::menu::ui_menu_event::types::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery};
-
+use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery};
 
 /// Will be used to adapt all events into a single InteractionEvent type, which is generic over
 /// the query which is used, so that events can be filtered for the different Ui systems. Ultimately,

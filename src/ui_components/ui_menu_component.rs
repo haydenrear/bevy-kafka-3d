@@ -8,11 +8,11 @@ use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
 use crate::menu::{CollapsableMenuComponent, ConfigurationOptionEnum, DataType, DraggableComponent, Dropdown, DropdownOption, Menu, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionInputType, MenuOptionType, MenuType, MetricsConfigurationOption, Radial, ScrollableMenuComponent, ScrollableMenuItemsBarComponent, ScrollingSidebarComponent, ScrollWheelComponent, SelectableType, Slider, SliderData, SliderKnob, UiComponent};
 use crate::menu::menu_resource::{MENU, MenuResource};
 use crate::menu::ui_menu_event::change_style::UiChangeTypes;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{CreateMenu};
 use crate::menu::UiComponent::CollapsableMenu;
 use crate::ui_components::ui_menu_component;
 use bevy::ecs::system::EntityCommands;
 use bevy::ui::{AlignItems, FocusPolicy, ZIndex};
+use crate::event::state_transition::state_transitions_plugin::TransitionPopulationStartupState;
 use crate::menu::config_menu_event::interaction_config_event_writer::{GraphMenuResultBuilder, NetworkMenuResultBuilder};
 use crate::menu::MenuInputType::CollapsableMenuInputType;
 use crate::menu::ui_menu_event::next_action::{DisplayState, SizeState, UiComponentState};
@@ -37,7 +37,7 @@ pub fn create_menu(
     mut meshes: ResMut<Assets<Mesh>>,
     mut asset_server: Res<AssetServer>,
     mut menu_resource: Res<MenuResource>,
-    mut menu_state: ResMut<NextState<CreateMenu>>,
+    mut menu_state: ResMut<NextState<TransitionPopulationStartupState>>,
 ) {
     let mut root_node_builder = RootNodeBuilder {};
     let root_node_result = root_node_builder.build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
@@ -77,14 +77,14 @@ pub fn create_menu(
             MenuInputType::Slider { .. } => {}
         }
     }
-    menu_state.set(CreateMenu::PopulateOptionsBuilder);
+    menu_state.set(TransitionPopulationStartupState::PopulateOptionsBuilder);
 }
 
 pub fn populate_options_builder(
     mut network_menu_result: ResMut<NetworkMenuResultBuilder>,
     mut graph_menu_result: ResMut<GraphMenuResultBuilder>,
     mut build_result: ResMut<BuildMenuResult>,
-    mut menu_state: ResMut<NextState<CreateMenu>>,
+    mut menu_state: ResMut<NextState<TransitionPopulationStartupState>>,
 ) {
     build_result.dropdown_menu_option_results.iter().filter(|i| {
         matches!(i.1.configuration_option, ConfigurationOptionEnum::Menu(MetricsConfigurationOption::GraphMenu(..)))
@@ -96,7 +96,7 @@ pub fn populate_options_builder(
     }).next().map(|i| {
         network_menu_result.network_menu_config_option = Some(*i.0)
     });
-    menu_state.set(CreateMenu::InsertStateTransitions);
+    menu_state.set(TransitionPopulationStartupState::InsertStateTransitions);
 }
 
 fn add_collapsable(

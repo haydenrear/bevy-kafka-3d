@@ -6,7 +6,7 @@ use crate::interactions::InteractionEvent;
 use crate::menu::menu_resource::MenuResource;
 use crate::menu::ui_menu_event::ui_state_change::GlobalState;
 use crate::menu::ui_menu_event::next_action::Matches;
-use crate::menu::ui_menu_event::types::UiStyleEntityComponentStateTransitions;
+use crate::menu::ui_menu_event::type_alias::state_transitions::UiStyleEntityComponentStateTransitions;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiEventPlugin};
 use crate::test::bevy_tests::default_plugins::NoRenderBevyIntegrationTestPlugin;
 use crate::ui_components::menu_components::BuildMenuResult;

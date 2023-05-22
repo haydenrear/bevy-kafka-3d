@@ -2,7 +2,7 @@ use std::default::default;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::menu::{ConfigurationOptionEnum, MenuItemMetadata, MenuOption, MenuOptionType, UiComponent};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::PropagateDisplay;
+use crate::menu::ui_menu_event::transition_groups::PropagateDisplay;
 use crate::menu::UiComponent::CollapsableMenu;
 use crate::ui_components::menu_components::{add_config_opt, BuilderResult, do_submenu_menu_building};
 use crate::ui_components::menu_components::menu_types::dropdown_menu::set_parent;

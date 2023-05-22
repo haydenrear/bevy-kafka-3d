@@ -1,22 +1,15 @@
 use std::default::default;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use bevy::ecs::component::TableStorage;
-use bevy::log::info;
-use bevy::prelude::{AlignSelf, BackgroundColor, Bundle, ButtonBundle, Color, Commands, Component, Display, Entity, FromReflect, Reflect, ResMut, Style, UiRect};
-use bevy::ui::{FlexDirection, Size, Val};
+use bevy::prelude::{Bundle, Color, Component, Display, FromReflect, Reflect};
+use bevy::ui::Size;
 use bevy::utils::petgraph::visit::Data;
-use bevy_mod_picking::Selection;
-use rdkafka::metadata;
 use serde::Deserialize;
-use ui_menu_event::next_action::{DisplayState, SizeState, UiComponentState};
-use ui_menu_event::types::{StyleStateChange, UiStateChange, UiStyleComponentStateTransitions};
-use crate::event::event_state::{Context, StyleStateChangeEventData, UpdateStateInPlace};
-use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
+use crate::event::event_state::{Context, UpdateStateInPlace};
 use crate::menu::menu_resource::{MENU, VARIANCE};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::PropagateVisible;
+use ui_menu_event::transition_groups::PropagateVisible;
 use crate::metrics::network_metrics::Metric;
-use crate::network::{Layer, MetricChildNodes, Network, Node};
+use crate::network::{Layer, Network, Node};
 
 pub(crate) mod ui_menu_event;
 pub(crate) mod config_menu_event;

@@ -28,8 +28,7 @@ use crate::graph::graph_plugin::GraphPlugin;
 use crate::graph::setup_graph::setup_graph;
 use crate::interactions::InteractionEvent;
 use crate::menu::config_menu_event::config_menu_event_plugin::ConfigMenuEventPlugin;
-use crate::menu::config_menu_event::interaction_config_event_writer::NetworkMenuResultBuilder;
-use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
+use crate::menu::config_menu_event::interaction_config_event_writer::{GraphMenuResultBuilder, NetworkMenuResultBuilder};
 use crate::menu::menu_resource::MenuResource;
 
 pub(crate) mod config;
@@ -62,6 +61,7 @@ async fn main() {
         })
         .insert_resource(MenuResource::default())
         .insert_resource(NetworkMenuResultBuilder::default())
+        .insert_resource(GraphMenuResultBuilder::default())
         .insert_resource(ConfigurationProperties::default())
         .insert_resource(BevyPickingState::default())
         .insert_resource(GlobalState::default())
