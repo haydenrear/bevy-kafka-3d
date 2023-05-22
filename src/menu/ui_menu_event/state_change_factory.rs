@@ -1,3 +1,4 @@
+use std::fmt::Debug;
 use bevy::prelude::{BackgroundColor, Color, Commands, Entity, ResMut, Resource, Style, Visibility};
 use std::marker::PhantomData;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
@@ -6,7 +7,7 @@ use crate::event::event_state::{ComponentChangeEventData, Context, InsertCompone
 use crate::menu::ui_menu_event::next_action::NextUiState;
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
-use crate::menu::ui_menu_event::ui_state_change::{StateChangeMachine, UiClickStateChange};
+use crate::menu::ui_menu_event::ui_state_change::{ChangeVisible, StateChangeMachine, UiClickStateChange};
 
 #[derive(Resource, Default, Clone, Debug)]
 pub struct StateChangeActionComponentStateFactory;
@@ -42,19 +43,27 @@ for StateChangeActionComponentStateFactory {
 }
 
 
-impl InsertComponentChangeFactory<ComponentChangeEventData, UiEventArgs, Visibility, Visibility, UiContext>
+impl<T: ChangeVisible + Clone + Debug> InsertComponentChangeFactory<
+    ComponentChangeEventData,
+    UiEventArgs,
+    Visibility,
+    T,
+    UiContext,
+    NextComponentInsert<Visibility, T, UiContext>
+>
 for StateChangeActionComponentStateFactory
 {
     fn current_state(
         current: &EventDescriptor<ComponentChangeEventData, UiEventArgs, Visibility>,
         ctx: &mut ResMut<UiContext>
-    ) -> Vec<NextComponentInsert<Visibility, Visibility, UiContext>> {
+    ) -> Vec<NextComponentInsert<Visibility, T, UiContext>> {
         if let UiEventArgs::Event(ui) = &current.event_args {
             return match ui {
-                UiClickStateChange::ChangeVisible { entity, update_component } => {
+                UiClickStateChange::ChangeVisible { entity, update_component, adviser_component } => {
                     vec![
                         NextComponentInsert {
-                            entity: *entity,
+                            insert_component_entity: *entity,
+                            adviser_component_entity: *adviser_component,
                             next_state: *update_component,
                             phantom: Default::default(),
                             phantom_ctx: Default::default(),

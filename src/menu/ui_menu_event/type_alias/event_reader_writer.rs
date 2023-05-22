@@ -32,4 +32,4 @@ pub type StylePropagationQueryFilter = PropagationQueryFilter<Style>;
 pub type UiComponentEventDescriptor = EventDescriptor<StyleStateChangeEventData, UiEventArgs, Style>;
 pub type VisibilityEventDescriptor = EventDescriptor<ComponentChangeEventData, UiEventArgs, Visibility>;
 
-pub type VisibilityComponentChangeEventReader = ComponentChangeEventReader<Visibility, Visibility, UiContext>;
+pub type VisibilityComponentChangeEventReader<ChangeDisplayT> = ComponentChangeEventReader<Visibility, ChangeDisplayT, UiContext>;

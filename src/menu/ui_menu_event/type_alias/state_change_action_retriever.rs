@@ -13,26 +13,38 @@ pub type UiStateChange<C, S> = StateChangeActionType<S, C, UiContext, UiEventArg
 pub type StyleStateChange = StateChangeActionType<StyleStateChangeEventData, Style, UiContext, UiEventArgs>;
 
 pub type DraggableStateChangeRetriever = StateChangeActionTypeStateRetriever<
-    DraggableUiComponentFilter, DraggableUiComponentIxnFilter, Style, Style,
-    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState, UiComponentState, PropagateDraggable>;
+    DraggableUiComponentFilter, DraggableUiComponentIxnFilter,
+    UiContext, UiEventArgs, StyleStateChangeEventData, PropagateDraggable,
+    Style, UiComponentState
+>;
 
 pub type ScrollableStateChangeRetriever = StateChangeActionTypeStateRetriever<
-    ScrollableUiComponentFilter, ScrollableIxnFilterQuery, Style, Style, UiContext,
-    UiEventArgs, StyleStateChangeEventData, UiComponentState, UiComponentState, PropagateScrollable>;
+    ScrollableUiComponentFilter, ScrollableIxnFilterQuery, UiContext,
+    UiEventArgs, StyleStateChangeEventData, PropagateScrollable,
+    Style, UiComponentState
+>;
 
 pub type ClickEvents = StateChangeActionTypeStateRetriever<
-    UiComponentStyleFilter, UiComponentStyleIxnFilter, Style, Style,
-    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState, UiComponentState, PropagateDisplay>;
+    UiComponentStyleFilter, UiComponentStyleIxnFilter,
+    UiContext, UiEventArgs, StyleStateChangeEventData,
+    PropagateDisplay, Style, UiComponentState
+>;
 
 
 pub type ClickSelectionEventRetriever = StateChangeActionTypeStateRetriever<
-    UiComponentStyleFilter, UiComponentStyleIxnFilter, Style, Style,
-    UiContext, UiEventArgs, StyleStateChangeEventData, UiComponentState, UiComponentState, PropagateSelect>;
+    UiComponentStyleFilter, UiComponentStyleIxnFilter,
+    UiContext, UiEventArgs, StyleStateChangeEventData, PropagateSelect,
+    Style, UiComponentState
+>;
 
 pub type RaycastActionableEventRetriever = StateChangeActionTypeStateRetriever<
-    RaycastFilter, RaycastIxnFilter, RayCastActionable, RayCastActionable,
-    UiContext, UiEventArgs, ComponentChangeEventData, UiComponentState, UiComponentState, PropagateRaycast>;
+    RaycastFilter, RaycastIxnFilter,
+    UiContext, UiEventArgs, ComponentChangeEventData, UiComponentState, PropagateRaycast,
+    RayCastActionable, UiComponentState, RayCastActionable,
+>;
 
 pub type ChangeVisibleEventRetriever<StateComponentT, ChangeComponentT> = StateChangeActionTypeStateRetriever<
-    VisibleFilter<StateComponentT>, VisibleIxnFilter<StateComponentT>, StateComponentT, ChangeComponentT,
-    UiContext, UiEventArgs, ComponentChangeEventData, UiComponentState, UiComponentState, PropagateVisible>;
+    VisibleFilter<StateComponentT>, VisibleIxnFilter<StateComponentT>,
+    UiContext, UiEventArgs, ComponentChangeEventData, PropagateVisible,
+    StateComponentT, UiComponentState, ChangeComponentT
+>;

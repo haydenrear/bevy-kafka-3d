@@ -14,21 +14,32 @@ use crate::menu::ui_menu_event::type_alias::state_transition_queries::StateTrans
 use crate::menu::ui_menu_event::ui_event_writer::action_retriever::state_change_action_retriever::StateChangeActionTypeStateRetriever;
 use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
 
-impl<SelfFilterQuery, SelfIxnFilter, ComponentT, ComponentChangeT, Ctx, EventArgsT, StateChangeMachineT, FilterMatchesT, MatchesT, TransitionGroupT> RetrieveState<
+impl<SelfFilterQuery,
+ SelfIxnFilter,
+ ComponentT,
+ ComponentChangeT,
+ Ctx,
+ EventArgsT,
+ StateChangeMachineT,
+ FilterMatchesT,
+ MatchesT,
+ TransitionGroupT
+> RetrieveState<
     EventArgsT,
     StateChangeMachineT,
-    ComponentT,
-    ComponentChangeT,
     Ctx,
     StateTransitionsQuery<'_, ComponentT, ComponentChangeT, StateChangeMachineT, MatchesT, FilterMatchesT, Ctx, EventArgsT, TransitionGroupT>,
     PropagationQuery<'_, ComponentChangeT>,
+    ComponentT,
+    ComponentChangeT,
     SelfFilterQuery,
     PropagationQueryFilter<ComponentChangeT>,
 >
 for StateChangeActionTypeStateRetriever<
     SelfFilterQuery, SelfIxnFilter,
-    ComponentT, ComponentChangeT, Ctx, EventArgsT, StateChangeMachineT,
-    FilterMatchesT, MatchesT, TransitionGroupT
+    Ctx, EventArgsT, StateChangeMachineT,
+    TransitionGroupT, ComponentT, FilterMatchesT,
+    ComponentChangeT, MatchesT,
 >
     where
         SelfIxnFilter: ReadOnlyWorldQuery + Send + Sync + 'static,
@@ -68,11 +79,22 @@ for StateChangeActionTypeStateRetriever<
     }
 }
 
-impl<SelfFilterQuery, IXN, ComponentStateComponentT, ComponentUpdateComponentT, StateMachine, MatchesT, FilterMatchesT, Ctx, EventArgsT, TransitionGroupT>
-StateChangeActionTypeStateRetriever<SelfFilterQuery, IXN, ComponentStateComponentT, ComponentUpdateComponentT, Ctx, EventArgsT, StateMachine, FilterMatchesT, MatchesT, TransitionGroupT>
+impl<SelfQueryT, InteractionQueryT, ComponentStateComponentT, ComponentUpdateComponentT, StateMachine, MatchesT, FilterMatchesT, Ctx, EventArgsT, TransitionGroupT>
+StateChangeActionTypeStateRetriever<
+    SelfQueryT,
+    InteractionQueryT,
+    Ctx,
+    EventArgsT,
+    StateMachine,
+    TransitionGroupT,
+    ComponentStateComponentT,
+    FilterMatchesT,
+    ComponentUpdateComponentT,
+    MatchesT,
+>
 where
-    SelfFilterQuery: ReadOnlyWorldQuery + Send + Sync + 'static,
-    IXN: ReadOnlyWorldQuery + Send + Sync + 'static,
+    SelfQueryT: ReadOnlyWorldQuery + Send + Sync + 'static,
+    InteractionQueryT: ReadOnlyWorldQuery + Send + Sync + 'static,
     ComponentStateComponentT: Component + Debug,
     ComponentUpdateComponentT: Component + Debug,
     StateMachine: StateChangeMachine<ComponentUpdateComponentT, Ctx, EventArgsT> + Send + Sync + EventData + 'static + Clone,
@@ -85,7 +107,7 @@ where
     fn create_event(
         entity_query: &Query<
             StateTransitionsQuery<'_, ComponentStateComponentT, ComponentUpdateComponentT, StateMachine, MatchesT, FilterMatchesT, Ctx, EventArgsT, TransitionGroupT>,
-            SelfFilterQuery
+            SelfQueryT
         >,
         propagation_query: &Query<
             PropagationQuery<'_, ComponentUpdateComponentT>,
@@ -110,6 +132,7 @@ where
                 for (related_entity, _, state_change_action_type) in entity.4.entity_to_change.states.iter() {
                     let (_, related_style, _) = propagation_query.get(*related_entity).unwrap();
 
+                    info!("Testing if {:?} matches.", related_style);
                     if !entity.4.current_state_filter.matches(related_style) {
                         info!("Did not match.");
                         continue;

@@ -9,6 +9,7 @@ use crate::event::state_transition::get_state_transitions::GetStateTransitions;
 use crate::event::state_transition::state_transitions_plugin::InsertStateTransitionsPlugin;
 use crate::interactions::InteractionEvent;
 use crate::menu::{Menu, MetricsConfigurationOption};
+use crate::menu::config_menu_event::config_event_reader::ConfigEventReader;
 use crate::menu::ui_menu_event::interaction_ui_event_reader::UiEventReader;
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery, UiComponentEventDescriptor, UiComponentStyleIxnFilter, VisibilityComponentChangeEventReader, VisibilityEventDescriptor};
@@ -34,7 +35,9 @@ impl Plugin for UiEventPlugin {
             .insert_resource(ClickSelectionEventRetriever::default())
             .insert_resource(ChangeVisibleEventRetriever::default())
             .add_system(VisibilitySystems::<MetricsConfigurationOption<Menu>>::click_write_events)
-            .add_system(VisibilityComponentChangeEventReader::read_events)
+            .add_system(VisibilityComponentChangeEventReader::<MetricsConfigurationOption<Menu>>::read_events
+                .after(ConfigEventReader::<Menu>::read_events)
+            )
             .add_system(ClickEvents::click_write_events)
             .add_system(DragEvents::click_write_events)
             .add_system(ScrollEvents::click_write_events)

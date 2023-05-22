@@ -12,6 +12,7 @@ use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 use crate::menu::{DataType, MetricsConfigurationOption};
 use crate::menu::config_menu_event::interaction_config_event_writer::NetworkMenuResultBuilder;
 use crate::menu::menu_resource::VARIANCE;
+use crate::menu::ui_menu_event::transition_groups::PropagateVisible;
 use crate::network::{Layer, Network, Node};
 use crate::util;
 
@@ -63,13 +64,17 @@ pub(crate) fn create_network(
     for (network_id, layers) in grouped_by_network_id.into_iter() {
         if !existing.contains(&network_id) {
             let new_network = Network::new(layers.clone(), network_id);
-            let mut created_network = commands.spawn((new_network, PbrBundle::default()));
+            let mut created_network = commands.spawn((
+                new_network,
+                PbrBundle::default(),
+                PropagateVisible::default()
+            ));
             let hidden_network = created_network
                 .insert(Visibility::Hidden);
             let network = hidden_network
                 .push_children(layers.into_iter().collect::<Vec<Entity>>().as_slice());
             let network = network.id();
-            info!("Setting network entity.");
+            info!("Setting network entity: {:?}.", network);
             context.network_parent_entity = Some(network);
         }
     }

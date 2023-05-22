@@ -8,6 +8,7 @@ use bevy::log::error;
 use crate::graph::{Graph, GraphingMetricsResource, GraphParent, Grid, GRID_AXES_THICKNESS, GRID_LINES_THICKNESS, GRID_SIZE, GridAxis, NUM_GRIDLINES};
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 use crate::menu::config_menu_event::interaction_config_event_writer::{GraphMenuResultBuilder, NetworkMenuResultBuilder};
+use crate::menu::ui_menu_event::transition_groups::PropagateVisible;
 use crate::metrics::network_metrics::Metric;
 use crate::util;
 
@@ -74,12 +75,13 @@ fn draw_graph(
     draw_gridlines(&mut commands, &mut materials, &mut meshes, GRID_SIZE, &grid);
     let mut graph_component = commands.spawn((
         GraphParent::default(),
-        PbrBundle::default()
+        PbrBundle::default(),
+        PropagateVisible::default()
     ));
     graph_component.add_child(grid.x_axis);
     graph_component.add_child(grid.y_axis);
     graph_component.add_child(grid.z_axis);
-    graph_component.insert(Visibility::Hidden);
+    graph_component.insert(Visibility::Visible);
     let graph = graph_component.id();
     info!("Made {:?} visible.", graph);
     context.graph_parent_entity = Some(graph);

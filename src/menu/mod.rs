@@ -8,6 +8,7 @@ use serde::Deserialize;
 use crate::event::event_state::{Context, UpdateStateInPlace};
 use crate::menu::menu_resource::{MENU, VARIANCE};
 use ui_menu_event::transition_groups::PropagateVisible;
+use crate::menu::ui_menu_event::ui_state_change::ChangeVisible;
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, Network, Node};
 
@@ -131,6 +132,33 @@ pub enum MetricsConfigurationOption<T: Component + Send + Sync + Clone + Debug +
     NetworkMenu(PhantomData<T>, DataType, &'static str, MenuType),
 }
 
+impl<T> ChangeVisible for MetricsConfigurationOption<T>
+where
+    T: Component + Send + Sync + Clone + Debug + Default + 'static {
+    fn is_visible(&self) -> bool {
+        match self {
+            Self::GraphMenu(_, d, ..) => {
+                if let DataType::Selected = d {
+                    true
+                } else if let DataType::Deselected = d {
+                    false
+                } else {
+                    false
+                }
+            }
+            Self::NetworkMenu(_, d, ..) => {
+                if let DataType::Selected = d {
+                    true
+                } else if let DataType::Deselected = d {
+                    false
+                } else {
+                    false
+                }
+            }
+            _ => false
+        }
+    }
+}
 
 #[derive(Debug, Clone)]
 pub enum MenuType {

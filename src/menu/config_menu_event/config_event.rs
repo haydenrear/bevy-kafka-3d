@@ -22,8 +22,6 @@ where T: Component + Send + Sync + Clone + Default + Debug + 'static
     pub(crate) config_option: HashMap<Entity, MetricsConfigurationOption<T>>,
 }
 
-impl ChangeVisible for MetricsConfigurationOption<Menu> {}
-
 impl <T> ConfigurationOptionChange<T>
 where T: Component + Send + Sync + Clone + Default + Debug + 'static
 {
@@ -72,7 +70,7 @@ where
     Ctx: Context
 {
     fn update_state(&self, commands: &mut Commands, value: &mut MetricsConfigurationOption<T>, ctx: &mut ResMut<Ctx>) {
-        info!("In update state with {:?}.", value);
+        info!("In metrics update state with {:?}.", value);
         if let NextConfigurationOptionState::UpdateConcavity(node) = self {
             node.update_state(commands, value, ctx);
         } else if let NextConfigurationOptionState::UpdateMenu(node) = self {

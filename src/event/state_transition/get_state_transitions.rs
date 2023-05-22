@@ -68,16 +68,18 @@ impl GetStateTransitions<
         builder_result: &Res<NetworkMenuResultBuilder>,
         build_menu_result: &Entities,
     ) -> Option<VisibilityStateTransitions> {
-        info!("building state transitions.");
 
 
         let change_visible
             = change_entity_component(
             ComponentChangeEventData::ChangeVisible {
-                to_change: builder_result.network_parent_entity.unwrap()
+                to_change: builder_result.network_parent_entity.unwrap(),
+                adviser_component: builder_result.network_menu_config_option.unwrap(),
             },
             builder_result.network_menu_config_option.unwrap(),
         );
+
+        info!("Inserting change visible state transition: {:?}.", change_visible);
 
         Some(
             UiEntityComponentStateTransitions {
@@ -86,8 +88,8 @@ impl GetStateTransitions<
                         entity_to_change: EntitiesStateTypes {
                             states: change_visible
                         },
-                        filter_state: UiComponentState::StateDisplay(DisplayState::DisplayAny),
-                        current_state_filter: UiComponentState::StateDisplay(DisplayState::DisplayAny),
+                        filter_state: UiComponentState::StateVisible(VisibilityIdentifier::Any),
+                        current_state_filter: UiComponentState::StateVisible(VisibilityIdentifier::Any),
                         filter_component: Default::default(),
                         state_component: Default::default(),
                     }
@@ -123,10 +125,13 @@ impl GetStateTransitions<
         let change_visible
             = change_entity_component(
             ComponentChangeEventData::ChangeVisible {
-                to_change: builder_result.graph_parent_entity.unwrap()
+                to_change: builder_result.graph_parent_entity.unwrap(),
+                adviser_component: builder_result.graph_menu_config_option.unwrap(),
             },
             builder_result.graph_menu_config_option.unwrap(),
         );
+
+        info!("Inserting change visible state transition: {:?}.", change_visible);
 
         Some(
             UiEntityComponentStateTransitions {

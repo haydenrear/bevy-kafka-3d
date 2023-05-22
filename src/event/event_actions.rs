@@ -28,8 +28,8 @@ pub trait EventsSystem<
     InteractionFilterQuery: ReadOnlyWorldQuery + Send + Sync + 'static,
 >
     where RetrieveStateT: RetrieveState<
-        EventArgsT, EventDataT, ComponentT, ComponentChangeT, Ctx, SelfQuery,
-        PropagationQuery, SelfFilterQuery,
+        EventArgsT, EventDataT, Ctx, SelfQuery,
+        PropagationQuery,ComponentT, ComponentChangeT, SelfFilterQuery,
         PropagationFilterQuery
         > + UpdateGlobalState<SelfFilterQuery, InteractionFilterQuery>  {
     fn click_write_events(
@@ -40,16 +40,17 @@ pub trait EventsSystem<
         self_query: Query<SelfQuery, SelfFilterQuery>,
         propagation_query: Query<PropagationQuery, PropagationFilterQuery>,
         mut interaction_events: EventReader<InteractionEvent<InteractionFilterQuery>>,
-        mut side_effect_writer: EventWriter<SideEffectWriter>,
         mouse_button_input: Res<Input<MouseButton>>,
         mut intersected: ResMut<BevyPickingState>,
         mut global_state: ResMut<GlobalState>
     )
     {
+
         let _ = interaction_events
             .iter()
             .for_each(|interaction| {
                 if let InteractionEvent::UiComponentInteraction { event: Interaction::Clicked, entity} = interaction {
+                    info!("Found click event with {:?}", entity);
                     context.clicked(*entity);
                     RetrieveStateT::update_hover_ui(&mut global_state, Some(*entity));
                     RetrieveStateT::update_click_hover_ui(&mut global_state, Some(*entity));
@@ -60,7 +61,6 @@ pub trait EventsSystem<
                         &mut event_write,
                         &self_query,
                         &propagation_query,
-                        &mut side_effect_writer,
                         entity
                     );
                 } else if let InteractionEvent::UiComponentInteraction { event: Interaction::None, entity} = interaction {
@@ -89,7 +89,6 @@ pub trait EventsSystem<
                             &mut event_write,
                             &self_query,
                             &propagation_query,
-                            &mut side_effect_writer,
                             &entity
                         ));
                 } else if let InteractionEvent::ScrollWheelEvent { event } = interaction {
@@ -101,7 +100,6 @@ pub trait EventsSystem<
                             &mut event_write,
                             &self_query,
                             &propagation_query,
-                            &mut side_effect_writer,
                             &entity
                         ));
                 } else if let InteractionEvent::RayCastInteraction { event} = interaction {
@@ -116,7 +114,6 @@ pub trait EventsSystem<
         mut event_write: &mut EventWriter<EventDescriptor<EventDataT, EventArgsT, ComponentChangeT>>,
         self_query: &Query<SelfQuery, SelfFilterQuery>,
         propagation_query: &Query<PropagationQuery, PropagationFilterQuery>,
-        mut propagation_write: &mut EventWriter<SideEffectWriter>,
         entity: &Entity
     ) {
         let events = RetrieveStateT::create_event(
@@ -204,7 +201,7 @@ pub trait InsertComponentInteractionEventReader<
         EventArgsT: EventArgs + 'static + Debug,
         StateAdviserComponentT: Component + Send + Sync + 'static + Debug + Clone,
         NextEventComponentT: Component + Send + Sync + 'static + Debug + Clone,
-        StateChangeFactoryT: InsertComponentChangeFactory<EventDataT, EventArgsT, NextEventComponentT, StateAdviserComponentT, Ctx>,
+        StateChangeFactoryT: InsertComponentChangeFactory<EventDataT, EventArgsT, NextEventComponentT, StateAdviserComponentT, Ctx, StateUpdateI>,
         StateUpdateI: InsertComponent<NextEventComponentT, StateAdviserComponentT, Ctx>,
 {
     fn read_events(
@@ -215,17 +212,23 @@ pub trait InsertComponentInteractionEventReader<
         mut query: Query<(Entity, &StateAdviserComponentT), QF>
     ) {
         for event in read_events.iter() {
-            info!("Reading next event: {:?}", event);
+            info!("Reading next component insert event event: {:?}", event);
             StateChangeFactoryT::current_state(event, &mut ctx_resource)
                 .into_iter()
                 .for_each(|state| {
-                    info!("Reading next state change: {:?}", state);
-                    let _ = query.get_mut(state.entity)
+                    info!("Reading next component insert state change: {:?}", state);
+                    let _ = query.get_mut(state.adviser_component())
                         .map(|(entity, component)| {
                             /// The update component and the state component can be different. If the
                             /// state required to update the component spans multiple components, then this is
                             /// handled already and included in the NextStateChange.
-                            state.insert_component(&mut commands, state.next_state.to_owned(), &mut ctx_resource, entity, component);
+                            state.insert_update_components(
+                                &mut commands,
+                                state.next_state(),
+                                &mut ctx_resource,
+                                state.entity_component(),
+                                component
+                            );
                         })
                         .or_else(|f| {
                             info!("Failed to fetch query: {:?}.", f);
@@ -242,11 +245,11 @@ pub trait InsertComponentInteractionEventReader<
 pub trait RetrieveState<
     EventArgsT,
     EventDataT,
-    ComponentStateT,
-    ComponentChangeT,
     Ctx,
     SelfQueryValues,
     PropagationQueryValues,
+    ComponentStateT,
+    ComponentChangeT = ComponentStateT,
     SelfFilter: ReadOnlyWorldQuery = (),
     PropagationFilter: ReadOnlyWorldQuery = (),
 >: Resource

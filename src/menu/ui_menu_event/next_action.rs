@@ -65,18 +65,14 @@ impl Matches<Visibility> for UiComponentState {
                     true
                 } else if style == Visibility::Hidden && matches!(visible, VisibilityIdentifier::Hidden)  {
                     true
+                } else if matches!(visible, VisibilityIdentifier::Any) {
+                    true
                 } else {
                     false
                 }
             }
             _ => false
         }
-    }
-}
-
-impl Matches<MetricsConfigurationOption<Menu>> for UiComponentState {
-    fn matches(&self, style: &MetricsConfigurationOption<Menu>) -> bool {
-        true
     }
 }
 

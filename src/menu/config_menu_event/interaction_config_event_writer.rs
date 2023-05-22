@@ -52,7 +52,8 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
 
 impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> EventsSystem<
     ConfigOptionActionStateRetriever<T>, ConfigurationOptionEventArgs<T>,
-    DataType, MetricsConfigurationOption<T>, MetricsConfigurationOption<T>, NetworkMenuResultBuilder,
+    DataType, MetricsConfigurationOption<T>, MetricsConfigurationOption<T>,
+    NetworkMenuResultBuilder,
     // self query
     (Entity, &MetricsConfigurationOption<T>),
     // self filter
@@ -68,11 +69,11 @@ impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> EventsSyste
 impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> RetrieveState<
     ConfigurationOptionEventArgs<T>,
     DataType,
-    MetricsConfigurationOption<T>,
-    MetricsConfigurationOption<T>,
     NetworkMenuResultBuilder,
     (Entity, &MetricsConfigurationOption<T>),
     (Entity, &MetricsConfigurationOption<T>),
+    MetricsConfigurationOption<T>,
+    MetricsConfigurationOption<T>,
     MetricsSelfQueryFilter<T>,
     (With<MetricsConfigurationOption<T>>),
 >

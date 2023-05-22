@@ -89,18 +89,18 @@ pub struct VisibilitySystems<T: ChangeVisible> {
     v: PhantomData<T>
 }
 
-impl EventsSystem<
-    ChangeVisibleEventRetriever<MetricsConfigurationOption<Menu>, Visibility>,
-    UiEventArgs, ComponentChangeEventData, MetricsConfigurationOption<Menu>, Visibility, UiContext,
+impl<T: ChangeVisible + Debug> EventsSystem<
+    ChangeVisibleEventRetriever<T, Visibility>,
+    UiEventArgs, ComponentChangeEventData, T, Visibility, UiContext,
     // self query
-    VisibleComponentStateTransitionsQuery<'_, MetricsConfigurationOption<Menu>, Visibility>,
+    VisibleComponentStateTransitionsQuery<'_, T, Visibility>,
     // self filter
-    VisibleFilter<MetricsConfigurationOption<Menu>>,
+    VisibleFilter<T>,
     // propagation query
     PropagationQuery<'_, Visibility>,
     // propagation filter
     PropagationQueryFilter<Visibility>,
     // interaction filter
-    VisibleIxnFilter<MetricsConfigurationOption<Menu>>
-> for VisibilitySystems<MetricsConfigurationOption<Menu>> {}
+    VisibleIxnFilter<T>
+> for VisibilitySystems<T> {}
 

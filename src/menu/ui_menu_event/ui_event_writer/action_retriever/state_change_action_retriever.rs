@@ -7,7 +7,7 @@ use crate::event::event_state::Context;
 use crate::menu::ui_menu_event::next_action::Matches;
 use crate::menu::ui_menu_event::transition_groups::TransitionGroup;
 use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
-
+use crate::menu::ui_menu_event::ui_state_change::ChangeVisible;
 use crate::menu::ui_menu_event::transition_groups::PropagateVisible;
 use crate::menu::ui_menu_event::transition_groups::PropagateSelect;
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};
@@ -22,14 +22,14 @@ use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
 pub struct StateChangeActionTypeStateRetriever<
     SelfQueryFilter,
     InteractionQueryFilterT,
-    ComponentStateT,
-    ComponentChangeT,
     Ctx,
     EventArgsT,
     StateMachineT,
+    TransitionGroupT,
+    ComponentStateT,
     FilterMatchesT,
-    UpdateComponentMatchesT,
-    TransitionGroupT
+    ComponentChangeT = ComponentStateT,
+    UpdateComponentMatchesT = FilterMatchesT,
 > (
     PhantomData<SelfQueryFilter>,
     /// may be able to remove the below parameter at some point.
@@ -55,9 +55,9 @@ pub struct StateChangeActionTypeStateRetriever<
 
 
 macro_rules! state_change_action_retriever_default {
-    ($($ty1:ty, $ty2:ty, $ty3:ty, $ty4:ty, $ty5:ty, $ty6:ty, $ty7:ty),*) => {
+    ($($ty1:ty, $ty2:ty, $ty3:ty),*) => {
         $(
-            impl Default for StateChangeActionTypeStateRetriever<$ty1, $ty2, $ty3, $ty4, $ty5, $ty6, StyleStateChangeEventData, UiComponentState, UiComponentState, $ty7>  {
+            impl Default for StateChangeActionTypeStateRetriever<$ty1, $ty2, UiContext, UiEventArgs, StyleStateChangeEventData, $ty3, Style, UiComponentState>  {
                 fn default() -> Self {
                     Self(
                         PhantomData::default(),
@@ -78,16 +78,16 @@ macro_rules! state_change_action_retriever_default {
 }
 
 state_change_action_retriever_default!(
-    UiComponentStyleFilter, UiComponentStyleIxnFilter, Style, Style, UiContext, UiEventArgs, PropagateDisplay,
-    DraggableUiComponentFilter, DraggableUiComponentIxnFilter, Style, Style, UiContext, UiEventArgs, PropagateDraggable,
-    ScrollableUiComponentFilter, ScrollableIxnFilterQuery, Style, Style, UiContext, UiEventArgs, PropagateScrollable,
-    UiComponentStyleFilter, UiComponentStyleIxnFilter, Style, Style, UiContext, UiEventArgs, PropagateSelect
+    UiComponentStyleFilter, UiComponentStyleIxnFilter, PropagateDisplay,
+    DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PropagateDraggable,
+    ScrollableUiComponentFilter, ScrollableIxnFilterQuery, PropagateScrollable,
+    UiComponentStyleFilter, UiComponentStyleIxnFilter, PropagateSelect
 );
 
 macro_rules! state_change_action_component_change {
-    ($($ty1:ty, $ty2:ty, $ty3:ty, $ty4:ty, $ty5:ty, $ty6:ty, $ty7:ty),*) => {
+    ($($ty1:ty, $ty2:ty, $ty3:ty, $ty4:ty, $ty5:ty),*) => {
         $(
-            impl Default for StateChangeActionTypeStateRetriever<$ty1, $ty2, $ty3, $ty4, $ty5, $ty6, ComponentChangeEventData, UiComponentState, UiComponentState, $ty7>  {
+            impl<T: ChangeVisible> Default for StateChangeActionTypeStateRetriever<$ty1, $ty2, UiContext, UiEventArgs, ComponentChangeEventData, $ty3, T, UiComponentState, $ty5>  {
                 fn default() -> Self {
                     Self(
                         PhantomData::default(),
@@ -110,6 +110,7 @@ macro_rules! state_change_action_component_change {
 state_change_action_component_change!(
     VisibleFilter<MetricsConfigurationOption<Menu>>,
     VisibleIxnFilter<MetricsConfigurationOption<Menu>>,
+    PropagateVisible,
     MetricsConfigurationOption<Menu>,
-    Visibility, UiContext, UiEventArgs, PropagateVisible
+    Visibility
 );
