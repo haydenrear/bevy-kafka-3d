@@ -3,17 +3,17 @@ use bevy::prelude::{AlignSelf, BackgroundColor, Bundle, ButtonBundle, Color, Col
 use bevy::asset::{Assets, AssetServer};
 use bevy::log::{error, info};
 use bevy::hierarchy::BuildChildren;
-use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::event::event_state::{HoverStateChange, StyleStateChangeEventData, Update, UpdateStateInPlace};
 use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
 use crate::menu::{CollapsableMenuComponent, ConfigurationOptionEnum, DataType, DraggableComponent, Dropdown, DropdownOption, Menu, MenuInputType, MenuItemMetadata, MenuOption, MenuOptionInputType, MenuOptionType, MenuType, MetricsConfigurationOption, Radial, ScrollableMenuComponent, ScrollableMenuItemsBarComponent, ScrollingSidebarComponent, ScrollWheelComponent, SelectableType, Slider, SliderData, SliderKnob, UiComponent};
 use crate::menu::menu_resource::{MENU, MenuResource};
 use crate::menu::ui_menu_event::change_style::UiChangeTypes;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{CreateMenu, StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{CreateMenu};
 use crate::menu::UiComponent::CollapsableMenu;
 use crate::ui_components::ui_menu_component;
 use bevy::ecs::system::EntityCommands;
 use bevy::ui::{AlignItems, FocusPolicy, ZIndex};
+use crate::menu::config_menu_event::interaction_config_event_writer::{GraphMenuResultBuilder, NetworkMenuResultBuilder};
 use crate::menu::MenuInputType::CollapsableMenuInputType;
 use crate::menu::ui_menu_event::next_action::{DisplayState, SizeState, UiComponentState};
 use crate::ui_components;
@@ -37,7 +37,7 @@ pub fn create_menu(
     mut meshes: ResMut<Assets<Mesh>>,
     mut asset_server: Res<AssetServer>,
     mut menu_resource: Res<MenuResource>,
-    mut menu_state: ResMut<NextState<CreateMenu>>
+    mut menu_state: ResMut<NextState<CreateMenu>>,
 ) {
     let mut root_node_builder = RootNodeBuilder {};
     let root_node_result = root_node_builder.build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
@@ -77,6 +77,25 @@ pub fn create_menu(
             MenuInputType::Slider { .. } => {}
         }
     }
+    menu_state.set(CreateMenu::PopulateOptionsBuilder);
+}
+
+pub fn populate_options_builder(
+    mut network_menu_result: ResMut<NetworkMenuResultBuilder>,
+    mut graph_menu_result: ResMut<GraphMenuResultBuilder>,
+    mut build_result: ResMut<BuildMenuResult>,
+    mut menu_state: ResMut<NextState<CreateMenu>>,
+) {
+    build_result.dropdown_menu_option_results.iter().filter(|i| {
+        matches!(i.1.configuration_option, ConfigurationOptionEnum::Menu(MetricsConfigurationOption::GraphMenu(..)))
+    }).next().map(|i| {
+        graph_menu_result.graph_menu_config_option = Some(*i.0)
+    });
+    build_result.dropdown_menu_option_results.iter().filter(|i| {
+        matches!(i.1.configuration_option, ConfigurationOptionEnum::Menu(MetricsConfigurationOption::NetworkMenu(..)))
+    }).next().map(|i| {
+        network_menu_result.network_menu_config_option = Some(*i.0)
+    });
     menu_state.set(CreateMenu::InsertStateTransitions);
 }
 
@@ -220,6 +239,7 @@ fn get_submenu_builder<'a>(
 fn selected_option_builder<'a>(opt: &'a MenuOption, parent_metadata: &'a Vec<MenuItemMetadata>) -> Vec<(MenuOption, MenuOptionBuilder<'a>)> {
     match &opt.data_type {
         MenuOptionType::Primitive(option) => {
+            let propagate_visible = option.is_propagate_visible();
             vec![(
                 opt.clone(),
                 MenuOptionBuilder::DropdownMenuOptionBuilder(
@@ -231,7 +251,11 @@ fn selected_option_builder<'a>(opt: &'a MenuOption, parent_metadata: &'a Vec<Men
                         parents: parent_metadata.clone(),
                         menu_option_component: menu_option(opt),
                         id_component: UiIdentifiableComponent(opt.metadata.id),
-                        selectable: SelectableType::DropdownSelectableCheckmarkActivate
+                        selectable: if propagate_visible.is_some() {
+                            SelectableType::DropdownSelectableChangeVisible
+                        } else {
+                            SelectableType::DropdownSelectableCheckmarkActivate
+                        }
                     }
                 )
             )]

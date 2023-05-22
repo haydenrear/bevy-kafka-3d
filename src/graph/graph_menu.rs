@@ -1,5 +1,4 @@
 use bevy::prelude::{Entity, Resource};
-use bevy::utils::HashMap;
 use crate::graph::GraphDim;
 use crate::menu::MenuData;
 

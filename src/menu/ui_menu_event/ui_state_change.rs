@@ -1,21 +1,22 @@
 use bevy::utils::HashMap;
-use bevy::prelude::{BackgroundColor, Button, Changed, Color, Component, Display, Entity, Interaction, Query, ResMut, Resource, Size, Style, With};
+use bevy::prelude::{BackgroundColor, Button, Changed, Color, Component, Display, Entity, Interaction, Query, ResMut, Resource, Size, Style, Visibility, With};
 use bevy::log::info;
 use bevy::ui::UiRect;
 use bevy_transform::prelude::Transform;
 use bevy::ecs::query::ReadOnlyWorldQuery;
 use bevy::math::Vec2;
 use bevy::input::mouse::MouseScrollUnit;
+use bevy::prelude::Visibility::Visible;
 use crate::event::event_descriptor::{EventArgs, EventData};
-use crate::event::event_state::{ClickContext, Context, StyleStateChangeEventData, Update};
-use crate::event::event_propagation::{ChangePropagation, Relationship};
-use crate::menu::{Position, UiComponent};
+use crate::event::event_state::{ClickContext, ComponentChangeEventData, Context, StyleStateChangeEventData, Update};
+use crate::menu::{Menu, MetricsConfigurationOption, Position, UiComponent};
 use crate::menu::ui_menu_event::change_style::{DoChange, UiChangeTypes};
 use crate::menu::ui_menu_event::interaction_ui_event_writer::ClickSelectOptions;
 use crate::menu::ui_menu_event::next_action::{DisplayState, UiComponentState};
 use crate::menu::ui_menu_event::ui_context::UiContext;
-use crate::menu::ui_menu_event::types::{ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, DraggableUiComponentFilter, DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter};
+use crate::menu::ui_menu_event::types::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, DraggableUiComponentFilter, DraggableUiComponentIxnFilter, RaycastFilter, RaycastIxnFilter, ScrollableIxnFilterQuery, ScrollableStateChangeRetriever, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiEventArgs};
+use crate::network::Network;
 
 /// Contains the state data needed in order to generate the UIEvents from the state change required.
 #[derive(Clone, Debug)]
@@ -36,6 +37,10 @@ pub enum UiClickStateChange {
         entity: Entity,
         update_scroll: Update<UiRect>
     },
+    ChangeVisible {
+        entity: Entity,
+        update_component: Visibility
+    },
     None,
 }
 
@@ -48,6 +53,23 @@ pub trait StateChangeMachine<ComponentT, Ctx: Context, EventArgsT: EventArgs>: S
     ) -> Option<EventArgsT>;
 }
 
+impl StateChangeMachine<Visibility, UiContext, UiEventArgs> for ComponentChangeEventData {
+    fn state_machine_event(&self, starting: &Visibility, style_context: &mut ResMut<UiContext>, entity: Entity) -> Option<UiEventArgs> {
+        if let ComponentChangeEventData::ChangeVisible{ to_change} = self {
+            if starting == Visibility::Visible {
+                return Some(UiEventArgs::Event(UiClickStateChange::ChangeVisible {
+                    entity: *to_change,  update_component: Visibility::Hidden,
+                }));
+            } else if starting == Visibility::Hidden {
+                return Some(UiEventArgs::Event(UiClickStateChange::ChangeVisible {
+                    entity: *to_change,  update_component: Visibility::Visible
+                }));
+            }
+        }
+        None
+    }
+}
+
 impl StateChangeMachine<Style, UiContext, UiEventArgs> for StyleStateChangeEventData {
     fn state_machine_event(&self, starting: &Style, style_context: &mut ResMut<UiContext>, entity: Entity) -> Option<UiEventArgs> {
         if let StyleStateChangeEventData::ChangeComponentStyle(change_style) = self {
@@ -57,21 +79,6 @@ impl StateChangeMachine<Style, UiContext, UiEventArgs> for StyleStateChangeEvent
     }
 }
 
-impl StyleStateChangeEventData {
-
-    pub fn get_ui_event(
-        &self,
-        starting: &Style,
-        style_context: &mut ResMut<UiContext>,
-        entity: Entity
-    ) -> Option<UiEventArgs> {
-        if let StyleStateChangeEventData::ChangeComponentStyle(change_style) = self {
-            return change_style.do_change(starting, entity, style_context);
-        }
-        None
-    }
-
-}
 
 pub fn hover_event(
     mut query: Query<(&mut Style, &mut BackgroundColor, &Interaction), (With<UiComponent>, With<Button>, Changed<Interaction>)>,
@@ -122,7 +129,6 @@ where SELF: ReadOnlyWorldQuery,
     fn update_wheel(resource: &mut GlobalState, event: Vec2, wheel_units: Option<MouseScrollUnit>) {
         let mut prev: Vec2 = Vec2::new(event.x, event.y);
         std::mem::swap(&mut prev, &mut resource.scroll_wheel_delta);
-        info!("{:?} is scroll wheel delta", &resource.scroll_wheel_delta);
         resource.wheel_units = wheel_units;
         if prev != Vec2::ZERO {
             let delta = resource.cursor_pos - prev;
@@ -163,6 +169,17 @@ for ClickEvents {}
 impl UpdateGlobalState<UiComponentStyleFilter, UiComponentStyleIxnFilter>
 for ClickSelectionEventRetriever {}
 
+impl UpdateGlobalState<RaycastFilter, RaycastIxnFilter>
+for ClickSelectionEventRetriever {}
+
+impl UpdateGlobalState<VisibleFilter<MetricsConfigurationOption<Menu>>, VisibleIxnFilter<MetricsConfigurationOption<Menu>>>
+for ChangeVisibleEventRetriever<MetricsConfigurationOption<Menu>, Visibility> {}
+
+pub trait ChangeVisible: Component {}
+
+/// This decorates the updating of the global state so that for some systems that are updating
+/// on a faster timer, and not on a Changed<> timer, the hover won't be updated when truly it's
+/// still hovering.
 impl UpdateGlobalState<ScrollableUiComponentFilter, ScrollableIxnFilterQuery>
 for ScrollableStateChangeRetriever  {
     fn update_hover_ui(resource: &mut GlobalState, hover_ui: Option<Entity>) {
@@ -178,6 +195,9 @@ for ScrollableStateChangeRetriever  {
     }
 }
 
+/// This decorates the updating of the global state so that for some systems that are updating
+/// on a faster timer, and not on a Changed<> timer, the hover won't be updated when truly it's
+/// still hovering.
 impl UpdateGlobalState<DraggableUiComponentFilter, DraggableUiComponentIxnFilter>
 for DraggableStateChangeRetriever  {
     fn update_hover_ui(resource: &mut GlobalState, hover_ui: Option<Entity>) {

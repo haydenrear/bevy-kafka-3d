@@ -42,7 +42,7 @@ use crate::graph::graph_data_event_reader::read_metric_events;
 use crate::graph::radial::RadialGraphPoints;
 use crate::graph::setup_graph::{graph_points_generator, setup_graph};
 use crate::lines::line_list::LineMaterial;
-use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
+use crate::menu::config_menu_event::interaction_config_event_writer::NetworkMenuResultBuilder;
 use crate::metrics::network_metrics::Metric;
 use crate::network::Node;
 use crate::test::bevy_tests::default_plugins::NoRenderBevyIntegrationTestPlugin;
@@ -105,7 +105,7 @@ fn create_app<'a>(dim: usize, app: &'a mut App) -> &'a mut App {
     let mut app = app
         .insert_resource(MetricsState::default())
         .insert_resource(config_properties)
-        .insert_resource(ConfigOptionContext::default())
+        .insert_resource(NetworkMenuResultBuilder::default())
         .insert_resource(TestEventGeneratingResource::new(dim))
         .insert_resource(GraphConfigurationResource::<Node>::default())
         .add_plugins(NoRenderBevyIntegrationTestPlugin)

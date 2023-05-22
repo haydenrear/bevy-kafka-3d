@@ -1,15 +1,15 @@
 use std::marker::PhantomData;
-use bevy::prelude::{Added, Color, Commands, Component, default, Entity, info, Mesh, Query, ResMut, Visibility, Without};
+use bevy::prelude::{Added, Color, Commands, Component, default, Entity, info, Mesh, Query, ResMut, Visibility};
 use bevy::asset::Assets;
 use bevy::math::Vec3;
 use bevy::pbr::{MaterialMeshBundle, PbrBundle};
 use bevy::hierarchy::BuildChildren;
 use bevy::log::error;
-use crate::graph::{GraphParent, Grid, GRID_AXES_THICKNESS, GRID_LINES_THICKNESS, GRID_SIZE, GridAxis, DataSeries, NUM_GRIDLINES, Graph};
+use crate::graph::{Graph, GraphingMetricsResource, GraphParent, Grid, GRID_AXES_THICKNESS, GRID_LINES_THICKNESS, GRID_SIZE, GridAxis, NUM_GRIDLINES};
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
-use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
+use crate::menu::config_menu_event::interaction_config_event_writer::{GraphMenuResultBuilder, NetworkMenuResultBuilder};
 use crate::metrics::network_metrics::Metric;
-use crate::network::Network;
+use crate::util;
 
 /// When a metric is added to the world, a graph is created for this metric, which has a series.
 pub(crate) fn graph_points_generator<T>
@@ -17,28 +17,23 @@ pub(crate) fn graph_points_generator<T>
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LineMaterial>>,
-    metric_added_event: Query<
-        (Entity, &Metric<T>),
-        (Added<Metric<T>>)
-    >,
-    graph_parent_query: Query<
-        (Entity, &GraphParent)
-    >,
+    mut graph_config: ResMut<GraphingMetricsResource>,
+    metric_added_event: Query<(Entity, &Metric<T>), (Added<Metric<T>>)>,
+    graph_parent_query: Query<(Entity, &GraphParent)>,
 )
     where
         T: Component
 {
-    for (metric_entity, _) in metric_added_event.iter() {
+    for (metric_entity, metric_added) in metric_added_event.iter() {
         let graph = Graph {
             component: PhantomData::<T>::default(),
         };
+        add_indices(&mut graph_config, metric_entity, metric_added);
         let mut graph = commands.spawn((graph, PbrBundle::default()));
         let _ = graph_parent_query.get_single()
             .map(|(graph_parent_entity, _)| graph.set_parent(graph_parent_entity))
             .or_else(|e| {
                 error!("Could not set parent for graph parent: {:?}", e);
-                panic!("Could not set parent for graph parent. Graph parent did not exist. Bevy initialization system not\
-                in initialization.");
                 Err(e)
             });
         info!("Adding metric entity as child.");
@@ -46,11 +41,24 @@ pub(crate) fn graph_points_generator<T>
     }
 }
 
+fn add_indices<T>(mut graph_config: &mut ResMut<GraphingMetricsResource>, metric_entity: Entity, metric_added: &Metric<T>)
+where
+    T: Component
+{
+    metric_added.metric_indices.iter()
+        .for_each(|(metric_component_type, indices)| {
+            indices.iter().for_each(|metric_index| {
+                util::add_or_insert(metric_component_type, metric_index.to_string(), &mut graph_config.index_types);
+                util::add_or_insert(metric_index, metric_entity, &mut graph_config.graphing_indices);
+            });
+        });
+}
+
 pub(crate) fn setup_graph(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<LineMaterial>>,
-    mut context: ResMut<ConfigOptionContext>,
+    mut context: ResMut<GraphMenuResultBuilder>,
 ) {
     draw_graph(&mut commands, &mut meshes, &mut materials, &mut context);
 }
@@ -59,7 +67,7 @@ fn draw_graph(
     mut commands: &mut Commands,
     mut meshes: &mut ResMut<Assets<Mesh>>,
     mut materials: &mut ResMut<Assets<LineMaterial>>,
-    context: &mut ResMut<ConfigOptionContext>,
+    context: &mut ResMut<GraphMenuResultBuilder>,
 ) -> Entity
 {
     let grid = draw_axes(&mut commands, &mut materials, &mut meshes, GRID_SIZE);

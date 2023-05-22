@@ -1,9 +1,8 @@
-use std::fmt::Error;
 use std::future::Future;
-use bevy::utils::{HashMap, HashSet};
 use std::hash::Hash;
 use bevy::log::error;
 use tokio::runtime::{Handle, Runtime};
+use std::collections::{HashMap, HashSet};
 
 pub fn group_by_key<K, V>(map: Vec<(K, V)>) -> HashMap<K, HashSet<V>>
     where
@@ -43,5 +42,24 @@ pub fn get_create_runtime<F: Future>(fn_to_run: F) -> F::Output {
             panic!("Could not run future!");
         }
         out.unwrap()
+    }
+}
+
+pub(crate) fn add_or_insert<T, U>(
+    key_value: &T,
+    group_value: U,
+    mut values: &mut HashMap<T, HashSet<U>>
+)
+where
+    T: Hash + Eq + Clone,
+    U: Eq + Hash
+{
+    if values.get(key_value).is_none() {
+        values.insert(key_value.clone(), HashSet::from([group_value]));
+    } else {
+        if values.get(key_value).filter(|c| c.contains(&group_value)).is_none() {
+            values.get_mut(key_value)
+                .map(|indices| indices.insert(group_value));
+        }
     }
 }

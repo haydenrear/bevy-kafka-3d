@@ -1,30 +1,42 @@
 use std::collections::{HashSet};
 use std::fmt::Debug;
 use bevy::prelude::*;
+use crate::event::event_descriptor::EventData;
 use crate::event::state_transition::get_state_transitions::{ChildFilter, ChildQuery, Entities, EntityFilter, EntityQuery, GetStateTransitions, ParentFilter, ParentQuery};
+use crate::menu::ui_menu_event::next_action::Matches;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{TransitionGroup};
 use crate::ui_components::menu_components::{BuildMenuResult};
 
-pub fn insert_state_transitions<TransitionGroupT, GetStateTransitionsT>(
+pub fn insert_state_transitions<
+    TransitionGroupT,
+    GetStateTransitionsT,
+    ResultT: Resource,
+    EventDataT: EventData + Debug + 'static,
+    StateComponentT: Component,
+    FilterMatchesT: Matches<StateComponentT>,
+    UpdateComponentT: Component,
+    MatchesT: Matches<UpdateComponentT>
+>
+(
     mut commands: Commands,
-    build_menu_result: Res<BuildMenuResult>,
+    build_menu_result: Res<ResultT>,
     entity_query: Query<EntityQuery<'_, TransitionGroupT>, EntityFilter<TransitionGroupT>>,
     with_children_query: Query<ChildQuery<'_, TransitionGroupT>, ChildFilter<TransitionGroupT>>,
     with_parent_query: Query<ParentQuery<'_, TransitionGroupT>, ParentFilter<TransitionGroupT>>,
 )
 where
     TransitionGroupT: TransitionGroup + Debug,
-    GetStateTransitionsT: GetStateTransitions<TransitionGroupT> + Debug
+    GetStateTransitionsT: GetStateTransitions<TransitionGroupT, ResultT, EventDataT, StateComponentT, FilterMatchesT, UpdateComponentT, MatchesT> + Debug,
 {
 
     for entity in GetStateTransitionsT::get_entities(&build_menu_result).iter() {
 
-        let entities = populate_entities_filtered::<TransitionGroupT, GetStateTransitionsT>(&entity_query, &with_children_query, &with_parent_query, entity);
+        let entities = populate_entities_filtered::<TransitionGroupT, GetStateTransitionsT, ResultT, EventDataT, StateComponentT, FilterMatchesT, UpdateComponentT, MatchesT>(&entity_query, &with_children_query, &with_parent_query, entity);
 
         GetStateTransitionsT::get_state_transitions(&build_menu_result, &entities)
             .map(|entity_state_transitions| commands.get_entity(*entity)
                 .map(|mut entity_commands| {
-                    info!("Adding state transition: {:?} from collapsable: {:?}.", &entity_state_transitions, entity);
+                    // info!("Adding state transition: {:?} from collapsable: {:?}.", &entity_state_transitions, entity);
                     entity_commands.insert(entity_state_transitions);
                 })
             );
@@ -32,7 +44,7 @@ where
 
 }
 
-fn populate_entities_filtered<TransitionGroupT, GetStateTransitionsT>(
+fn populate_entities_filtered<TransitionGroupT, GetStateTransitionsT, BuildResultT, EventDataT, StateComponentT, FilterMatchesT, UpdateComponentT, MatchesT>(
     entity_query: &Query<EntityQuery<TransitionGroupT>, EntityFilter<TransitionGroupT>>,
     with_children_query: &Query<ChildQuery<TransitionGroupT>, ChildFilter<TransitionGroupT>>,
     with_parent_query: &Query<ParentQuery<TransitionGroupT>, ParentFilter<TransitionGroupT>>,
@@ -40,7 +52,13 @@ fn populate_entities_filtered<TransitionGroupT, GetStateTransitionsT>(
 ) -> Entities
     where
         TransitionGroupT: TransitionGroup + Debug,
-        GetStateTransitionsT: GetStateTransitions<TransitionGroupT> + Debug
+        GetStateTransitionsT: GetStateTransitions<TransitionGroupT, BuildResultT, EventDataT, StateComponentT, FilterMatchesT, UpdateComponentT, MatchesT> + Debug,
+        BuildResultT: Resource,
+        EventDataT: EventData + Debug,
+        StateComponentT: Component,
+        FilterMatchesT: Matches<StateComponentT>,
+        UpdateComponentT: Component,
+        MatchesT: Matches<UpdateComponentT>
 {
     let children = get_filter_components::<TransitionGroupT>(&entity_query, child_entities(&entity_query, &with_children_query, *entity));
     let children_recursive = get_filter_components::<TransitionGroupT>(

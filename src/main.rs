@@ -2,6 +2,7 @@
 #![feature(default_free_fn)]
 #![feature(async_closure)]
 #![feature(let_chains)]
+#![feature(associated_type_defaults)]
 
 
 use bevy::ecs::schedule::SystemSetConfig;
@@ -27,7 +28,7 @@ use crate::graph::graph_plugin::GraphPlugin;
 use crate::graph::setup_graph::setup_graph;
 use crate::interactions::InteractionEvent;
 use crate::menu::config_menu_event::config_menu_event_plugin::ConfigMenuEventPlugin;
-use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
+use crate::menu::config_menu_event::interaction_config_event_writer::NetworkMenuResultBuilder;
 use crate::menu::ui_menu_event::interaction_ui_event_writer::StateChangeActionTypeStateRetriever;
 use crate::menu::menu_resource::MenuResource;
 
@@ -60,7 +61,7 @@ async fn main() {
            ..default()
         })
         .insert_resource(MenuResource::default())
-        .insert_resource(ConfigOptionContext::default())
+        .insert_resource(NetworkMenuResultBuilder::default())
         .insert_resource(ConfigurationProperties::default())
         .insert_resource(BevyPickingState::default())
         .insert_resource(GlobalState::default())

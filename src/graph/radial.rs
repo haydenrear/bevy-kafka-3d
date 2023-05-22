@@ -247,8 +247,8 @@ pub(crate) fn calculate_derivatives(loss_values: &Array1<f32>, n_derivatives: us
     derivatives
 }
 
-pub(crate) fn calculate_moments(loss_values: &Array1<f32>, m_moments: usize) -> Vec<Array1<f32>> {
-    let n = loss_values.len();
+pub(crate) fn calculate_moments(inputs: &Array1<f32>, m_moments: usize) -> Vec<Array1<f32>> {
+    let n = inputs.len();
 
     if n < 2 {
         error!("Attempted to calculate moments from too small of a series.");
@@ -261,7 +261,7 @@ pub(crate) fn calculate_moments(loss_values: &Array1<f32>, m_moments: usize) -> 
     }
 
     for i in 1..n + 1 {
-        let from_slice = loss_values.slice(s![..i]);
+        let from_slice = inputs.slice(s![..i]);
         let moments_created = from_slice
             .central_moments(m_moments as u16);
         let std_dev = from_slice.std(1.0);

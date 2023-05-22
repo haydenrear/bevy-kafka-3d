@@ -9,15 +9,17 @@ use bevy::time::Time;
 use crate::camera::raycast_select::BevyPickingState;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::SideEffectWriter;
-use crate::event::event_state::{ClickContext, Context, StateChangeFactory, Update, UpdateStateInPlace};
+use crate::event::event_state::{ClickContext, Context, InsertComponent, InsertComponentChangeFactory, StateChangeFactory, Update, UpdateStateInPlace};
 use crate::interactions::InteractionEvent;
 use crate::menu::ui_menu_event::ui_state_change::{GlobalState, StateChangeMachine, UpdateGlobalState};
 
-pub trait ClickWriteEvents <
+pub trait EventsSystem<
     RetrieveStateT,
     EventArgsT: EventArgs + 'static + Debug,
     EventDataT: EventData + 'static,
+    // component propagate events
     ComponentT: Component + Send + Sync + 'static + Debug,
+    ComponentChangeT: Component + Send + Sync + 'static + Debug,
     Ctx: ClickContext<SelfFilterQuery, InteractionFilterQuery>,
     SelfQuery: WorldQuery,
     SelfFilterQuery: ReadOnlyWorldQuery + Send + Sync + 'static,
@@ -26,7 +28,7 @@ pub trait ClickWriteEvents <
     InteractionFilterQuery: ReadOnlyWorldQuery + Send + Sync + 'static,
 >
     where RetrieveStateT: RetrieveState<
-        EventArgsT, EventDataT, ComponentT, Ctx, SelfQuery,
+        EventArgsT, EventDataT, ComponentT, ComponentChangeT, Ctx, SelfQuery,
         PropagationQuery, SelfFilterQuery,
         PropagationFilterQuery
         > + UpdateGlobalState<SelfFilterQuery, InteractionFilterQuery>  {
@@ -34,7 +36,7 @@ pub trait ClickWriteEvents <
         mut commands: Commands,
         mut cursor_res: ResMut<RetrieveStateT>,
         mut context: ResMut<Ctx>,
-        mut event_write: EventWriter<EventDescriptor<EventDataT, EventArgsT, ComponentT>>,
+        mut event_write: EventWriter<EventDescriptor<EventDataT, EventArgsT, ComponentChangeT>>,
         self_query: Query<SelfQuery, SelfFilterQuery>,
         propagation_query: Query<PropagationQuery, PropagationFilterQuery>,
         mut interaction_events: EventReader<InteractionEvent<InteractionFilterQuery>>,
@@ -52,7 +54,6 @@ pub trait ClickWriteEvents <
                     RetrieveStateT::update_hover_ui(&mut global_state, Some(*entity));
                     RetrieveStateT::update_click_hover_ui(&mut global_state, Some(*entity));
                     intersected.picked_ui_flag = true;
-                    info!("Click interaction with: {:?}", &entity);
                     Self::propagate_events(
                         &mut commands,
                         &mut context,
@@ -66,18 +67,22 @@ pub trait ClickWriteEvents <
                     context.un_clicked();
                     RetrieveStateT::update_click_hover_ui(&mut global_state, None);
                     RetrieveStateT::update_hover_ui(&mut global_state, None);
+                    /// Cursor is set to zero if Changed because mouse button isn't pressed and not interacting with
+                    /// anyone.
                     RetrieveStateT::update_cursor(&mut global_state, Vec2::ZERO);
                     if !mouse_button_input.pressed(MouseButton::Left) {
                         intersected.picked_ui_flag = false;
                     }
                 } else if let InteractionEvent::UiComponentInteraction { event: Interaction::Hovered, entity } = interaction {
+                    /// in the event when a component is already being dragged, the actions should continue even if
+                    /// the mouse is dragged over some other component, so only update if mouse button is not pressed.
                     if !mouse_button_input.pressed(MouseButton::Left) {
                         intersected.picked_ui_flag = true;
                     }
                     RetrieveStateT::update_hover_ui(&mut global_state, Some(*entity));
                 } else if let InteractionEvent::CursorEvent { event, .. } = interaction {
                     Self::update_cursor(&mut global_state, event);
-                    global_state.click_hover_ui.or(global_state.hover_ui)
+                    global_state.click_hover_ui
                         .map(|entity| Self::propagate_events(
                             &mut commands,
                             &mut context,
@@ -89,7 +94,7 @@ pub trait ClickWriteEvents <
                         ));
                 } else if let InteractionEvent::ScrollWheelEvent { event } = interaction {
                     Self::update_mouse_wheel(&mut global_state, event);
-                    global_state.click_hover_ui.or(global_state.hover_ui)
+                    global_state.hover_ui
                         .map(|entity| Self::propagate_events(
                             &mut commands,
                             &mut context,
@@ -99,6 +104,8 @@ pub trait ClickWriteEvents <
                             &mut side_effect_writer,
                             &entity
                         ));
+                } else if let InteractionEvent::RayCastInteraction { event} = interaction {
+
                 }
             });
     }
@@ -106,9 +113,9 @@ pub trait ClickWriteEvents <
     fn propagate_events(
         mut commands: &mut Commands,
         mut context: &mut ResMut<Ctx>,
-        mut event_write: &mut EventWriter<EventDescriptor<EventDataT, EventArgsT, ComponentT>>,
+        mut event_write: &mut EventWriter<EventDescriptor<EventDataT, EventArgsT, ComponentChangeT>>,
         self_query: &Query<SelfQuery, SelfFilterQuery>,
-        with_parent_query: &Query<PropagationQuery, PropagationFilterQuery>,
+        propagation_query: &Query<PropagationQuery, PropagationFilterQuery>,
         mut propagation_write: &mut EventWriter<SideEffectWriter>,
         entity: &Entity
     ) {
@@ -117,13 +124,11 @@ pub trait ClickWriteEvents <
             *entity,
             &mut context,
             &self_query,
-            &with_parent_query
+            &propagation_query
         );
 
-        events.0.into_iter()
+        events.into_iter()
             .for_each(|(event)| event_write.send(event));
-        events.1.into_iter()
-            .for_each(|(event)| propagation_write.send(event));
     }
 
     fn update_mouse_wheel(
@@ -145,7 +150,6 @@ pub trait ClickWriteEvents <
     }
 }
 
-
 pub trait InteractionEventReader<
     EventDataT, EventArgsT, StateComponent,
     UpdateComponent, StateChangeFactoryT, StateUpdateI,
@@ -158,7 +162,7 @@ pub trait InteractionEventReader<
         StateComponent: Component + Send + Sync + 'static + Debug,
         UpdateComponent: Component + Send + Sync + 'static + Debug,
         StateChangeFactoryT: StateChangeFactory<EventDataT, EventArgsT, StateComponent, UpdateComponent, Ctx, StateUpdateI>,
-        StateUpdateI: UpdateStateInPlace<UpdateComponent, Ctx>
+        StateUpdateI: UpdateStateInPlace<UpdateComponent, Ctx>,
 {
     fn read_events(
         mut commands: Commands,
@@ -174,10 +178,54 @@ pub trait InteractionEventReader<
                 .for_each(|state| {
                     info!("Reading next state change: {:?}", state);
                     let _ = query.get_mut(state.entity)
-                        // fetches a different component on the same entity for updating.
                         .map(|(entity, mut component)| {
-                            // get the event to update
+                            /// The update component and the state component can be different. If the
+                            /// state required to update the component spans multiple components, then this is
+                            /// handled already and included in the NextStateChange.
                             state.update_state(&mut commands, &mut component, &mut ctx_resource);
+                        })
+                        .or_else(|f| {
+                            info!("Failed to fetch query: {:?}.", f);
+                            Ok::<(), QueryEntityError>(())
+                        });
+                });
+        }
+    }
+}
+
+pub trait InsertComponentInteractionEventReader<
+    EventDataT, EventArgsT, NextEventComponentT, StateAdviserComponentT,
+    StateChangeFactoryT, StateUpdateI,
+    Ctx: Context + Debug + Clone,
+    QF: ReadOnlyWorldQuery
+>
+    where
+        EventDataT: EventData + 'static + Debug,
+        EventArgsT: EventArgs + 'static + Debug,
+        StateAdviserComponentT: Component + Send + Sync + 'static + Debug + Clone,
+        NextEventComponentT: Component + Send + Sync + 'static + Debug + Clone,
+        StateChangeFactoryT: InsertComponentChangeFactory<EventDataT, EventArgsT, NextEventComponentT, StateAdviserComponentT, Ctx>,
+        StateUpdateI: InsertComponent<NextEventComponentT, StateAdviserComponentT, Ctx>,
+{
+    fn read_events(
+        mut commands: Commands,
+        mut ctx_resource: ResMut<Ctx>,
+        update_state: PhantomData<StateChangeFactoryT>,
+        mut read_events: EventReader<EventDescriptor<EventDataT, EventArgsT, NextEventComponentT>>,
+        mut query: Query<(Entity, &StateAdviserComponentT), QF>
+    ) {
+        for event in read_events.iter() {
+            info!("Reading next event: {:?}", event);
+            StateChangeFactoryT::current_state(event, &mut ctx_resource)
+                .into_iter()
+                .for_each(|state| {
+                    info!("Reading next state change: {:?}", state);
+                    let _ = query.get_mut(state.entity)
+                        .map(|(entity, component)| {
+                            /// The update component and the state component can be different. If the
+                            /// state required to update the component spans multiple components, then this is
+                            /// handled already and included in the NextStateChange.
+                            state.insert_component(&mut commands, state.next_state.to_owned(), &mut ctx_resource, entity, component);
                         })
                         .or_else(|f| {
                             info!("Failed to fetch query: {:?}.", f);
@@ -194,7 +242,8 @@ pub trait InteractionEventReader<
 pub trait RetrieveState<
     EventArgsT,
     EventDataT,
-    ComponentT,
+    ComponentStateT,
+    ComponentChangeT,
     Ctx,
     SelfQueryValues,
     PropagationQueryValues,
@@ -204,16 +253,20 @@ pub trait RetrieveState<
     where
         EventArgsT: EventArgs + Debug + 'static,
         EventDataT: EventData + 'static,
-        ComponentT: Component + Send + Sync + 'static + Debug,
+        ComponentStateT: Component + Send + Sync + 'static + Debug,
+        ComponentChangeT: Component + Send + Sync + 'static + Debug,
         Ctx: Context,
         SelfQueryValues: WorldQuery,
         PropagationQueryValues: WorldQuery,
 {
+    /// Creates an event based on the current state of ComponentT as well as the current Ctx.
+    /// If the next state generated depends on multiple components, then the context is used to store
+    /// that information.
     fn create_event(
         commands: &mut Commands,
         entity: Entity,
         context: &mut ResMut<Ctx>,
         self_query: &Query<SelfQueryValues, SelfFilter>,
         propagation_query: &Query<PropagationQueryValues, PropagationFilter>,
-    ) ->  (Vec<EventDescriptor<EventDataT, EventArgsT, ComponentT>>, Vec<SideEffectWriter>);
+    ) -> Vec<EventDescriptor<EventDataT, EventArgsT, ComponentChangeT>>;
 }

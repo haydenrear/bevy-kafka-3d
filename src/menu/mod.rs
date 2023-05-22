@@ -11,23 +11,12 @@ use rdkafka::metadata;
 use serde::Deserialize;
 use ui_menu_event::next_action::{DisplayState, SizeState, UiComponentState};
 use ui_menu_event::types::{StyleStateChange, UiStateChange, UiStyleComponentStateTransitions};
-use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::event::event_state::{Context, StyleStateChangeEventData, UpdateStateInPlace};
 use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
-use crate::graph::GraphParent;
-use crate::menu::config_menu_event::config_event::NextConfigurationOptionState;
 use crate::menu::menu_resource::{MENU, VARIANCE};
-use crate::menu::ui_menu_event::change_style::UiChangeTypes;
-use crate::menu::ui_menu_event::ui_context::UiContext;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{EntitiesStateTypes, EntityComponentStateTransition, StateChangeActionType, UiComponentStateTransition, UiComponentStateTransitions, UiEntityComponentStateTransitions, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::PropagateVisible;
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, MetricChildNodes, Network, Node};
-use crate::ui_components::menu_components::{BuildMenuResult};
-use crate::ui_components::menu_components::menu_types::dropdown_menu::{DrawDropdownMenuResult, DropdownMenuBuilder};
-use crate::ui_components::menu_components::menu_options::dropdown_menu_option::{DropdownMenuOptionBuilder, DropdownMenuOptionResult};
-use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;
-use crate::ui_components::menu_components::menu_types::collapsable_menu::DrawCollapsableMenuResult;
-use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 pub(crate) mod ui_menu_event;
 pub(crate) mod config_menu_event;
@@ -81,6 +70,7 @@ pub enum Position {
 pub enum SelectableType {
     DropdownSelectableReplaceText,
     DropdownSelectableCheckmarkActivate,
+    DropdownSelectableChangeVisible,
     NotSelectable
 }
 
@@ -148,6 +138,7 @@ pub enum MetricsConfigurationOption<T: Component + Send + Sync + Clone + Debug +
     NetworkMenu(PhantomData<T>, DataType, &'static str, MenuType),
 }
 
+
 #[derive(Debug, Clone)]
 pub enum MenuType {
     Graph, Network, Metrics, Menu
@@ -200,8 +191,12 @@ pub enum ConfigurationOptionEnum {
 }
 
 impl ConfigurationOptionEnum {
-    pub(crate) fn get_option_input_enum(&self) -> MenuOptionInputType {
-        MenuOptionInputType::Activated
+    pub(crate) fn is_propagate_visible(&self) -> Option<PropagateVisible> {
+        if matches!(self, Self::Menu(_)) {
+            Some(PropagateVisible::default())
+        } else {
+            None
+        }
     }
 }
 
@@ -334,8 +329,8 @@ pub enum UiComponent {
     ScrollableMenuItemsBar(ScrollableMenuItemsBarComponent),
     DropdownSelectable,
     NamedDropdownMenu,
-    Node,
     MenuOptionCheckmark,
+    Node,
 }
 
 impl UiComponent {

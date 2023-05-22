@@ -5,6 +5,7 @@ use bevy::prelude::{Commands, Component, Entity, error, Query, ResMut, Resource}
 use ndarray::{Array, Array1, Array2, ArrayBase, ArrayD, ArrayView, ArrayView1, Axis, Dim, Ix, Ix0, Ix1, Ix2, IxDyn, OwnedRepr, s, Shape, ShapeBuilder, Slice, SliceArg, SliceInfoElem, ViewRepr};
 use serde::{Deserialize, Deserializer};
 use serde::de::EnumAccess;
+use crate::data_subscriber::metric_event::MetricComponentType;
 use crate::graph::{GraphDim, GraphDimType, GridAxis};
 use crate::menu::Menu;
 use crate::network::{Layer, Network, Node};
@@ -13,7 +14,8 @@ use crate::network::{Layer, Network, Node};
 pub struct Metric <T>
 where T: Component {
     pub(crate) historical: HistoricalData,
-    pub(crate) metric_type: MetricType<T>
+    pub(crate) metric_type: MetricType<T>,
+    pub(crate) metric_indices: HashMap<MetricComponentType, Vec<String>>
 }
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -36,11 +38,13 @@ impl <T> Metric<T> where T: Component {
     pub(crate) fn new(
         size: Vec<usize>,
         metric_type: MetricType<T>,
-        labels: HashMap<String, usize>
+        labels: HashMap<String, usize>,
+        metric_indices: HashMap<MetricComponentType, Vec<String>>
     )  -> Metric<T> {
         Self {
             historical: HistoricalData::new(size, labels),
-            metric_type
+            metric_type,
+            metric_indices
         }
     }
 }

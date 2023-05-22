@@ -48,9 +48,9 @@ pub(crate) fn propagate_drag_events(
     mut event_writer: EventWriter<InteractionEvent<DraggableUiComponentIxnFilter>>,
     mut scroll_wheel_events: EventReader<CursorMoved>
 ) {
-    for scroll in scroll_wheel_events.iter() {
+    for cursor_moved in scroll_wheel_events.iter() {
         event_writer.send(InteractionEvent::CursorEvent {
-            event: scroll.clone()
+            event: cursor_moved.clone()
         });
     }
 }
@@ -75,7 +75,7 @@ impl MatchesPickingEvent for InteractionEvent<()> {
 /// nodes are selected, a menu needs to pop up.
 #[derive(Component)]
 pub struct RayCastActionable {
-    is_ui_interactable: bool,
+    pub(crate) is_ui_interactable: bool,
 }
 
 fn get_entity(picking_event: &PickingEvent) -> Entity {
@@ -107,7 +107,7 @@ fn get_entity(picking_event: &PickingEvent) -> Entity {
 }
 
 
-macro_rules! interactable_event_system {
+macro_rules! ray_cast_events_system {
     () => {
         pub(crate) fn calculate_picks(
             mut raycast_source: EventReader<PickingEvent>,
@@ -117,8 +117,9 @@ macro_rules! interactable_event_system {
             mouse_button_input: Res<Input<MouseButton>>,
         ) {
             for i in raycast_source.into_iter() {
-
                 if let PickingEvent::Selection(SelectionEvent::JustSelected(e)) = i {
+                    /// in the event when a component is already being dragged, the actions should continue even if
+                    /// the mouse is dragged over some other component, so only update if mouse button is not pressed.
                     if !mouse_button_input.pressed(MouseButton::Left) {
                         intersected.picked_ui_flag = true;
                     }
@@ -127,6 +128,8 @@ macro_rules! interactable_event_system {
                     intersected.picked_ui_flag = false;
                 }
                 if let PickingEvent::Hover(HoverEvent::JustEntered(e)) = i {
+                    /// in the event when a component is already being dragged, the actions should continue even if
+                    /// the mouse is dragged over some other component, so only update if mouse button is not pressed.
                     if !mouse_button_input.pressed(MouseButton::Left) {
                         intersected.picked_ui_flag = true;
                     }
@@ -181,4 +184,4 @@ macro_rules! interactable_event_system {
 
 }
 
-interactable_event_system!();
+ray_cast_events_system!();

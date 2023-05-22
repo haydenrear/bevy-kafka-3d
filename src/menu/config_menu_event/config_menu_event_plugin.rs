@@ -1,16 +1,12 @@
 use bevy::prelude::*;
 use crate::cursor_adapter::event_merge_propagate;
-use crate::event::event_actions::{ClickWriteEvents, InteractionEventReader};
+use crate::event::event_actions::{EventsSystem, InteractionEventReader};
 use crate::event::event_descriptor::EventDescriptor;
-use crate::event::event_state::NextStateChange;
-use crate::graph::GraphParent;
 use crate::interactions::InteractionEvent;
-use crate::menu::config_menu_event::config_event::{ConfigEventStateFactory, ConfigurationOptionChange, ConfigurationOptionEventArgs, NextConfigurationOptionState};
-use crate::menu::config_menu_event::interaction_config_event_writer::{ConfigOptionActionStateRetriever, ConfigOptionContext};
+use crate::menu::config_menu_event::config_event::{ConfigurationOptionEventArgs};
+use crate::menu::config_menu_event::interaction_config_event_writer::{ConfigOptionActionStateRetriever};
 use crate::menu::{DataType, Menu, MetricsConfigurationOption};
 use crate::menu::config_menu_event::config_event_reader::ConfigEventReader;
-use crate::menu::ui_menu_event::ui_state_change::GlobalState;
-use crate::network::Network;
 
 pub type MetricsSelfQueryFilter<T> = (With<MetricsConfigurationOption<T>>);
 pub type MetricsSelfIxnQueryFilter<T> = (With<MetricsConfigurationOption<T>>, With<Button>, Changed<Interaction>);

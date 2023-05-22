@@ -1,12 +1,11 @@
 use std::collections::{BTreeSet, HashMap};
 use std::fmt::Debug;
-use std::marker::PhantomData;
-use std::os::unix::raw::time_t;
 use bevy::log::{error, info};
 use bevy::pbr::PbrBundle;
 use bevy::prelude::{Commands, Component, Entity, EventReader, Mut, Query, Res, ResMut, Resource};
 use bevy_mod_picking::PickableBundle;
 use crate::config::ConfigurationProperties;
+use crate::cursor_adapter::RayCastActionable;
 use crate::data_subscriber::metric_event::{MetricsState, NetworkMetricsServiceEvent};
 use crate::graph::{DataSeries, GraphConfigurationResource, GraphDim, GridAxis};
 use crate::metrics::network_metrics::{Metric, MetricType, MetricTypeMatcher};
@@ -100,7 +99,7 @@ fn create_add_metric<U, T>(
 )
     where
         U: Component + 'static,
-        T: NetworkMetricsServiceEvent<U> + 'static + Debug,
+        T: NetworkMetricsServiceEvent<U> + Debug +  'static
 {
     let columns = event.get_columns()
         .or(Some(HashMap::new()))
@@ -129,6 +128,7 @@ fn create_metric_struct<U, T>(
         event.get_shape().clone(),
         metric_type,
         columns,
+        event.metric_indices()
     );
     metric
 }
@@ -136,7 +136,7 @@ fn create_metric_struct<U, T>(
 fn add_historical<U, T>(mut event: &T, mut metric: &mut Metric<U>)
     where
         U: Component + 'static,
-        T: NetworkMetricsServiceEvent<U> + 'static + Debug
+        T: NetworkMetricsServiceEvent<U> + Debug + 'static
 {
     let _ = get_arr_from_vec(event.get_data(), event.get_shape())
         .map(|arr| metric.historical.extend(arr, 1))
@@ -165,7 +165,8 @@ fn add_metric_to_world<U>(
         },
         PbrBundle::default(),
         PickableBundle::default(),
-        HistoricalUpdated::default()
+        HistoricalUpdated::default(),
+        RayCastActionable { is_ui_interactable: true }
     ))
         .id();
 

@@ -89,17 +89,5 @@ pub(crate) fn camera_control(
         }
     }
 
-    // for event in mouse_wheel.iter() {
-    //
-    //     camera_drag_data.current_distance -= event.y * camera_drag_data.zoom_sensitivity;
-    //
-    //     // Clamp current distance to the range [min_distance, max_distance]
-    //     camera_drag_data.current_distance = camera_drag_data.current_distance.clamp(camera_drag_data.min_distance, camera_drag_data.max_distance);
-    //
-    //     if let Some((_, mut transform)) = camera_query.iter_mut().next() {
-    //         transform.translation.z = camera_drag_data.current_distance;
-    //     }
-    // }
-
 }
 

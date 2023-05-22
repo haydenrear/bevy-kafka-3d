@@ -64,6 +64,7 @@ fn send_message(producer: &mut FutureProducer, vec1: Vec<f32>) -> OwnedDeliveryR
             ("third".to_string(), 2),
             ("fourth".to_string(), 2)
         ])),
+        metric_indices: None,
     };
 
     let json_str_result = serde_json::to_string(&network_metric_event);

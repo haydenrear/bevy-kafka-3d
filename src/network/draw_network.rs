@@ -1,3 +1,4 @@
+use std::collections::HashSet;
 use bevy::prelude::{Changed, ClearColor, Commands, default, Entity, Mesh, Query, Res, ResMut, SpriteBundle, Visibility};
 use bevy::asset::Assets;
 use bevy::pbr::{MaterialMeshBundle, PbrBundle, StandardMaterial};
@@ -7,10 +8,9 @@ use bevy_mod_picking::PickableBundle;
 use std::marker::PhantomData;
 use bevy::hierarchy::{BuildChildren, Parent};
 use bevy::math::Vec3;
-use bevy::utils::HashSet;
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 use crate::menu::{DataType, MetricsConfigurationOption};
-use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
+use crate::menu::config_menu_event::interaction_config_event_writer::NetworkMenuResultBuilder;
 use crate::menu::menu_resource::VARIANCE;
 use crate::network::{Layer, Network, Node};
 use crate::util;
@@ -27,7 +27,7 @@ pub const CONNECTION_THICKNESS: f32 = 2.0;
 ///    types of neural networks.
 pub(crate) fn create_network(
     mut commands: Commands,
-    mut context: ResMut<ConfigOptionContext>,
+    mut context: ResMut<NetworkMenuResultBuilder>,
     mut layer_query: Query<(&mut Transform, &mut Layer, Entity), Changed<Layer>>,
     mut network_query: Query<&mut Network>
 ) {
@@ -70,7 +70,7 @@ pub(crate) fn create_network(
                 .push_children(layers.into_iter().collect::<Vec<Entity>>().as_slice());
             let network = network.id();
             info!("Setting network entity.");
-            context.network_entity = Some(network);
+            context.network_parent_entity = Some(network);
         }
     }
 
@@ -143,8 +143,8 @@ pub(crate) fn draw_node_connections(
 
                     let mesh = create_3d_line(LineList {
                         lines: vec![(
-                            Vec3::new(0.0, layer.2.translation.y, 0.0),
-                            Vec3::new(relative_pos.translation.x, connection_to_make.2.translation.y, 0.0)
+                            Vec3::new(0.0, layer.2.translation.y, 1.0),
+                            Vec3::new(relative_pos.translation.x, connection_to_make.2.translation.y, 1.0)
                         )],
                         thickness: 0.5,
                     }, LineMaterial::default());

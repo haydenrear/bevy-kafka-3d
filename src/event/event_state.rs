@@ -1,10 +1,9 @@
 use bevy::prelude::{Color, Commands, Component, Entity, info, ResMut, Resource, Style};
 use std::marker::PhantomData;
 use std::fmt::Debug;
-use bevy::ecs::query::ReadOnlyWorldQuery;
+use bevy::ecs::query::{ReadOnlyWorldQuery, WorldQuery};
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::menu::ui_menu_event::change_style::UiChangeTypes;
-use crate::event::event_propagation::ChangePropagation;
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
 use crate::menu::ui_menu_event::ui_state_change::GlobalState;
@@ -19,13 +18,47 @@ pub trait StateChangeFactory<T, A, C, UpdateComponent, Ctx, U: UpdateStateInPlac
         UpdateComponent: Component,
         Ctx: Context
 {
-    fn current_state(current: &EventDescriptor<T, A, C>, ctx: &mut ResMut<Ctx>) -> Vec<NextStateChange<U, UpdateComponent, Ctx>>;
+    fn current_state(
+        current: &EventDescriptor<T, A, C>,
+        ctx: &mut ResMut<Ctx>
+    ) -> Vec<NextStateChange<U, UpdateComponent, Ctx>>;
+}
+
+/// From the event descriptor, create behaviors that will change the state. This can be hooked into downstream
+/// to perform some further actions, for example by adding a menu (using Changed<>)
+pub trait InsertComponentChangeFactory<EventDataT, EventArgsT, InsertComponentT, StateAdviserComponentT,  Ctx>: Sized + Resource
+    where
+        EventDataT: EventData,
+        EventArgsT: EventArgs,
+        StateAdviserComponentT: Component + Debug + Clone,
+        InsertComponentT: Component + Debug + Clone,
+        Ctx: Context + Debug
+{
+    fn current_state(
+        current: &EventDescriptor<EventDataT, EventArgsT, InsertComponentT>,
+        ctx: &mut ResMut<Ctx>
+    ) -> Vec<NextComponentInsert<InsertComponentT, StateAdviserComponentT, Ctx>>;
 }
 
 /// If the UpdateStateInPlace contains a struct that converts from certain components to other
 /// components
 pub trait UpdateStateInPlace<T, Ctx: Context>: Debug {
     fn update_state(&self, commands: &mut Commands, value: &mut T, ctx: &mut ResMut<Ctx>);
+}
+
+pub trait InsertComponent<ToInsertComponentT, StateAdviserT, Ctx>: Debug
+where
+    ToInsertComponentT: Clone + Component,
+    StateAdviserT: Component,
+    Ctx: Context
+{
+    fn insert_component(&self, commands: &mut Commands, value: ToInsertComponentT, ctx: &mut ResMut<Ctx>, entity: Entity, current_states: &StateAdviserT) {
+        let _ = commands.get_entity(entity)
+            .as_mut()
+            .map(|entity_cmd| {
+                entity_cmd.insert(value) ;
+            });
+    }
 }
 
 /// If the UpdateStateInPlace contains a struct that converts from certain components to other
@@ -42,13 +75,39 @@ pub struct NextStateChange<T: UpdateStateInPlace<U, Ctx>, U: Component + Send + 
     pub(crate) phantom_ctx: PhantomData<Ctx>
 }
 
+#[derive(Debug)]/// Modularizes the state change.
+pub struct NextComponentInsert<InsertComponentT, AdviserComponentT, Ctx>
+    where
+        InsertComponentT: Component + Send + Sync + 'static + Clone + Debug,
+        AdviserComponentT: Component + Send + Sync + 'static + Clone + Debug,
+        Ctx: Context + Debug
+{
+    pub(crate) entity: Entity,
+    pub(crate) next_state: InsertComponentT,
+    pub(crate) phantom: PhantomData<AdviserComponentT>,
+    pub(crate) phantom_ctx: PhantomData<Ctx>
+}
+
+impl <NextEventComponentT, AdviserComponentT, Ctx> InsertComponent<NextEventComponentT, AdviserComponentT, Ctx>
+for NextComponentInsert<NextEventComponentT, AdviserComponentT, Ctx>
+    where
+        NextEventComponentT: Component + Debug + Clone,
+        Ctx: Context + Debug + Clone,
+        AdviserComponentT: Component + Debug + Clone
+{}
+
 /// The action of updating the component. The next state can delegate further, for instance if
 /// the state being updated is not a component.
-impl <T: UpdateStateInPlace<U, Ctx>, U: Component + Send + Sync + 'static, Ctx: Context> NextStateChange<T, U, Ctx> {
+impl <T: UpdateStateInPlace<U, Ctx>, U, Ctx> NextStateChange<T, U, Ctx>
+where
+    U: Component + Send + Sync + 'static,
+    Ctx: Context
+{
     pub(crate) fn update_state(&self, commands: &mut Commands, value: &mut U, ctx: &mut ResMut<Ctx>) {
         self.next_state.update_state(commands, value, ctx);
     }
 }
+
 
 #[derive(Clone, Debug)]
 pub enum HoverStateChange {
@@ -79,6 +138,13 @@ pub enum StyleStateChangeEventData {
 }
 
 impl EventData for StyleStateChangeEventData {}
+
+#[derive(Clone, Debug)]
+pub enum ComponentChangeEventData {
+    ChangeVisible{ to_change: Entity },
+}
+
+impl EventData for ComponentChangeEventData {}
 
 #[derive(Clone, Debug)]
 pub struct Update<T>

@@ -1,24 +1,11 @@
 use serde::{Deserialize, Serialize};
 use bevy::prelude::{Component, Entity};
-
-use std::collections::HashMap;
-use std::cell::{Cell, RefCell};
-use std::env;
-use std::env::VarError;
+use std::collections::{HashMap, LinkedList};
 use std::fmt::Debug;
-use std::fs::read_to_string;
 use std::hash::Hash;
-use std::marker::PhantomData;
-use std::path::Path;
 use std::sync::{Arc, mpsc, Mutex};
-use std::time::Duration;
-use bevy::prelude::{Commands, Condition, error, Events, EventWriter, Res, ResMut, Resource, World};
-use bevy::tasks::AsyncComputeTaskPool;
+use bevy::prelude::{Condition, error, Events, EventWriter, Res, ResMut, Resource, World};
 use bevy::utils::petgraph::visit::Walker;
-use tokio::sync::mpsc::Receiver;
-use tokio::sync::Semaphore;
-use tokio::time::timeout;
-use crate::config::ConfigurationProperties;
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, MetricChildNodes, Network, Node};
 
@@ -30,10 +17,19 @@ pub trait NetworkMetricsServiceEvent<C>: for<'a> Deserialize<'a> + Send + Sync +
 where C: Component
 {
     fn metric_name(&self) -> &str;
+    fn metric_indices(&self) -> HashMap<MetricComponentType, Vec<String>>;
     fn get_shape(&self) -> &Vec<usize>;
     fn get_data(&self) -> Vec<f32>;
     fn get_included(&self) -> &Vec<u32>;
     fn get_columns(&self) -> Option<HashMap<String, usize>>;
+}
+
+#[derive(Default, Clone, Debug, Hash, Ord, PartialOrd, Eq, PartialEq, Deserialize, Serialize)]
+pub enum MetricComponentType {
+    Layer,
+    Node,
+    #[default]
+    Network
 }
 
 macro_rules! network_events {
@@ -46,7 +42,8 @@ macro_rules! network_events {
                 pub(crate) data: Mutex<Option<Vec<f32>>>,
                 pub(crate) metric_name: String,
                 pub(crate) included: Vec<u32>,
-                pub(crate) columns: Option<HashMap<String, usize>>
+                pub(crate) columns: Option<HashMap<String, usize>>,
+                pub(crate) metric_indices: Option<HashMap<MetricComponentType, Vec<String>>>
             }
 
             impl NetworkEvent for $event_type {
@@ -58,6 +55,11 @@ macro_rules! network_events {
             impl NetworkMetricsServiceEvent<$event_component> for $event_type {
                 fn metric_name<'a>(&'a self) -> &'a str {
                     self.metric_name.as_str()
+                }
+                fn metric_indices(&self) -> HashMap<MetricComponentType, Vec<String>> {
+                    self.metric_indices.clone()
+                        .or(Some(HashMap::new()))
+                        .unwrap()
                 }
                 fn get_included(&self) -> &Vec<u32> {
                     &self.included

@@ -1,7 +1,7 @@
 use std::default::default;
 use bevy::prelude::*;
 use crate::menu::{ConfigurationOptionEnum, MenuInputType, MenuItemMetadata, MenuOption, SelectableType, UiComponent};
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{PropagateDisplay, SelectOptions};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{PropagateDisplay, PropagateSelect, PropagateVisible};
 use crate::ui_components::menu_components::{add_config_opt, BuilderResult, get_parent_entity, get_swing_out};
 use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;
 use crate::ui_components::menu_components::menu_types::collapsable_menu::DrawCollapsableMenuResult;
@@ -26,7 +26,19 @@ pub struct DropdownMenuOptionResult {
     pub(crate) text_entity: Option<Entity>,
     pub(crate) parent_entity: Option<Entity>,
     pub(crate) parent_text_entity: Option<Entity>,
+    pub(crate) configuration_option: ConfigurationOptionEnum,
     pub(crate) dropdown_selectable_menu_option: bool
+}
+
+impl DropdownMenuOptionResult {
+    pub(crate) fn new(
+        configuration_option: ConfigurationOptionEnum
+    ) -> Self {
+        Self {
+            configuration_option,
+            ..default()
+        }
+    }
 }
 
 impl BuilderResult for DropdownMenuOptionResult {}
@@ -41,10 +53,16 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
         mut asset_server: &mut Res<AssetServer>,
     ) -> DropdownMenuOptionResult {
 
-        let mut result = DropdownMenuOptionResult::default();
+        let mut result = DropdownMenuOptionResult::new(self.config_option.clone());
 
         let mut menu_option_button = commands
-            .spawn(self.menu_option_button())
+            .spawn(self.menu_option_button());
+
+        if matches!(self.selectable, SelectableType::DropdownSelectableChangeVisible) {
+            menu_option_button.insert(PropagateVisible::default());
+        }
+
+        let mut menu_option_button = menu_option_button
             .id();
 
         result.menu_option_entity = Some(menu_option_button);
@@ -56,7 +74,8 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
                     // creates a blue mark to show inside of submenu
                     result.breadcrumbs_entity = Some(child_builder.spawn(self.breadcrumbs_entity()).id());
                     result.text_entity = Some(child_builder.spawn(self.text_entity(&mut asset_server)).id());
-                    if matches!(self.selectable, SelectableType::DropdownSelectableCheckmarkActivate) {
+                    if matches!(self.selectable, SelectableType::DropdownSelectableChangeVisible)
+                        || matches!(self.selectable, SelectableType::DropdownSelectableCheckmarkActivate) {
                         result.selected_checkmark_entity = Some(child_builder.spawn(self.selected_entity()).id());
                         info!("{:?} is selected checkmark entity.", &result.selected_checkmark_entity);
                     }
@@ -100,7 +119,7 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
                 background_color: BackgroundColor(Color::BLACK),
                 ..default()
             },
-            SelectOptions::default(),
+            PropagateSelect::default(),
             PropagateDisplay::default(),
             self.id_component.clone(),
             self.menu_option_component.clone()
@@ -120,7 +139,7 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
                 ..default()
             },
             UiComponent::MenuOptionCheckmark,
-            SelectOptions::default(),
+            PropagateSelect::default(),
             self.id_component.clone()
         )
     }

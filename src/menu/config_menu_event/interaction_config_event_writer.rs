@@ -1,19 +1,14 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use bevy::input::mouse::MouseScrollUnit;
 use bevy::prelude::*;
-use bevy::utils::hashbrown::HashMap;
-use crate::event::event_actions::{ClickWriteEvents, RetrieveState};
+use crate::event::event_actions::{EventsSystem, RetrieveState};
 use crate::event::event_descriptor::EventDescriptor;
-use crate::event::event_propagation::SideEffectWriter;
 use crate::event::event_state::{ClickContext, Context};
-use crate::menu::{ConfigurationOptionComponent, ConfigurationOptionEnum, DataType, MenuType, MetricsConfigurationOption};
+use crate::menu::{DataType, MenuType, MetricsConfigurationOption};
 use crate::menu::config_menu_event::config_event::{ConfigurationOptionChange, ConfigurationOptionEventArgs};
 use crate::menu::config_menu_event::config_menu_event_plugin::{MetricsSelfIxnQueryFilter, MetricsSelfQueryFilter};
-use crate::menu::menu_resource::MENU;
 use crate::menu::ui_menu_event::ui_state_change::{GlobalState, UpdateGlobalState};
-use crate::network::{Network, Node};
-use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 
 #[derive(Default, Resource, Debug)]
 pub struct ConfigOptionActionStateRetriever<T: Component>
@@ -24,20 +19,25 @@ pub struct ConfigOptionActionStateRetriever<T: Component>
 
 impl <T> UpdateGlobalState<MetricsSelfQueryFilter<T>,MetricsSelfIxnQueryFilter<T>>
 for ConfigOptionActionStateRetriever<T>
-    where T: Component + Send + Sync + Default + Clone + Debug + 'static
-{
+    where T: Component + Send + Sync + Default + Clone + Debug + 'static {
 }
 
 #[derive(Default, Resource, Debug)]
-pub struct ConfigOptionContext {
-    pub(crate) graph_parent_entity: Option<Entity>,
-    pub(crate) network_entity: Option<Entity>,
+pub struct NetworkMenuResultBuilder {
+    pub(crate) network_parent_entity: Option<Entity>,
+    pub(crate) network_menu_config_option: Option<Entity>
 }
 
-impl Context for ConfigOptionContext {}
+#[derive(Default, Resource, Debug)]
+pub struct GraphMenuResultBuilder {
+    pub(crate) graph_parent_entity: Option<Entity>,
+    pub(crate) graph_menu_config_option: Option<Entity>,
+}
+
+impl Context for NetworkMenuResultBuilder {}
 
 impl <T> ClickContext<MetricsSelfQueryFilter<T>, MetricsSelfIxnQueryFilter<T>>
-for ConfigOptionContext
+for NetworkMenuResultBuilder
 where T: Component + Send + Sync + Default + Clone + Debug + 'static
 {
     fn clicked(&mut self, entity: Entity) {
@@ -50,17 +50,17 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
     }
 }
 
-impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> ClickWriteEvents<
+impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> EventsSystem<
     ConfigOptionActionStateRetriever<T>, ConfigurationOptionEventArgs<T>,
-    DataType, MetricsConfigurationOption<T>, ConfigOptionContext,
+    DataType, MetricsConfigurationOption<T>, MetricsConfigurationOption<T>, NetworkMenuResultBuilder,
     // self query
     (Entity, &MetricsConfigurationOption<T>),
     // self filter
     MetricsSelfQueryFilter<T>,
     // parent query
-    (Entity, &Parent, &MetricsConfigurationOption<T>),
+    (Entity, &MetricsConfigurationOption<T>),
     // parent filter
-    (With<Parent>, With<MetricsConfigurationOption<T>>),
+    (With<MetricsConfigurationOption<T>>),
     // interaction filter
     MetricsSelfIxnQueryFilter<T>
 > for ConfigOptionActionStateRetriever<T> {}
@@ -69,43 +69,47 @@ impl<T: Component + Send + Sync + Default + Clone + Debug + 'static> RetrieveSta
     ConfigurationOptionEventArgs<T>,
     DataType,
     MetricsConfigurationOption<T>,
-    ConfigOptionContext,
+    MetricsConfigurationOption<T>,
+    NetworkMenuResultBuilder,
     (Entity, &MetricsConfigurationOption<T>),
-    (Entity, &Parent, &MetricsConfigurationOption<T>),
+    (Entity, &MetricsConfigurationOption<T>),
     MetricsSelfQueryFilter<T>,
-    (With<Parent>, With<MetricsConfigurationOption<T>>),
+    (With<MetricsConfigurationOption<T>>),
 >
 for ConfigOptionActionStateRetriever<T>
 {
     fn create_event(
         commands: &mut Commands,
         entity: Entity,
-        mut context: &mut ResMut<ConfigOptionContext>,
+        mut context: &mut ResMut<NetworkMenuResultBuilder>,
         self_query: &Query<
             (Entity, &MetricsConfigurationOption<T>),
             (With<MetricsConfigurationOption<T>>)
         >,
         propagation_query: &Query<
-            (Entity, &Parent, &MetricsConfigurationOption<T>),
-            (With<Parent>, With<MetricsConfigurationOption<T>>)
+            (Entity, &MetricsConfigurationOption<T>),
+            (With<MetricsConfigurationOption<T>>)
         >,
     ) -> (
-        Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
-        Vec<SideEffectWriter>
+        Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>
     )
     {
         let mut event_descriptors = vec![];
-        let mut propagate_events = vec![];
         info!("Here is ctx: {:?}", context);
-        Self::set_menu_events(entity, context, self_query, &mut event_descriptors, &mut propagate_events);
-        (event_descriptors, propagate_events)
+        Self::set_menu_events(entity, context, self_query, &mut event_descriptors);
+        event_descriptors
     }
 }
 
 impl<T> ConfigOptionActionStateRetriever<T>
 where T: Component + Send + Sync + Default + Clone + Debug + 'static
 {
-    fn set_menu_events(entity: Entity, mut context: &mut ResMut<ConfigOptionContext>, self_query: &Query<(Entity, &MetricsConfigurationOption<T>), With<MetricsConfigurationOption<T>>>, mut event_descriptors: &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>, mut propagate_events: &mut Vec<SideEffectWriter>) {
+    fn set_menu_events(
+        entity: Entity,
+        mut context: &mut ResMut<NetworkMenuResultBuilder>,
+        self_query: &Query<(Entity, &MetricsConfigurationOption<T>), With<MetricsConfigurationOption<T>>>,
+        mut event_descriptors: &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
+    ) {
         let _ = self_query.get(entity)
             .map(|(entity, config)| {
                 info!("Here is config for creating event: {:?}", config);
@@ -120,12 +124,11 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
                             );
                             create_add_events(
                                 &mut event_descriptors,
-                                &mut propagate_events,
                                 entity,
                                 config_menu,
                                 DataType::Deselected,
                                 Visibility::Hidden,
-                                context.graph_parent_entity,
+                                None,
                             );
                         } else if let DataType::Deselected = data_type {
                             let config_menu = MetricsConfigurationOption::GraphMenu(
@@ -135,12 +138,11 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
                                 MenuType::Graph,
                             );
                             create_add_events(&mut event_descriptors,
-                                              &mut propagate_events,
                                               entity,
                                               config_menu,
                                               DataType::Selected,
                                               Visibility::Visible,
-                                              context.graph_parent_entity,
+                                              None,
                             );
                         }
                     }
@@ -153,12 +155,11 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
                                 MenuType::Network,
                             );
                             create_add_events(&mut event_descriptors,
-                                              &mut propagate_events,
                                               entity,
                                               config_menu,
                                               DataType::Deselected,
                                               Visibility::Hidden,
-                                              context.network_entity,
+                                              context.network_parent_entity,
                             );
                         } else if let DataType::Deselected = data_type {
                             let config_menu = MetricsConfigurationOption::NetworkMenu(
@@ -168,12 +169,11 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
                                 MenuType::Network,
                             );
                             create_add_events(&mut event_descriptors,
-                                              &mut propagate_events,
                                               entity,
                                               config_menu,
                                               DataType::Selected,
                                               Visibility::Visible,
-                                              context.network_entity,
+                                              context.network_parent_entity,
                             );
                         }
                     }
@@ -187,9 +187,11 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
     }
 }
 
+/// I need a way to interface between the two systems. So the events that have an effect on the UI
+/// should then create events that affect the UI. And all events that effect the UI should go through
+/// the UI system.
 fn create_add_events<T>(
     mut event_descriptors: &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
-    mut propagate_events: &mut Vec<SideEffectWriter>,
     entity: Entity,
     config: MetricsConfigurationOption<T>,
     data_type: DataType,
@@ -200,43 +202,7 @@ fn create_add_events<T>(
         T: Component + Send + Sync + Default + Clone + Debug + 'static
 {
     let event_descriptor = create_graph_menu_event(entity, data_type, config);
-    let event = create_event_tuple(
-        event_descriptor,
-        &|entity| Some(SideEffectWriter::ChangeVisible(entity, visible)),
-        other_entity,
-    );
-    add_to_events(&mut event_descriptors, &mut propagate_events, event);
-}
-
-fn add_to_events<T>(
-    mut event_descriptors:
-    &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
-    mut propagate_events: &mut Vec<SideEffectWriter>,
-    event: Vec<(EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>, Vec<SideEffectWriter>)>,
-)
-    where
-        T: Component + Send + Sync + Default + Clone + Debug + 'static
-{
-    event.into_iter().for_each(|(event, prop)| {
-        info!("Adding event: {:?} and prop events: {:?}", &event, &prop);
-        event_descriptors.push(event);
-        prop.into_iter().for_each(|prop| propagate_events.push(prop));
-    });
-}
-
-fn create_event_tuple<T>(
-    event_descriptor: EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>,
-    option: &dyn Fn(Entity) -> Option<SideEffectWriter>,
-    entity: Option<Entity>,
-) -> Vec<(EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>, Vec<SideEffectWriter>)>
-    where
-        T: Component + Send + Sync + Default + Clone + Debug + 'static
-{
-    let mut event_tuple = (event_descriptor, vec![]);
-    if entity.is_some() {
-        event_tuple.1 = option(entity.unwrap()).map(|p| vec![p]).or(Some(vec![])).unwrap();
-    }
-    vec![event_tuple]
+    event_descriptors.push(event_descriptor);
 }
 
 fn create_graph_menu_event<T>(

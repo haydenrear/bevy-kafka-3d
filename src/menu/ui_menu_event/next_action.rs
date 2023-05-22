@@ -1,7 +1,8 @@
-use std::marker::PhantomData;
-use bevy::prelude::{Commands, Component, Display, Entity, ResMut, Size, Style, Text, UiRect, Val};
+use bevy::prelude::{Commands, Component, Display, Entity, ResMut, Size, Style, Text, UiRect, Val, Visibility};
 use bevy::log::info;
+use crate::cursor_adapter::RayCastActionable;
 use crate::event::event_state::{Update, UpdateStateInPlace};
+use crate::menu::{Menu, MetricsConfigurationOption};
 use crate::menu::ui_menu_event::ui_context::UiContext;
 
 #[derive(Debug)]
@@ -36,6 +37,7 @@ impl UpdateStateInPlace<Text, UiContext> for NextUiState {
 pub enum UiComponentState {
     StateDisplay(DisplayState),
     StateSize(SizeState),
+    StateVisible(VisibilityIdentifier),
     Selected,
     Deselected,
     Any
@@ -55,11 +57,41 @@ impl Matches<Style> for UiComponentState {
     }
 }
 
+impl Matches<Visibility> for UiComponentState {
+    fn matches(&self, style: &Visibility) -> bool {
+        match self {
+            UiComponentState::StateVisible(visible) => {
+                if style == Visibility::Visible && matches!(visible, VisibilityIdentifier::Visible) {
+                    true
+                } else if style == Visibility::Hidden && matches!(visible, VisibilityIdentifier::Hidden)  {
+                    true
+                } else {
+                    false
+                }
+            }
+            _ => false
+        }
+    }
+}
+
+impl Matches<MetricsConfigurationOption<Menu>> for UiComponentState {
+    fn matches(&self, style: &MetricsConfigurationOption<Menu>) -> bool {
+        true
+    }
+}
+
 #[derive(Debug, Eq, PartialEq)]
 pub enum DisplayState {
     DisplayFlex,
     DisplayNone,
     DisplayAny,
+}
+
+#[derive(Debug, Eq, PartialEq)]
+pub enum VisibilityIdentifier {
+    Visible,
+    Hidden,
+    Any
 }
 
 #[derive(Debug, Eq, PartialEq)]

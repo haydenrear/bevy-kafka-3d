@@ -17,6 +17,7 @@ serde_json = "1.0.96"
 serde = "1.0.160"
 bevy-inspector-egui = "0.18.3"
 tokio = {version = "1.28.0", features = ["full"] }
+num-traits = "0.2.15"
 toml = "0.7.3"
 statrs = "0.16.0"
 rdkafka = "0.29.0"

@@ -1,12 +1,12 @@
+use std::collections::HashMap;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use bevy::prelude::{Commands, Component, Entity, info, ResMut, Resource};
-use bevy::utils::HashMap;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
-use crate::event::event_state::{Context, NextStateChange, StateChangeFactory, Update, UpdateStateInPlace};
-use crate::menu::{MetricsConfigurationOption, ConfigurationOptionEnum, DataType};
-use crate::menu::config_menu_event::interaction_config_event_writer::ConfigOptionContext;
-use crate::network::{Layer, Node};
+use crate::event::event_state::{Context, NextStateChange, StateChangeFactory, UpdateStateInPlace};
+use crate::menu::{MetricsConfigurationOption, DataType, Menu};
+use crate::menu::config_menu_event::interaction_config_event_writer::NetworkMenuResultBuilder;
+use crate::menu::ui_menu_event::ui_state_change::ChangeVisible;
 
 #[derive(Debug, Clone)]
 pub enum ConfigurationOptionEventArgs<T>
@@ -17,9 +17,12 @@ where T: Component + Send + Sync + Clone + Default + Debug + 'static
 
 #[derive(Debug, Clone, Default)]
 pub struct ConfigurationOptionChange<T>
-where T: Component + Send + Sync + Clone + Default + Debug + 'static {
+where T: Component + Send + Sync + Clone + Default + Debug + 'static
+{
     pub(crate) config_option: HashMap<Entity, MetricsConfigurationOption<T>>,
 }
+
+impl ChangeVisible for MetricsConfigurationOption<Menu> {}
 
 impl <T> ConfigurationOptionChange<T>
 where T: Component + Send + Sync + Clone + Default + Debug + 'static
@@ -84,12 +87,12 @@ pub struct ConfigEventStateFactory;
 impl <T: Component + Send + Sync + Clone + Default + Debug + 'static>
 StateChangeFactory<
     DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>,
-    MetricsConfigurationOption<T>, ConfigOptionContext, NextConfigurationOptionState<T>
+    MetricsConfigurationOption<T>, NetworkMenuResultBuilder, NextConfigurationOptionState<T>
 >
 for ConfigEventStateFactory {
     fn current_state(current: &EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>,
-                     context: &mut ResMut<ConfigOptionContext>)
-        -> Vec<NextStateChange<NextConfigurationOptionState<T>, MetricsConfigurationOption<T>, ConfigOptionContext>>
+                     context: &mut ResMut<NetworkMenuResultBuilder>)
+        -> Vec<NextStateChange<NextConfigurationOptionState<T>, MetricsConfigurationOption<T>, NetworkMenuResultBuilder>>
     {
         if let ConfigurationOptionEventArgs::Event(
             config,

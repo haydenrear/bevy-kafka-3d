@@ -21,6 +21,8 @@ mod bevy_tests;
 mod config_test;
 #[cfg(test)]
 mod test_interpolate;
+#[cfg(test)]
+mod test_util;
 
 
 pub(crate) mod test_plugin;

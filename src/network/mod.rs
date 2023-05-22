@@ -1,16 +1,14 @@
+use std::collections::{HashMap, HashSet};
 use bevy::prelude::*;
-use bevy::prelude::shape::Quad;
-use bevy::sprite::MaterialMesh2dBundle;
-use bevy::utils::{HashMap, HashSet};
-use bevy_mod_picking::PickableBundle;
-use bevy_prototype_lyon::draw::{Fill, Stroke};
-use bevy_prototype_lyon::entity::ShapeBundle;
-use bevy_prototype_lyon::prelude::GeometryBuilder;
-use bevy_prototype_lyon::shapes;
 use draw_network::{LAYER_SPACING, NODE_RADIUS, NODE_SPACING};
-use crate::metrics::network_metrics::Metric;
 
 pub mod draw_network;
+
+pub trait NetworkMember: Component {}
+
+impl NetworkMember for Node {}
+impl NetworkMember for Layer {}
+impl NetworkMember for Network {}
 
 #[derive(Default, Component, Clone, Debug)]
 pub struct Node {

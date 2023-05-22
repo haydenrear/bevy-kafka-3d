@@ -33,6 +33,7 @@ impl TestEventGeneratingResource {
             metric_name: "metric".to_string(),
             included: vec![],
             columns: Some(columns),
+            metric_indices: None,
         };
         metric
     }

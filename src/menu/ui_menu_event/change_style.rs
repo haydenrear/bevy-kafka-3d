@@ -6,12 +6,10 @@ use bevy::prelude::{BackgroundColor, Component, Display, Entity, ResMut, Size, S
 use bevy::text::Text;
 use bevy::ui::UiRect;
 use crate::event::event_state::Update;
-use crate::event::event_propagation::{ChangePropagation, Relationship};
 use crate::menu::Position;
-use crate::menu::ui_menu_event::next_action::UiComponentState;
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
-use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiComponentFilters, UiEventArgs};
+use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiEventArgs};
 use crate::Node;
 
 
@@ -55,6 +53,53 @@ pub enum UiChangeTypes {
     ScrollY{
         value: ()
     },
+}
+
+
+pub trait DoChange<T> {
+    fn do_change(&self, starting_state: &T, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs>;
+}
+
+macro_rules! updates {
+    ($state:ty, $($update_fn:ident, $enum_variant:ident),*) => {
+            impl DoChange<$state> for UiChangeTypes {
+                    fn do_change(&self, starting_state: &$state, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
+                        info!("Creating UI event for {:?}.", &entity);
+                        match self {
+                            $(
+                                UiChangeTypes::$enum_variant { value } => {
+                                    $update_fn(*value, starting_state, entity, style_context)
+                                }
+                            )*
+                            _ => {
+                                None
+                            }
+                        }
+                    }
+            }
+    }
+}
+
+updates!(
+    Style,
+    do_remove_visible, RemoveVisible,
+    do_add_visible, AddVisible,
+    do_change_visible, ChangeVisible,
+    create_update_size_value, UpdateSize,
+    create_change_size_value, ChangeSize,
+    create_drag_x, DragXPosition
+);
+
+#[derive(Clone, Debug)]
+pub struct TextEventArgsFactory;
+impl TextEventArgsFactory {
+    fn do_create_ui_event(&self, starting_state: &Text, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
+        todo!()
+    }
+
+    fn get_change(&self, starting_state: &Text, entity: Entity, style_context: &mut ResMut<UiContext>) -> Text {
+        todo!()
+    }
 }
 
 fn do_remove_visible(value: (), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
@@ -109,52 +154,6 @@ fn create_update_size_value(value: (f32, f32), starting_state: &Style, entity: E
 
 fn create_change_size_value(value: (f32, f32, f32, f32), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
     create_change_size(starting_state, entity, value.0, value.1, value.2, value.3)
-}
-
-pub trait DoChange<T> {
-    fn do_change(&self, starting_state: &T, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs>;
-}
-
-macro_rules! updates {
-    ($state:ty, $($update_fn:ident, $enum_variant:ident),*) => {
-            impl DoChange<$state> for UiChangeTypes {
-                    fn do_change(&self, starting_state: &$state, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
-                        info!("Creating UI event for {:?}.", &entity);
-                        match self {
-                            $(
-                                UiChangeTypes::$enum_variant { value } => {
-                                    $update_fn(*value, starting_state, entity, style_context)
-                                }
-                            )*
-                            _ => {
-                                None
-                            }
-                        }
-                    }
-            }
-    }
-}
-
-updates!(
-    Style,
-    do_remove_visible, RemoveVisible,
-    do_add_visible, AddVisible,
-    do_change_visible, ChangeVisible,
-    create_update_size_value, UpdateSize,
-    create_change_size_value, ChangeSize,
-    create_drag_x, DragXPosition
-);
-
-#[derive(Clone, Debug)]
-pub struct TextEventArgsFactory;
-impl TextEventArgsFactory {
-    fn do_create_ui_event(&self, starting_state: &Text, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
-        todo!()
-    }
-
-    fn get_change(&self, starting_state: &Text, entity: Entity, style_context: &mut ResMut<UiContext>) -> Text {
-        todo!()
-    }
 }
 
 fn create_drag_x(value: (), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {

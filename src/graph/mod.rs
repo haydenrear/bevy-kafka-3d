@@ -1,20 +1,20 @@
-use std::collections::{BTreeSet, HashMap};
+use std::collections::{BTreeSet, HashMap, HashSet};
 use std::marker::PhantomData;
-use std::path::Path;
 use bevy::prelude::*;
-use bevy::sprite::MaterialMesh2dBundle;
-use bevy_mod_picking::PickableBundle;
-use bevy_prototype_lyon::entity::ShapeBundle;
-use bevy_prototype_lyon::geometry::GeometryBuilder;
-use bevy_prototype_lyon::prelude::{Fill, Stroke};
-use bevy_prototype_lyon::shapes;
-use ndarray::{Array, Array1, Array2, ArrayBase, Ix1, OwnedRepr};
 use serde::{Deserialize, Serialize};
-use statrs::distribution::{ContinuousCDF, Normal};
-use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
-use crate::metrics::network_metrics::Metric;
+use statrs::distribution::{ContinuousCDF};
+use crate::data_subscriber::metric_event::MetricComponentType;
 
 pub(crate) mod setup_graph;
+/// The data is inserted with T: Component as Node, Layer, etc. based on the topic name. The python
+/// program loads the gradients from the CubeFS file store (volume), calculates the metrics, and then sends them
+/// to that topic. The kafka topics matching the pattern are included.
+/// However, there is only metrics calculated, and then they will be graphed, and only radial graph. In the metrics
+/// data, an index needs to be included, and this index will determine how to "zero in" on data. For example,
+/// when you are graphing a particular metric, it is a part of a particular layer, and the the layer is part
+/// of a network. So let's say you have the loss graphed, and you have a line for each of the layers, and then
+/// you hover over one of the lines of the loss, and you want to see related metrics. So you click it, and
+/// a menu pops up with related metrics to add. So you index by layer, node, network for this purpose.
 pub(crate) mod draw_graph_points;
 pub(crate) mod graph_plugin;
 pub(crate) mod radial;
@@ -45,10 +45,20 @@ pub struct Graph<T>
 #[derive(Resource, Clone, Default, Debug)]
 pub struct GraphConfigurationResource<T>
 where
-    T: Component {
+    T: Component
+{
     pub(crate) series_dims: HashMap<Entity, Vec<GraphDim>>,
     pub(crate) series_type: HashMap<Entity, GraphDimType>,
     res: PhantomData<T>
+}
+
+#[derive(Resource, Clone, Default, Debug)]
+pub struct GraphingMetricsResource
+{
+    /// when a metric is picked, events will be sent to be read for the entities associated with
+    /// the same entities, to be read by an event reader of type T: Component, such as Node, Layer, etc.
+    pub(crate) graphing_indices: HashMap<String, HashSet<Entity>>,
+    pub(crate) index_types: HashMap<MetricComponentType, HashSet<String>>
 }
 
 #[derive(Clone, Debug)]

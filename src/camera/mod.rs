@@ -60,16 +60,16 @@ pub(crate) fn setup_camera(
         PickingCameraBundle::default()
     ));
 
-    commands.spawn(PointLightBundle {
-        point_light: PointLight {
-            intensity: 9000.0,
-            range: 100.,
-            shadows_enabled: true,
-            ..default()
-        },
-        transform: Transform::from_xyz(8.0, 16.0, 8.0),
-        ..default()
-    });
+    // commands.spawn(PointLightBundle {
+    //     point_light: PointLight {
+    //         intensity: 9000.0,
+    //         range: 100.,
+    //         shadows_enabled: true,
+    //         ..default()
+    //     },
+    //     transform: Transform::from_xyz(8.0, 16.0, 8.0),
+    //     ..default()
+    // });
 
 }
 
