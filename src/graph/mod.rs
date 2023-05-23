@@ -18,7 +18,6 @@ pub(crate) mod setup_graph;
 pub(crate) mod draw_graph_points;
 pub(crate) mod graph_plugin;
 pub(crate) mod radial;
-pub(crate) mod graph_menu;
 pub(crate) mod graph_data_event_reader;
 
 

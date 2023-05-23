@@ -26,7 +26,7 @@ use crate::cursor_adapter::{calculate_picks, event_merge_propagate, PickableComp
 use crate::data_subscriber::data_subscriber_plugin::DataSubscriberPlugin;
 use crate::graph::draw_graph_points::draw_graph_points;
 use crate::graph::graph_plugin::GraphPlugin;
-use crate::graph::GraphDimComponent;
+use crate::graph::{GraphDimComponent, GraphingMetricsResource};
 use crate::graph::setup_graph::setup_graph;
 use crate::interactions::InteractionEvent;
 use crate::menu::config_menu_event::config_menu_event_plugin::ConfigMenuEventPlugin;
@@ -68,6 +68,7 @@ async fn main() {
         .insert_resource(ConfigurationProperties::default())
         .insert_resource(BevyPickingState::default())
         .insert_resource(GlobalState::default())
+        .insert_resource(GraphingMetricsResource::default())
         .add_plugins(DefaultPlugins)
         .add_plugins(DefaultPickingPlugins)
         .add_plugin(ShapePlugin)

@@ -10,11 +10,12 @@ use crate::menu::ui_menu_event::next_action::Matches;
 use crate::menu::ui_menu_event::state_change_factory::StateChangeActionType;
 use crate::menu::ui_menu_event::transition_groups::TransitionGroup;
 use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{PropagationQuery, PropagationQueryFilter};
-use crate::menu::ui_menu_event::type_alias::state_transition_queries::StateTransitionsQuery;
+use crate::menu::ui_menu_event::type_alias::state_transition_queries::{StateTransitionsQuery, UiStateTransitionsQuery};
 use crate::menu::ui_menu_event::ui_event_writer::action_retriever::state_change_action_retriever::StateChangeActionTypeStateRetriever;
 use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
 
-impl<SelfFilterQuery,
+impl<IdComponentT,
+ SelfFilterQuery,
  SelfIxnFilter,
  ComponentT,
  ComponentChangeT,
@@ -28,15 +29,15 @@ impl<SelfFilterQuery,
     EventArgsT,
     StateChangeMachineT,
     Ctx,
-    StateTransitionsQuery<'_, ComponentT, ComponentChangeT, StateChangeMachineT, MatchesT, FilterMatchesT, Ctx, EventArgsT, TransitionGroupT>,
-    PropagationQuery<'_, ComponentChangeT>,
+    StateTransitionsQuery<'_, IdComponentT, ComponentT, ComponentChangeT, StateChangeMachineT, MatchesT, FilterMatchesT, Ctx, EventArgsT, TransitionGroupT>,
+    PropagationQuery<'_, ComponentChangeT, IdComponentT>,
     ComponentT,
     ComponentChangeT,
     SelfFilterQuery,
-    PropagationQueryFilter<ComponentChangeT>,
+    PropagationQueryFilter<ComponentChangeT, IdComponentT>,
 >
 for StateChangeActionTypeStateRetriever<
-    SelfFilterQuery, SelfIxnFilter,
+    IdComponentT, SelfFilterQuery, SelfIxnFilter,
     Ctx, EventArgsT, StateChangeMachineT,
     TransitionGroupT, ComponentT, FilterMatchesT,
     ComponentChangeT, MatchesT,
@@ -51,19 +52,20 @@ for StateChangeActionTypeStateRetriever<
         StateChangeMachineT: StateChangeMachine<ComponentChangeT, Ctx, EventArgsT> + EventData + 'static + Clone,
         FilterMatchesT: Matches<ComponentT>,
         MatchesT: Matches<ComponentChangeT>,
-        TransitionGroupT: TransitionGroup
+        TransitionGroupT: TransitionGroup,
+        IdComponentT: Component + Debug
 {
     fn create_event(
         mut commands: &mut Commands,
         entity: Entity,
         mut style_context: &mut ResMut<Ctx>,
         entity_query: &Query<
-            StateTransitionsQuery<'_, ComponentT, ComponentChangeT, StateChangeMachineT, MatchesT, FilterMatchesT, Ctx, EventArgsT, TransitionGroupT>,
+            StateTransitionsQuery<'_, IdComponentT, ComponentT, ComponentChangeT, StateChangeMachineT, MatchesT, FilterMatchesT, Ctx, EventArgsT, TransitionGroupT>,
             SelfFilterQuery
         >,
         propagation_query: &Query<
-            PropagationQuery<'_, ComponentChangeT>,
-            PropagationQueryFilter<ComponentChangeT>
+            PropagationQuery<'_, ComponentChangeT, IdComponentT>,
+            PropagationQueryFilter<ComponentChangeT, IdComponentT>
         >,
     ) -> Vec<EventDescriptor<StateChangeMachineT, EventArgsT, ComponentChangeT>>
     {
@@ -79,8 +81,21 @@ for StateChangeActionTypeStateRetriever<
     }
 }
 
-impl<SelfQueryT, InteractionQueryT, ComponentStateComponentT, ComponentUpdateComponentT, StateMachine, MatchesT, FilterMatchesT, Ctx, EventArgsT, TransitionGroupT>
+impl<
+    IdComponentT,
+    SelfQueryT,
+    InteractionQueryT,
+    ComponentStateComponentT,
+    ComponentUpdateComponentT,
+    StateMachine,
+    MatchesT,
+    FilterMatchesT,
+    Ctx,
+    EventArgsT,
+    TransitionGroupT
+>
 StateChangeActionTypeStateRetriever<
+    IdComponentT,
     SelfQueryT,
     InteractionQueryT,
     Ctx,
@@ -102,16 +117,27 @@ where
     FilterMatchesT: Matches<ComponentStateComponentT>,
     Ctx: Context,
     EventArgsT: EventArgs + 'static,
-    TransitionGroupT: TransitionGroup
+    TransitionGroupT: TransitionGroup,
+    IdComponentT: Component + Debug
 {
     fn create_event(
         entity_query: &Query<
-            StateTransitionsQuery<'_, ComponentStateComponentT, ComponentUpdateComponentT, StateMachine, MatchesT, FilterMatchesT, Ctx, EventArgsT, TransitionGroupT>,
+            StateTransitionsQuery<'_,
+                IdComponentT,
+                ComponentStateComponentT,
+                ComponentUpdateComponentT,
+                StateMachine,
+                MatchesT,
+                FilterMatchesT,
+                Ctx,
+                EventArgsT,
+                TransitionGroupT
+            >,
             SelfQueryT
         >,
         propagation_query: &Query<
-            PropagationQuery<'_, ComponentUpdateComponentT>,
-            PropagationQueryFilter<ComponentUpdateComponentT>
+            PropagationQuery<'_, ComponentUpdateComponentT, IdComponentT>,
+            PropagationQueryFilter<ComponentUpdateComponentT, IdComponentT>
         >,
         mut style_context: &mut ResMut<Ctx>,
         entity: Entity,
@@ -119,7 +145,7 @@ where
         entity_query.get(entity)
             .iter()
             .flat_map(|entity| {
-                entity.4.transitions.iter()
+                entity.3.transitions.iter()
                     .map(|transition| (entity.0, entity.1, entity.2, entity.3, transition))
             })
             .flat_map(|entity| {

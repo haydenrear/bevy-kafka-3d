@@ -6,7 +6,7 @@ use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventD
 use crate::graph::Graph;
 use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphMenuPotential};
 use crate::menu::ui_menu_event::transition_groups::{PropagateCreateMenu, PropagateDisplay, PropagateDraggable, PropagateScrollable};
-use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PickableFilter, PickableIxnFilter, PickingPropagationQuery, PickingPropagationQueryFilter, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
+use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PickableFilter, PickableIxnFilter, PickingPropagationQuery, PickingPropagationQueryFilter, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, UiPropagationQuery, UiPropagationQueryFilter, VisibleFilter, VisibleIxnFilter};
 use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, CreateMenuPickableEventRetriever, ScrollableStateChangeRetriever};
 use crate::menu::ui_menu_event::type_alias::state_transition_queries::{PickableComponentStateTransitionsQuery, PropagateStateTransitionsQuery, StyleUiComponentStateTransitionsQuery, UiSelectedComponentStateTransitionsQuery, VisibleComponentStateTransitionsQuery};
 use crate::menu::ui_menu_event::ui_context::UiContext;
@@ -21,9 +21,9 @@ impl EventsSystem<
     // self filter
     UiComponentStyleFilter,
     // parent query
-    PropagationQuery<'_, Style>,
+    UiPropagationQuery<'_, Style>,
     // parent filter
-    PropagationQueryFilter<Style>,
+    UiPropagationQueryFilter<Style>,
     // interaction filter
     UiComponentStyleIxnFilter
 > for ClickEvents {}
@@ -39,9 +39,9 @@ impl EventsSystem<
     // self filter
     DraggableUiComponentFilter,
     // parent query
-    PropagationQuery<'_, Style>,
+    UiPropagationQuery<'_, Style>,
     // parent filter
-    PropagationQueryFilter<Style>,
+    UiPropagationQueryFilter<Style>,
     // interaction filter
     DraggableUiComponentIxnFilter
 > for DragEvents {}
@@ -57,9 +57,9 @@ impl EventsSystem<
     // self filter
     ScrollableUiComponentFilter,
     // parent query
-    PropagationQuery<'_, Style>,
+    UiPropagationQuery<'_, Style>,
     // parent filter
-    PropagationQueryFilter<Style>,
+    UiPropagationQueryFilter<Style>,
     // interaction filter
     ScrollableIxnFilterQuery
 > for ScrollEvents {}
@@ -75,9 +75,9 @@ impl EventsSystem<
     // self filter
     UiComponentStyleFilter,
     // parent query
-    PropagationQuery<'_, Style>,
+    UiPropagationQuery<'_, Style>,
     // parent filter
-    PropagationQueryFilter<Style>,
+    UiPropagationQueryFilter<Style>,
     // interaction filter
     UiComponentStyleIxnFilter
 > for ClickSelectOptions {}
@@ -95,9 +95,9 @@ impl<T: ChangeVisible + Debug> EventsSystem<
     // self filter
     VisibleFilter<T>,
     // propagation query
-    PropagationQuery<'_, Visibility>,
+    UiPropagationQuery<'_, Visibility>,
     // propagation filter
-    PropagationQueryFilter<Visibility>,
+    UiPropagationQueryFilter<Visibility>,
     // interaction filter
     VisibleIxnFilter<T>
 > for VisibilitySystems<T> {}

@@ -3,7 +3,9 @@ use bevy::log::info;
 use crate::cursor_adapter::PickableComponent;
 use crate::event::event_state::{Update, UpdateStateInPlace};
 use crate::menu::{Menu, MetricsConfigurationOption};
+use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphMenuPotential};
 use crate::menu::ui_menu_event::ui_context::UiContext;
+use crate::pickable_events::PickableComponentState;
 
 #[derive(Debug)]
 pub enum NextUiState {
@@ -131,6 +133,18 @@ impl Matches<Display> for DisplayState {
         } else {
             return false;
         }
+    }
+}
+
+impl Matches<GraphMenuPotential> for PickableComponentState {
+    fn matches(&self, other: &GraphMenuPotential) -> bool {
+        true
+    }
+}
+
+impl Matches<ChangeGraphingMenu> for PickableComponentState {
+    fn matches(&self, other: &ChangeGraphingMenu) -> bool {
+        true
     }
 }
 

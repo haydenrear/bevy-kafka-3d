@@ -10,9 +10,10 @@ use crate::event::state_transition::state_transitions_plugin::InsertStateTransit
 use crate::interactions::InteractionEvent;
 use crate::menu::{Menu, MetricsConfigurationOption};
 use crate::menu::config_menu_event::config_event_reader::ConfigEventReader;
+use crate::menu::graphing_menu::graph_menu::GraphMenuPotential;
 use crate::menu::ui_menu_event::interaction_ui_event_reader::UiEventReader;
 use crate::menu::ui_menu_event::ui_context::UiContext;
-use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery, UiComponentEventDescriptor, UiComponentStyleIxnFilter, VisibilityComponentChangeEventReader, VisibilityEventDescriptor};
+use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentIxnFilter, PickableIxnFilter, ScrollableIxnFilterQuery, UiComponentEventDescriptor, UiComponentStyleIxnFilter, VisibilityComponentChangeEventReader, VisibilityEventDescriptor};
 use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, ScrollableStateChangeRetriever};
 use crate::menu::ui_menu_event::ui_state_change;
 use crate::menu::ui_menu_event::ui_state_change::{StateChangeMachine, UiClickStateChange};
@@ -33,7 +34,7 @@ impl Plugin for UiEventPlugin {
             .insert_resource(UiContext::default())
             .insert_resource(ClickSelectOptions::default())
             .insert_resource(ClickSelectionEventRetriever::default())
-            .insert_resource(ChangeVisibleEventRetriever::default())
+            .insert_resource(ChangeVisibleEventRetriever::<MetricsConfigurationOption<Menu>, Visibility>::default())
             .add_system(VisibilitySystems::<MetricsConfigurationOption<Menu>>::click_write_events)
             .add_system(VisibilityComponentChangeEventReader::<MetricsConfigurationOption<Menu>>::read_events
                 .after(ConfigEventReader::<Menu>::read_events)
@@ -52,6 +53,7 @@ impl Plugin for UiEventPlugin {
             .add_event::<InteractionEvent<DraggableUiComponentIxnFilter>>()
             .add_event::<InteractionEvent<ScrollableIxnFilterQuery>>()
             .add_event::<InteractionEvent<UiComponentStyleIxnFilter>>()
+            .add_event::<InteractionEvent<PickableIxnFilter<GraphMenuPotential>>>()
             .add_event::<VisibilityEventDescriptor>()
             .add_event::<UiComponentEventDescriptor>()
         ;

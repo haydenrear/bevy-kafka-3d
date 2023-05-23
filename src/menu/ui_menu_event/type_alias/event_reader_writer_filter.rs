@@ -13,7 +13,7 @@ pub type UiComponentStyleFilter = (With<UiComponent>, With<Style>);
 pub type UiComponentStyleIxnFilter = (With<UiComponent>, With<Button>, Changed<Interaction>);
 
 pub type PickableFilter<ComponentT> = (With<ComponentT>);
-pub type PickableIxnFilter<ComponentT> = (Changed<Interaction>, With<ComponentT>);
+pub type PickableIxnFilter<ComponentT> = (Changed<Interaction>, With<ComponentT>, With<PickableComponent>);
 
 pub type VisibleFilter<T> = (With<T>);
 pub type VisibleIxnFilter<T> = (With<T>, With<Button>, Changed<Interaction>);
@@ -24,14 +24,17 @@ pub type DraggableUiComponentIxnFilter = (With<UiComponent>, With<Button>, With<
 pub type ScrollableUiComponentFilter = (With<UiComponent>, With<Style>, With<ScrollableComponent>);
 pub type ScrollableIxnFilterQuery = (With<UiComponent>, With<ScrollableComponent>);
 
-pub type PropagationQuery<'a, C> = (Entity, &'a C, &'a UiIdentifiableComponent);
-pub type PropagationQueryFilter<C> = (With<C>);
+pub type PropagationQuery<'a, ComponentT, IdComponentT> = (Entity, &'a ComponentT, &'a IdComponentT);
+pub type PropagationQueryFilter<ComponentT, IdComponentT> = (With<ComponentT>, With<IdComponentT>);
 
-pub type PickingPropagationQuery<'a, C> = (Entity, &'a C);
-pub type PickingPropagationQueryFilter<C> = (With<C>);
+pub type UiPropagationQuery<'a, C> = PropagationQuery<'a, C, UiComponent>;
+pub type UiPropagationQueryFilter<C> = PropagationQueryFilter<C, UiComponent>;
 
-pub type StylePropagationQuery<'a> = PropagationQuery<'a, Style>;
-pub type StylePropagationQueryFilter = PropagationQueryFilter<Style>;
+pub type PickingPropagationQuery<'a, C> = PropagationQuery<'a, C, PickableComponent>;
+pub type PickingPropagationQueryFilter<C> = PropagationQueryFilter<C, PickableComponent>;
+
+pub type StylePropagationQuery<'a> = PropagationQuery<'a, Style, UiComponent>;
+pub type StylePropagationQueryFilter = PropagationQueryFilter<Style, UiComponent>;
 
 pub type UiComponentEventDescriptor = EventDescriptor<StyleStateChangeEventData, UiEventArgs, Style>;
 pub type VisibilityEventDescriptor = EventDescriptor<ComponentChangeEventData, UiEventArgs, Visibility>;

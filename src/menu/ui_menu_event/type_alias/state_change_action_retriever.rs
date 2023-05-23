@@ -8,44 +8,45 @@ use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{Draggab
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_event_writer::action_retriever::state_change_action_retriever::StateChangeActionTypeStateRetriever;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
+use crate::menu::UiComponent;
 use crate::pickable_events::PickableComponentState;
 
 pub type UiStateChange<C, S> = StateChangeActionType<S, C, UiContext, UiEventArgs>;
 pub type StyleStateChange = StateChangeActionType<StyleStateChangeEventData, Style, UiContext, UiEventArgs>;
 
 pub type DraggableStateChangeRetriever = StateChangeActionTypeStateRetriever<
-    DraggableUiComponentFilter, DraggableUiComponentIxnFilter,
+    UiComponent, DraggableUiComponentFilter, DraggableUiComponentIxnFilter,
     UiContext, UiEventArgs, StyleStateChangeEventData, PropagateDraggable,
     Style, UiComponentState
 >;
 
 pub type ScrollableStateChangeRetriever = StateChangeActionTypeStateRetriever<
-    ScrollableUiComponentFilter, ScrollableIxnFilterQuery, UiContext,
+    UiComponent,ScrollableUiComponentFilter, ScrollableIxnFilterQuery, UiContext,
     UiEventArgs, StyleStateChangeEventData, PropagateScrollable,
     Style, UiComponentState
 >;
 
 pub type ClickEvents = StateChangeActionTypeStateRetriever<
-    UiComponentStyleFilter, UiComponentStyleIxnFilter,
+    UiComponent, UiComponentStyleFilter, UiComponentStyleIxnFilter,
     UiContext, UiEventArgs, StyleStateChangeEventData,
     PropagateDisplay, Style, UiComponentState
 >;
 
 
 pub type ClickSelectionEventRetriever = StateChangeActionTypeStateRetriever<
-    UiComponentStyleFilter, UiComponentStyleIxnFilter,
+    UiComponent,UiComponentStyleFilter, UiComponentStyleIxnFilter,
     UiContext, UiEventArgs, StyleStateChangeEventData, PropagateSelect,
     Style, UiComponentState
 >;
 
-pub type CreateMenuPickableEventRetriever<StateComponentT, ChangeComponentT> = StateChangeActionTypeStateRetriever<
-    PickableFilter<StateComponentT>, PickableIxnFilter<StateComponentT>,
-    UiContext, UiEventArgs, ComponentChangeEventData, PropagateCreateMenu,
-    StateComponentT, PickableComponentState, ChangeComponentT
->;
-
 pub type ChangeVisibleEventRetriever<StateComponentT, ChangeComponentT> = StateChangeActionTypeStateRetriever<
-    VisibleFilter<StateComponentT>, VisibleIxnFilter<StateComponentT>,
+    UiComponent, VisibleFilter<StateComponentT>, VisibleIxnFilter<StateComponentT>,
     UiContext, UiEventArgs, ComponentChangeEventData, PropagateVisible,
     StateComponentT, UiComponentState, ChangeComponentT
+>;
+
+pub type CreateMenuPickableEventRetriever<StateComponentT, ChangeComponentT> = StateChangeActionTypeStateRetriever<
+    PickableComponent, PickableFilter<StateComponentT>, PickableIxnFilter<StateComponentT>,
+    UiContext, UiEventArgs, ComponentChangeEventData, PropagateCreateMenu,
+    StateComponentT, PickableComponentState, ChangeComponentT
 >;

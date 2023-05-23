@@ -9,7 +9,6 @@ pub struct GraphPlugin;
 impl Plugin for GraphPlugin {
     fn build(&self, app: &mut App) {
         app.insert_resource(GraphConfigurationResource::<Node>::default())
-            .insert_resource(GraphingMetricsResource::default())
             .add_startup_system(setup_graph::setup_graph)
             .add_system(draw_graph_points::<Node, RadialGraphPoints, LineMaterial>)
         ;

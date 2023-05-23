@@ -27,7 +27,7 @@ pub trait EventsSystem<
 >
     where RetrieveStateT: RetrieveState<
         EventArgsT, EventDataT, Ctx, SelfQuery,
-        PropagationQuery,ComponentT, ComponentChangeT, SelfFilterQuery,
+        PropagationQuery, ComponentT, ComponentChangeT, SelfFilterQuery,
         PropagationFilterQuery
         > + UpdateGlobalState<SelfFilterQuery, InteractionFilterQuery>  {
     fn click_write_events(

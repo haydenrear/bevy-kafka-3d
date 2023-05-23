@@ -9,7 +9,8 @@ use bevy::prelude::{Entity, EventReader, MouseButton, Query, Res, ResMut};
 use bevy_mod_picking::{HoverEvent, PickingEvent, SelectionEvent};
 use crate::camera::ZoomableDraggableCamera;
 use crate::graph::GraphDimComponent;
-use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery};
+use crate::menu::graphing_menu::graph_menu::GraphMenuPotential;
+use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentIxnFilter, PickableIxnFilter, ScrollableIxnFilterQuery};
 
 /// Will be used to adapt all events into a single InteractionEvent type, which is generic over
 /// the query which is used, so that events can be filtered for the different Ui systems. Ultimately,
@@ -56,15 +57,11 @@ pub trait MatchesPickingEvent {
     fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &PickableComponent), QueryEntityError>) -> bool;
 }
 
-impl MatchesPickingEvent for InteractionEvent<(With<PickableComponent>, With<GraphDimComponent>)> {
+impl MatchesPickingEvent for InteractionEvent<PickableIxnFilter<GraphMenuPotential>> {
     fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &PickableComponent), QueryEntityError>) -> bool {
-        match picking_event {
-            PickingEvent::Selection(_) => {}
-            PickingEvent::Hover(_) => {}
-            PickingEvent::Clicked(_) => {}
-        }
         raycast_actionable
             .map(|(entity, r)| {
+                info!("Had interaction with pickable component.");
                 match r {
                     PickableComponent::GraphDim => true,
                     _ => false
@@ -78,7 +75,7 @@ impl MatchesPickingEvent for InteractionEvent<(With<PickableComponent>, With<Gra
 /// When an event happens with the raycast, maybe the event will want to be included so that some
 /// action can be taken. This allows interaction between the 3d and the UI event system. When the
 /// nodes are selected, a menu needs to pop up.
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub enum PickableComponent {
     GraphDim,
     Metric
@@ -195,5 +192,5 @@ macro_rules! ray_cast_events_system {
 ray_cast_events_system!(
     create_graph_menu_event_writer,
     create_graph_menu_query,
-    (With<PickableComponent>, With<GraphDimComponent>)
+    PickableIxnFilter<GraphMenuPotential>
 );
