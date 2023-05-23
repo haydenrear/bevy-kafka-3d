@@ -4,5 +4,6 @@ pub enum PickableComponentState {
 
 pub enum ComponentSpawned {
     ComponentSpawned,
-    ComponentNotSpawned
+    ComponentNotSpawned,
+    Any
 }

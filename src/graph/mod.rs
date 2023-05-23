@@ -59,7 +59,7 @@ pub struct GraphingMetricsResource
     pub(crate) graphing_indices: HashMap<String, HashSet<Entity>>,
     pub(crate) metric_indices: HashMap<Entity, HashSet<Entity>>,
     pub(crate) index_types: HashMap<MetricComponentType, HashSet<String>>,
-    pub(crate)
+    pub(crate) state_transition_completed: Vec<Entity>
 }
 
 #[derive(Clone, Debug)]

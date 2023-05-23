@@ -14,7 +14,7 @@ use crate::menu::ui_menu_event::entity_component_state_transition::{EntityCompon
 use crate::menu::ui_menu_event::state_change_factory::{EntitiesStateTypes, StateChangeActionType};
 use crate::menu::ui_menu_event::transition_groups::{PropagateCreateMenu, PropagateDisplay, PropagateDraggable, PropagateSelect, PropagateVisible, TransitionGroup};
 use crate::menu::ui_menu_event::type_alias::state_transitions::{ComponentStateTransitions, DraggableStateTransitions, UiSelectedComponentStateTransition, UiSelectedComponentStateTransitions, UiStyleComponentStateTransitions, VisibilityStateTransitions};
-use crate::pickable_events::PickableComponentState;
+use crate::pickable_events::{ComponentSpawned, PickableComponentState};
 use crate::ui_components::menu_components::BuildMenuResult;
 use crate::ui_components::menu_components::menu_options::dropdown_menu_option::DropdownMenuOptionResult;
 use crate::ui_components::menu_components::menu_options::slider_menu_option::SliderMenuOptionResult;
@@ -71,11 +71,38 @@ impl GetStateTransitions<
         ChangeGraphingMenu,
         PickableComponentState
     >> {
-        todo!()
+        Some(
+            UiEntityComponentStateTransitions {
+                transitions: vec![
+                    EntityComponentStateTransition {
+                        entity_to_change: EntitiesStateTypes {
+                            states: vec![(
+                                entities.self_state.unwrap(),
+                                Relationship::SelfState,
+                                StateChangeActionType::Clicked {
+                                    value: ComponentChangeEventData::ChangeGraphingMenu,
+                                    p: PhantomData::default(),
+                                    p1: PhantomData::default(),
+                                    p2: PhantomData::default(),
+                                }
+                            )]
+                        },
+                        filter_state: PickableComponentState::Spawned(ComponentSpawned::Any),
+                        current_state_filter: PickableComponentState::Spawned(ComponentSpawned::Any),
+                        filter_component: Default::default(),
+                        state_component: Default::default(),
+                    }
+                ],
+                state_component: Default::default(),
+            }
+        )
     }
 
     fn get_entities(builder_result: &Res<GraphingMetricsResource>) -> Vec<Entity> {
-        builder_result.metric_indices
+        builder_result.metric_indices.values()
+            .flat_map(|v| v)
+            .map(|&e| e)
+            .collect()
     }
 }
 
