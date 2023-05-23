@@ -8,9 +8,10 @@ use bevy::input::mouse::MouseScrollUnit;
 use crate::event::event_descriptor::{EventArgs, EventData};
 use crate::event::event_state::{ComponentChangeEventData, Context, StyleStateChangeEventData, Update};
 use crate::menu::{UiComponent};
+use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphingPotential};
 use crate::menu::ui_menu_event::change_style::DoChange;
 use crate::menu::ui_menu_event::next_action::{Matches, UiComponentState, VisibilityIdentifier};
-use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, RaycastFilter, RaycastIxnFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
+use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PickableFilter, PickableIxnFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
 use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, ScrollableStateChangeRetriever};
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
@@ -38,6 +39,10 @@ pub enum UiClickStateChange {
         entity: Entity,
         adviser_component: Entity,
         update_component: Visibility
+    },
+    ChangeGraphingMenu {
+        entity: Entity,
+        graph_menu_change: ChangeGraphingMenu
     },
     None,
 }
@@ -67,6 +72,26 @@ impl StateChangeMachine<Visibility, UiContext, UiEventArgs> for ComponentChangeE
                 return Some(UiEventArgs::Event(UiClickStateChange::ChangeVisible {
                     entity: *to_change,  update_component: Visibility::Visible, adviser_component: *adviser_component
                 }));
+            }
+        }
+        None
+    }
+}
+
+impl StateChangeMachine<GraphingPotential, UiContext, UiEventArgs> for ComponentChangeEventData {
+    fn state_machine_event(&self, starting: &GraphingPotential, style_context: &mut ResMut<UiContext>, entity: Entity) -> Option<UiEventArgs> {
+        if let ComponentChangeEventData::ChangeGraphingMenu = self {
+            info!("Creating change visible event with: {:?}", to_change);
+            return if !starting.realized {
+                Some(UiEventArgs::Event(UiClickStateChange::ChangeGraphingMenu {
+                    entity,
+                    graph_menu_change: ChangeGraphingMenu::AddGraphingMenu,
+                }))
+            } else {
+                Some(UiEventArgs::Event(UiClickStateChange::ChangeGraphingMenu {
+                    entity,
+                    graph_menu_change: ChangeGraphingMenu::RemoveGraphingMenu,
+                }))
             }
         }
         None
@@ -172,7 +197,7 @@ for ClickEvents {}
 impl UpdateGlobalState<UiComponentStyleFilter, UiComponentStyleIxnFilter>
 for ClickSelectionEventRetriever {}
 
-impl UpdateGlobalState<RaycastFilter, RaycastIxnFilter>
+impl UpdateGlobalState<PickableFilter, PickableIxnFilter>
 for ClickSelectionEventRetriever {}
 
 impl<T: ChangeVisible> UpdateGlobalState<VisibleFilter<T>, VisibleIxnFilter<T>>

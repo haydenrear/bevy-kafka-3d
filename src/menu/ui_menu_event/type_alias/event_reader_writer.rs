@@ -11,8 +11,8 @@ use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 pub type UiComponentStyleFilter = (With<UiComponent>, With<Style>);
 pub type UiComponentStyleIxnFilter = (With<UiComponent>, With<Button>, Changed<Interaction>);
 
-pub type RaycastFilter = (With<PickableComponent>);
-pub type RaycastIxnFilter = (With<PickableComponent>);
+pub type PickableFilter = (With<PickableComponent>);
+pub type PickableIxnFilter = (With<PickableComponent>);
 
 pub type VisibleFilter<T> = (With<T>);
 pub type VisibleIxnFilter<T> = (With<T>, With<Button>, Changed<Interaction>);

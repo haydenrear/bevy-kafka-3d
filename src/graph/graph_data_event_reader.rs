@@ -7,7 +7,8 @@ use bevy_mod_picking::PickableBundle;
 use crate::config::ConfigurationProperties;
 use crate::cursor_adapter::PickableComponent;
 use crate::data_subscriber::metric_event::{MetricsState, NetworkMetricsServiceEvent};
-use crate::graph::{DataSeries, GraphConfigurationResource, GraphDim, GraphDimComponent, GridAxis};
+use crate::graph::{DataSeries, GraphConfigurationResource, GraphDim, GraphDimComponent, GraphingMetricsResource, GridAxis};
+use crate::menu::graphing_menu::graph_menu::GraphingPotential;
 use crate::metrics::network_metrics::{Metric, MetricType, MetricTypeMatcher};
 use crate::ndarray::get_arr_from_vec;
 use crate::util::gen_color_from_list;
@@ -26,6 +27,7 @@ pub fn read_metric_events<T, U>(
     mut metrics_lookup: ResMut<MetricsState>,
     config_properties: Res<ConfigurationProperties>,
     mut graph_dim_config: ResMut<GraphConfigurationResource<U>>,
+    mut graph_config: ResMut<GraphingMetricsResource>,
     mut component_query: Query<(Entity, &mut Metric<U>)>,
 )
     where
@@ -38,7 +40,7 @@ pub fn read_metric_events<T, U>(
         if metrics_lookup.entities.contains_key(metric_name) {
             add_data_to_current_metric(&mut commands, &mut metrics_lookup, &mut component_query, event, metric_name);
         } else {
-            create_new_metric(&mut commands, &mut metrics_lookup, &config_properties, &mut graph_dim_config, event, metric_name);
+            create_new_metric(&mut commands, &mut metrics_lookup, &config_properties, &mut graph_dim_config, &mut graph_config, event, metric_name);
         }
         metrics_lookup.increment_entity(metric_name);
     }
@@ -49,6 +51,7 @@ fn create_new_metric<U, T>(
     mut metrics_lookup: &mut ResMut<MetricsState>,
     config_properties: &Res<ConfigurationProperties>,
     mut graph_dim_config: &mut ResMut<GraphConfigurationResource<U>>,
+    mut graph_config: &mut ResMut<GraphingMetricsResource>,
     mut event: &T,
     metric_name: &str,
 )
@@ -60,7 +63,7 @@ fn create_new_metric<U, T>(
     for (matcher, to_match) in config_properties.metrics.metric_type.iter() {
         let to_match = to_match.as_str();
         if matches!(metric_name, to_match) {
-            create_add_metric(&mut commands, &mut metrics_lookup, &config_properties, &mut graph_dim_config, event, metric_name, matcher);
+            create_add_metric(&mut commands, &mut metrics_lookup, &config_properties, &mut graph_dim_config, &mut graph_config,  event, metric_name, matcher);
             break;
         }
     }
@@ -94,6 +97,7 @@ fn create_add_metric<U, T>(
     mut metrics_lookup: &mut ResMut<MetricsState>,
     config_properties: &Res<ConfigurationProperties>,
     mut graph_dim_config: &mut ResMut<GraphConfigurationResource<U>>,
+    mut graph_config: &mut ResMut<GraphingMetricsResource>,
     mut event: &T,
     metric_name: &str,
     matcher: &MetricTypeMatcher,
@@ -112,7 +116,7 @@ fn create_add_metric<U, T>(
 
     let columns = get_graph_dims(&config_properties, &mut metric);
 
-    add_metric_to_world(&mut commands, &mut metrics_lookup, &mut graph_dim_config, metric_name, metric, columns);
+    add_metric_to_world(&mut commands, &mut metrics_lookup, &mut graph_dim_config, &mut graph_config, metric_name, metric, columns);
 }
 
 fn create_metric_struct<U, T>(
@@ -151,6 +155,7 @@ fn add_metric_to_world<U>(
     commands: &mut Commands,
     metrics_lookup: &mut ResMut<MetricsState>,
     graph_dim_config: &mut ResMut<GraphConfigurationResource<U>>,
+    mut graph_config: &mut ResMut<GraphingMetricsResource>,
     metric_name: &str,
     mut metric: Metric<U>,
     columns: Vec<GraphDim>,
@@ -181,7 +186,9 @@ fn add_metric_to_world<U>(
         .map(|&e| e.0)
         .collect::<Vec<Entity>>();
 
-    metric.metric_dim_component_children = graph_dim_components;
+
+    metric.metric_dim_component_children = graph_dim_components.clone();
+
 
 
 // TODO: this should wait and the series is created based on changes in menu
@@ -196,6 +203,13 @@ fn add_metric_to_world<U>(
         HistoricalUpdated::default(),
         PickableComponent::Metric
     )).id();
+
+    graph_config.metric_indices.insert(
+        metric_id,
+        graph_dim_components.values()
+            .map(|&(e, c)| e)
+            .collect()
+    );
 
     commands.get_entity(metric_id)
         .as_mut()

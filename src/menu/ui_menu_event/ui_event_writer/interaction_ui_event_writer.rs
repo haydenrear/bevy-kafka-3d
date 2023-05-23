@@ -5,7 +5,7 @@ use crate::event::event_actions::EventsSystem;
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};
 use crate::menu::ui_menu_event::transition_groups::{PropagateDisplay, PropagateDraggable, PropagateScrollable};
 use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
-use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, ScrollableStateChangeRetriever};
+use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, PickableEventRetriever, ScrollableStateChangeRetriever};
 use crate::menu::ui_menu_event::type_alias::state_transition_queries::{PropagateStateTransitionsQuery, StyleUiComponentStateTransitionsQuery, UiSelectedComponentStateTransitionsQuery, VisibleComponentStateTransitionsQuery};
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
@@ -100,3 +100,20 @@ impl<T: ChangeVisible + Debug> EventsSystem<
     VisibleIxnFilter<T>
 > for VisibilitySystems<T> {}
 
+#[derive(Default, Debug, Resource)]
+pub struct CreateGraphingMenuSystem;
+
+impl EventsSystem<
+    PickableEventRetriever<GraphingPotential, >,
+    UiEventArgs, ComponentChangeEventData, GraphingPotential, Visibility, UiContext,
+    // self query
+    VisibleComponentStateTransitionsQuery<'_, GraphingPotential, Visibility>,
+    // self filter
+    VisibleFilter<T>,
+    // propagation query
+    PropagationQuery<'_, Visibility>,
+    // propagation filter
+    PropagationQueryFilter<Visibility>,
+    // interaction filter
+    VisibleIxnFilter<T>
+> for CreateGraphingMenuSystem {}

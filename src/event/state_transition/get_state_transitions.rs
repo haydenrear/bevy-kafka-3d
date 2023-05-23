@@ -3,15 +3,18 @@ use bevy::prelude::*;
 use crate::event::event_descriptor::EventData;
 use crate::event::event_propagation::Relationship;
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};
+use crate::graph::{GraphConfigurationResource, GraphingMetricsResource};
 use crate::menu::config_menu_event::interaction_config_event_writer::{GraphMenuResultBuilder, NetworkMenuResultBuilder};
 use crate::menu::ui_menu_event::change_style::UiChangeTypes;
 use crate::menu::ui_menu_event::next_action::{DisplayState, Matches, SizeState, UiComponentState, VisibilityIdentifier};
 use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{StyleStateChange, UiStateChange};
 use crate::menu::{Menu, MetricsConfigurationOption};
+use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphingPotential};
 use crate::menu::ui_menu_event::entity_component_state_transition::{EntityComponentStateTransition, UiEntityComponentStateTransitions};
 use crate::menu::ui_menu_event::state_change_factory::{EntitiesStateTypes, StateChangeActionType};
-use crate::menu::ui_menu_event::transition_groups::{PropagateDisplay, PropagateDraggable, PropagateSelect, PropagateVisible, TransitionGroup};
+use crate::menu::ui_menu_event::transition_groups::{PropagateCreateMenu, PropagateDisplay, PropagateDraggable, PropagateSelect, PropagateVisible, TransitionGroup};
 use crate::menu::ui_menu_event::type_alias::state_transitions::{ComponentStateTransitions, DraggableStateTransitions, UiSelectedComponentStateTransition, UiSelectedComponentStateTransitions, UiStyleComponentStateTransitions, VisibilityStateTransitions};
+use crate::pickable_events::PickableComponentState;
 use crate::ui_components::menu_components::BuildMenuResult;
 use crate::ui_components::menu_components::menu_options::dropdown_menu_option::DropdownMenuOptionResult;
 use crate::ui_components::menu_components::menu_options::slider_menu_option::SliderMenuOptionResult;
@@ -47,6 +50,33 @@ pub trait GetStateTransitions<
 
     fn get_entities(builder_result: &Res<ResultT>) -> Vec<Entity>;
 
+}
+
+impl GetStateTransitions<
+    PropagateCreateMenu,
+    GraphingMetricsResource,
+    ComponentChangeEventData,
+    GraphingPotential,
+    PickableComponentState,
+    ChangeGraphingMenu
+> for GraphingMetricsResource {
+    fn get_state_transitions(
+        builder_result: &Res<GraphingMetricsResource>,
+        entities: &Entities
+    ) -> Option<ComponentStateTransitions<
+        PropagateCreateMenu,
+        ComponentChangeEventData,
+        GraphingPotential,
+        PickableComponentState,
+        ChangeGraphingMenu,
+        PickableComponentState
+    >> {
+        todo!()
+    }
+
+    fn get_entities(builder_result: &Res<GraphingMetricsResource>) -> Vec<Entity> {
+        builder_result.metric_indices
+    }
 }
 
 impl GetStateTransitions<

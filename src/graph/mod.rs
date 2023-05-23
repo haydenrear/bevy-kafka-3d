@@ -57,7 +57,9 @@ pub struct GraphingMetricsResource
     /// when a metric is picked, events will be sent to be read for the entities associated with
     /// the same entities, to be read by an event reader of type T: Component, such as Node, Layer, etc.
     pub(crate) graphing_indices: HashMap<String, HashSet<Entity>>,
-    pub(crate) index_types: HashMap<MetricComponentType, HashSet<String>>
+    pub(crate) metric_indices: HashMap<Entity, HashSet<Entity>>,
+    pub(crate) index_types: HashMap<MetricComponentType, HashSet<String>>,
+    pub(crate)
 }
 
 #[derive(Clone, Debug)]

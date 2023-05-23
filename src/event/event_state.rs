@@ -174,7 +174,7 @@ impl EventData for StyleStateChangeEventData {}
 #[derive(Clone, Debug)]
 pub enum ComponentChangeEventData {
     ChangeVisible{ to_change: Entity, adviser_component: Entity},
-    AddGraphingMenu {  }
+    ChangeGraphingMenu
 }
 
 

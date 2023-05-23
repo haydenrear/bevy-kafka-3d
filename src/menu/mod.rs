@@ -15,6 +15,7 @@ use crate::network::{Layer, Network, Node};
 pub(crate) mod ui_menu_event;
 pub(crate) mod config_menu_event;
 pub(crate) mod menu_resource;
+pub(crate) mod graphing_menu;
 
 pub struct MenuData {
     pub(crate) sub_menus: Vec<SubMenu>,

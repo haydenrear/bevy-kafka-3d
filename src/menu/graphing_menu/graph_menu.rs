@@ -21,5 +21,11 @@ pub struct GraphMenuResource {
 
 #[derive(Component)]
 pub struct GraphingPotential {
-    realized: bool
+    pub(crate) realized: bool
+}
+
+#[derive(Component)]
+pub enum ChangeGraphingMenu {
+    AddGraphingMenu,
+    RemoveGraphingMenu
 }
