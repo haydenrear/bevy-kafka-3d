@@ -8,6 +8,7 @@ use bevy::input::mouse::MouseWheel;
 use bevy::prelude::{Entity, EventReader, MouseButton, Query, Res, ResMut};
 use bevy_mod_picking::{HoverEvent, PickingEvent, SelectionEvent};
 use crate::camera::ZoomableDraggableCamera;
+use crate::graph::GraphDimComponent;
 use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery};
 
 /// Will be used to adapt all events into a single InteractionEvent type, which is generic over
@@ -52,14 +53,22 @@ pub(crate) fn propagate_drag_events(
 }
 
 pub trait MatchesPickingEvent {
-    fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &RayCastActionable), QueryEntityError>) -> bool;
+    fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &PickableComponent), QueryEntityError>) -> bool;
 }
 
-impl MatchesPickingEvent for InteractionEvent<()> {
-    fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &RayCastActionable), QueryEntityError>) -> bool {
+impl MatchesPickingEvent for InteractionEvent<(With<PickableComponent>, With<GraphDimComponent>)> {
+    fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &PickableComponent), QueryEntityError>) -> bool {
+        match picking_event {
+            PickingEvent::Selection(_) => {}
+            PickingEvent::Hover(_) => {}
+            PickingEvent::Clicked(_) => {}
+        }
         raycast_actionable
             .map(|(entity, r)| {
-                r.is_ui_interactable
+                match r {
+                    PickableComponent::GraphDim => true,
+                    _ => false
+                }
             })
             .or::<QueryEntityError>(Ok(false))
             .unwrap()
@@ -70,8 +79,9 @@ impl MatchesPickingEvent for InteractionEvent<()> {
 /// action can be taken. This allows interaction between the 3d and the UI event system. When the
 /// nodes are selected, a menu needs to pop up.
 #[derive(Component)]
-pub struct RayCastActionable {
-    pub(crate) is_ui_interactable: bool,
+pub enum PickableComponent {
+    GraphDim,
+    Metric
 }
 
 fn get_entity(picking_event: &PickingEvent) -> Entity {
@@ -138,12 +148,14 @@ macro_rules! ray_cast_events_system {
         }
     };
 
-    ($($event_writer_ident:ident: $event_writer_type:ty),*) => {
+    ($($event_writer_ident:ident, $event_query_ident:ident, $event_writer_type:ty),*) => {
 
         pub(crate) fn calculate_picks(
-            $($event_writer_ident: &mut EventWriter<InteractionEvent<$event_writer_type>>),*,
+            $(
+                mut $event_writer_ident: EventWriter<InteractionEvent<$event_writer_type>>,
+                $event_query_ident: Query<(Entity, &PickableComponent), $event_writer_type>,
+            ),*
             mut raycast_source: EventReader<PickingEvent>,
-            raycast_actionable: Query<(Entity, &RaycastActionable), (With<RaycastActionable>)>,
             mut intersected: ResMut<BevyPickingState>,
             cam: Res<ZoomableDraggableCamera>,
             mouse_button_input: Res<Input<MouseButton>>,
@@ -168,8 +180,8 @@ macro_rules! ray_cast_events_system {
                 }
 
                 $(
-                    if <InteractionEvent<$event_writer_type> as MatchesPickingEvent>::matches(&i, raycast_actionable.get_single(get_entity(&i))) {
-                        $event_writer_ident.send(InteractionEvent::RaycastInteraction {
+                    if <InteractionEvent<$event_writer_type> as MatchesPickingEvent>::matches(&i, $event_query_ident.get(get_entity(&i))) {
+                        $event_writer_ident.send(InteractionEvent::RayCastInteraction {
                                 event: crate::interactions::PickingEvent::from(i)
                         });
                     }
@@ -180,4 +192,8 @@ macro_rules! ray_cast_events_system {
 
 }
 
-ray_cast_events_system!();
+ray_cast_events_system!(
+    create_graph_menu_event_writer,
+    create_graph_menu_query,
+    (With<PickableComponent>, With<GraphDimComponent>)
+);

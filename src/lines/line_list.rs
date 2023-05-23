@@ -93,7 +93,6 @@ fn compute_line_normal(start: Vec3, end: Vec3) -> Vec3 {
     normal
 }
 
-
 fn create_thick_line_mesh(lines: &[(Vec3, Vec3)], thickness: f32) -> Mesh {
 
     let mut vertices = Vec::new();

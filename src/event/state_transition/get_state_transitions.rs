@@ -7,7 +7,7 @@ use crate::menu::config_menu_event::interaction_config_event_writer::{GraphMenuR
 use crate::menu::ui_menu_event::change_style::UiChangeTypes;
 use crate::menu::ui_menu_event::next_action::{DisplayState, Matches, SizeState, UiComponentState, VisibilityIdentifier};
 use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{StyleStateChange, UiStateChange};
-use crate::menu::{Menu, MetricsConfigurationOption, UiComponent};
+use crate::menu::{Menu, MetricsConfigurationOption};
 use crate::menu::ui_menu_event::entity_component_state_transition::{EntityComponentStateTransition, UiEntityComponentStateTransitions};
 use crate::menu::ui_menu_event::state_change_factory::{EntitiesStateTypes, StateChangeActionType};
 use crate::menu::ui_menu_event::transition_groups::{PropagateDisplay, PropagateDraggable, PropagateSelect, PropagateVisible, TransitionGroup};
@@ -18,14 +18,6 @@ use crate::ui_components::menu_components::menu_options::slider_menu_option::Sli
 use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;
 use crate::ui_components::menu_components::menu_types::collapsable_menu::DrawCollapsableMenuResult;
 use crate::ui_components::menu_components::menu_types::dropdown_menu::DrawDropdownMenuResult;
-use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
-
-pub(crate) type EntityQuery<'a, TransitionGroupT> = (Entity, &'a UiComponent, &'a Style, &'a UiIdentifiableComponent, &'a TransitionGroupT);
-pub(crate) type EntityFilter<TransitionGroupT> = (With<UiComponent>, With<Style>, With<TransitionGroupT>);
-pub(crate) type ChildQuery<'a, TransitionGroupT> = (Entity, &'a UiComponent, &'a Children, &'a UiIdentifiableComponent, &'a Style, &'a TransitionGroupT);
-pub(crate) type ChildFilter<TransitionGroupT> = (With<UiComponent>, With<Children>, With<Style>, With<TransitionGroupT>);
-pub(crate) type ParentQuery<'a, TransitionGroupT> = (Entity, &'a UiComponent, &'a Parent, &'a UiIdentifiableComponent, &'a Style, &'a TransitionGroupT);
-pub(crate) type ParentFilter<TransitionGroupT> = (With<UiComponent>, With<Parent>, With<Style>, With<TransitionGroupT>);
 
 #[derive(Default, Debug)]
 pub struct Entities {
@@ -47,6 +39,7 @@ pub trait GetStateTransitions<
     UpdateComponentT: Component = StateComponentT,
     MatchesT: Matches<UpdateComponentT> = FilterMatchesT
 > {
+
     fn get_state_transitions(
         builder_result: &Res<ResultT>,
         entities: &Entities,

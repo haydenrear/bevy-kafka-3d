@@ -81,7 +81,7 @@ fn draw_graph(
     graph_component.add_child(grid.x_axis);
     graph_component.add_child(grid.y_axis);
     graph_component.add_child(grid.z_axis);
-    graph_component.insert(Visibility::Visible);
+    graph_component.insert(Visibility::Hidden);
     let graph = graph_component.id();
     info!("Made {:?} visible.", graph);
     context.graph_parent_entity = Some(graph);

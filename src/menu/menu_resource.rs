@@ -6,7 +6,6 @@ use bevy::utils::default;
 use crate::graph::GraphParent;
 use crate::graph::graph_plugin::GraphPlugin;
 use crate::menu::{MetricsConfigurationOption, DataType, MenuData, MenuOption, MenuInputType, MenuItemMetadata, MenuOptionType, Position, ConfigurationOptionEnum, Menu, MenuType, SliderData, MenuOptionInputType, SelectableType};
-use crate::menu::config_menu_event::config_menu_event_plugin::ConfigMenuEventPlugin;
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, Network, Node};
 

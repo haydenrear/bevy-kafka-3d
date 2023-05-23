@@ -1,12 +1,8 @@
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use crate::menu::ui_menu_event::transition_groups::PropagateVisible;
-use crate::menu::ui_menu_event::transition_groups::PropagateSelect;
 use bevy::prelude::{Resource, Style, Visibility};
 use crate::event::event_actions::EventsSystem;
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};
-use crate::menu::{Menu, MetricsConfigurationOption};
-use crate::menu::ui_menu_event::next_action::UiComponentState;
 use crate::menu::ui_menu_event::transition_groups::{PropagateDisplay, PropagateDraggable, PropagateScrollable};
 use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
 use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, ScrollableStateChangeRetriever};

@@ -87,7 +87,7 @@ for ConfigOptionActionStateRetriever<T>
             (Entity, &MetricsConfigurationOption<T>),
             (With<MetricsConfigurationOption<T>>)
         >,
-        propagation_query: &Query<
+        _propagation_query: &Query<
             (Entity, &MetricsConfigurationOption<T>),
             (With<MetricsConfigurationOption<T>>)
         >,
@@ -97,7 +97,7 @@ for ConfigOptionActionStateRetriever<T>
     {
         let mut event_descriptors = vec![];
         info!("Here is ctx: {:?}", context);
-        Self::set_menu_events(entity, context, self_query, &mut event_descriptors);
+        Self::set_menu_events(entity, self_query, &mut event_descriptors);
         event_descriptors
     }
 }
@@ -107,7 +107,6 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
 {
     fn set_menu_events(
         entity: Entity,
-        mut context: &mut ResMut<NetworkMenuResultBuilder>,
         self_query: &Query<(Entity, &MetricsConfigurationOption<T>), With<MetricsConfigurationOption<T>>>,
         mut event_descriptors: &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
     ) {
@@ -128,8 +127,6 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
                                 entity,
                                 config_menu,
                                 DataType::Deselected,
-                                Visibility::Hidden,
-                                None,
                             );
                         } else if let DataType::Deselected = data_type {
                             let config_menu = MetricsConfigurationOption::GraphMenu(
@@ -142,8 +139,6 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
                                               entity,
                                               config_menu,
                                               DataType::Selected,
-                                              Visibility::Visible,
-                                              None,
                             );
                         }
                     }
@@ -159,8 +154,6 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
                                               entity,
                                               config_menu,
                                               DataType::Deselected,
-                                              Visibility::Hidden,
-                                              context.network_parent_entity,
                             );
                         } else if let DataType::Deselected = data_type {
                             let config_menu = MetricsConfigurationOption::NetworkMenu(
@@ -173,8 +166,6 @@ where T: Component + Send + Sync + Default + Clone + Debug + 'static
                                               entity,
                                               config_menu,
                                               DataType::Selected,
-                                              Visibility::Visible,
-                                              context.network_parent_entity,
                             );
                         }
                     }
@@ -195,9 +186,7 @@ fn create_add_events<T>(
     mut event_descriptors: &mut Vec<EventDescriptor<DataType, ConfigurationOptionEventArgs<T>, MetricsConfigurationOption<T>>>,
     entity: Entity,
     config: MetricsConfigurationOption<T>,
-    data_type: DataType,
-    visible: Visibility,
-    other_entity: Option<Entity>,
+    data_type: DataType
 )
     where
         T: Component + Send + Sync + Default + Clone + Debug + 'static

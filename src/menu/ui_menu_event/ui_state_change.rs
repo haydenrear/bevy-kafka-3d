@@ -1,3 +1,5 @@
+use std::fmt::Debug;
+use bevy::ecs::component::ComponentStorage;
 use bevy::prelude::{BackgroundColor, Button, Changed, Color, Component, Display, Entity, info, Interaction, Query, ResMut, Resource, Size, Style, Visibility, With};
 use bevy::ui::UiRect;
 use bevy::ecs::query::ReadOnlyWorldQuery;
@@ -5,7 +7,7 @@ use bevy::math::Vec2;
 use bevy::input::mouse::MouseScrollUnit;
 use crate::event::event_descriptor::{EventArgs, EventData};
 use crate::event::event_state::{ComponentChangeEventData, Context, StyleStateChangeEventData, Update};
-use crate::menu::{Menu, MetricsConfigurationOption, UiComponent};
+use crate::menu::{UiComponent};
 use crate::menu::ui_menu_event::change_style::DoChange;
 use crate::menu::ui_menu_event::next_action::{Matches, UiComponentState, VisibilityIdentifier};
 use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, RaycastFilter, RaycastIxnFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
@@ -51,7 +53,7 @@ pub trait StateChangeMachine<ComponentT, Ctx: Context, EventArgsT: EventArgs>: S
 
 impl StateChangeMachine<Visibility, UiContext, UiEventArgs> for ComponentChangeEventData {
     fn state_machine_event(&self, starting: &Visibility, style_context: &mut ResMut<UiContext>, entity: Entity) -> Option<UiEventArgs> {
-        if let ComponentChangeEventData::ChangeVisible{ to_change, adviser_component} = self {
+        if let ComponentChangeEventData::ChangeVisible{ to_change, adviser_component, .. } = self {
             info!("Creating change visible event with: {:?}", to_change);
             if starting == Visibility::Visible {
                 return Some(UiEventArgs::Event(UiClickStateChange::ChangeVisible {
@@ -177,7 +179,11 @@ impl<T: ChangeVisible> UpdateGlobalState<VisibleFilter<T>, VisibleIxnFilter<T>>
 for ChangeVisibleEventRetriever<T, Visibility> {}
 
 pub trait ChangeVisible: Component {
-    fn is_visible(&self) -> bool;
+    fn make_visible(&self) -> bool;
+}
+
+pub trait StateAdviser<T: Clone>: Component + Debug {
+    fn advise(&self, in_state: &T) -> T;
 }
 
 impl<T: ChangeVisible> Matches<T> for UiComponentState {

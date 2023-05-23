@@ -1,4 +1,4 @@
-use bevy::prelude::{Assets, Color, Commands, Component, Entity, error, info, Mesh, Mut, ResMut};
+use bevy::prelude::{Assets, BuildChildren, Color, Commands, Component, Entity, error, info, Mesh, Mut, ResMut};
 use bevy::math::Vec3;
 use std::f32::consts::PI;
 use std::collections::HashMap;
@@ -27,7 +27,7 @@ impl<T> GraphingStrategy<T, LineMaterial> for RadialGraphPoints
         mut materials: &mut ResMut<Assets<LineMaterial>>,
         num_col: usize,
         key: &u64,
-    ) -> Vec<Entity> {
+    ) {
         let angle_increment = 2.0 * PI / num_col as f32;
         let radius = 100.0;
         let origin_height = 100.0;
@@ -64,7 +64,12 @@ impl<T> GraphingStrategy<T, LineMaterial> for RadialGraphPoints
 
 
                 let (mut current_convergence_times, default, mut convergence_times)
-                    = get_convergence_times::<T>(&starting_values, &ending_values, convergence.get(graph_dim_name), metric.historical.retrieve_historical_1d(graph_dim_name));
+                    = get_convergence_times(
+                    &starting_values,
+                    &ending_values,
+                    convergence.get(graph_dim_name),
+                    metric.historical.retrieve_historical_1d(graph_dim_name)
+                );
 
                 info!("{:?} are the current convergent times.", current_convergence_times);
                 info!("{:?} are the convergent times.", convergence_times);
@@ -95,7 +100,12 @@ impl<T> GraphingStrategy<T, LineMaterial> for RadialGraphPoints
                         let start = Vec3::new(1.0 - start_x, origin_height - start, sin * radius);
                         let end = Vec3::new(1.0 - end_x, origin_height - end, sin * radius);
 
-                        points.push((start, end, graph_dim.dim_type.clone()))
+                        if !metric.metric_dim_component_children.contains_key(graph_dim_name) {
+                            error!("Metric did not contain dimension! Not adding graphing points to be drawn.");
+                        } else {
+                            points.push((start, end, metric.metric_dim_component_children.get(graph_dim_name).unwrap()));
+                        }
+
                     }
                 }
 
@@ -106,18 +116,20 @@ impl<T> GraphingStrategy<T, LineMaterial> for RadialGraphPoints
         series.prev_convergence_times = convergence_times;
 
         points.into_iter()
-            .map(|(start, end, graph_dim_type)| {
-                create_data_segment(
+            .for_each(|(start, end, graph_dim_component)| {
+                let data_segment = create_data_segment(
                     &mut commands,
                     start,
                     end,
                     &mut meshes,
                     &mut materials,
-                    LineMaterial { color: Color::GREEN },
+                    LineMaterial { color: graph_dim_component.1 },
                     1.0,
-                )
-            })
-            .collect::<Vec<Entity>>()
+                );
+                commands.get_entity(graph_dim_component.0)
+                    .as_mut()
+                    .map(|graph_dim_entity| graph_dim_entity.add_child(data_segment));
+            });
     }
 }
 
@@ -135,14 +147,12 @@ pub trait Interpolator {
     ) -> Option<f32>;
 }
 
-fn get_convergence_times<'a, T>(
+fn get_convergence_times<'a>(
     starting_values: &Option<ArrayBase<OwnedRepr<f32>, Ix1>>,
     ending_values: &Option<ArrayBase<OwnedRepr<f32>, Ix1>>,
     current_convergence: Option<&'a Vec<Option<f32>>>,
     history: Vec<ArrayBase<OwnedRepr<f32>, Ix1>>,
 ) -> (Option<&'a Vec<Option<f32>>>, Option<Vec<Option<f32>>>, Vec<Option<f32>>)
-    where
-        T: Component + Send + Sync + 'static
 {
     info!("Creating graph points. {:?} are starting values and {:?} are ending values.", starting_values, ending_values);
     info!("Creating graph points. {:?} is the history.", &history);

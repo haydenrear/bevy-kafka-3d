@@ -2,7 +2,8 @@ use bevy::prelude::{App, IntoSystemAppConfig, OnEnter, Plugin};
 use bevy::prelude::*;
 use std::fmt::Debug;
 use crate::event::state_transition::get_state_transitions::GetStateTransitions;
-use crate::event::state_transition::state_transitions_system::{InsertBaseMenuDisplayTransitions, InsertCollapsableDisplayTransitions, InsertDropdownDisplayTransitions, InsertSelectStateTransitions, InsertStateTransitions, InsertVisibleGraphStateTransitions, InsertVisibleNetworkStateTransitions};
+use crate::event::state_transition::state_transition_types::{InsertBaseMenuDisplayTransitions, InsertCollapsableDisplayTransitions, InsertDropdownDisplayTransitions, InsertSelectStateTransitions, InsertVisibleGraphStateTransitions, InsertVisibleNetworkStateTransitions};
+use crate::event::state_transition::state_transitions_system::InsertStateTransitions;
 use crate::ui_components::ui_menu_component::{create_menu, populate_options_builder};
 
 #[derive(Clone, Copy, Default, Eq, PartialEq, Debug, Hash, States)]

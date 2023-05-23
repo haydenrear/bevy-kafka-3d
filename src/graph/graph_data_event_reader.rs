@@ -2,14 +2,15 @@ use std::collections::{BTreeSet, HashMap};
 use std::fmt::Debug;
 use bevy::log::{error, info};
 use bevy::pbr::PbrBundle;
-use bevy::prelude::{Commands, Component, Entity, EventReader, Mut, Query, Res, ResMut, Resource};
+use bevy::prelude::{BuildChildren, Color, Commands, Component, Entity, EventReader, Mut, Query, Res, ResMut, Resource};
 use bevy_mod_picking::PickableBundle;
 use crate::config::ConfigurationProperties;
-use crate::cursor_adapter::RayCastActionable;
+use crate::cursor_adapter::PickableComponent;
 use crate::data_subscriber::metric_event::{MetricsState, NetworkMetricsServiceEvent};
-use crate::graph::{DataSeries, GraphConfigurationResource, GraphDim, GridAxis};
+use crate::graph::{DataSeries, GraphConfigurationResource, GraphDim, GraphDimComponent, GridAxis};
 use crate::metrics::network_metrics::{Metric, MetricType, MetricTypeMatcher};
 use crate::ndarray::get_arr_from_vec;
+use crate::util::gen_color_from_list;
 
 
 #[derive(Component, Default, Debug)]
@@ -156,23 +157,57 @@ fn add_metric_to_world<U>(
 )
     where U: Component + 'static
 {
+
+    let colors = gen_color_from_list(columns.len() as f32);
+
+    let graph_dim_components = columns.iter()
+        .enumerate()
+        .map(|(i, grid_dim)| {
+            let spawned_grid_component_id = commands.spawn((
+                GraphDimComponent {
+                    name: grid_dim.name.to_string(),
+                },
+                PbrBundle::default(),
+                PickableBundle::default(),
+                PickableComponent::GraphDim
+            )).id();
+            (grid_dim.name.to_string(),
+             (spawned_grid_component_id, *colors.get(i).unwrap()))
+        })
+        .collect::<HashMap<String, (Entity, Color)>>();
+
+    let graph_dim_entities = graph_dim_components
+        .values()
+        .map(|&e| e.0)
+        .collect::<Vec<Entity>>();
+
+    metric.metric_dim_component_children = graph_dim_components;
+
+
 // TODO: this should wait and the series is created based on changes in menu
     let metric_id = commands.spawn((
         metric,
         DataSeries {
             drawn: BTreeSet::default(),
-            prev_convergence_times: Default::default(),
+            prev_convergence_times: Default::default()
         },
         PbrBundle::default(),
         PickableBundle::default(),
         HistoricalUpdated::default(),
-        RayCastActionable { is_ui_interactable: true }
-    ))
-        .id();
+        PickableComponent::Metric
+    )).id();
+
+    commands.get_entity(metric_id)
+        .as_mut()
+        .map(|metric| {
+            let graph_dim_entities = graph_dim_entities.as_slice();
+            metric.push_children(graph_dim_entities);
+        });
 
     metrics_lookup.entities.insert(metric_name.to_string(), (metric_id, 0));
 
     graph_dim_config.series_dims.insert(metric_id, columns);
+
 }
 
 fn get_graph_dims<U>(config_properties: &Res<ConfigurationProperties>, metric: &mut Metric<U>) -> Vec<GraphDim> where U: Component + 'static {

@@ -1,5 +1,5 @@
 use bevy::prelude::{Button, Changed, Entity, Interaction, Style, Visibility, With};
-use crate::cursor_adapter::RayCastActionable;
+use crate::cursor_adapter::PickableComponent;
 use crate::event::event_descriptor::EventDescriptor;
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};
 use crate::menu::{DraggableComponent, ScrollableComponent, UiComponent};
@@ -11,8 +11,8 @@ use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 pub type UiComponentStyleFilter = (With<UiComponent>, With<Style>);
 pub type UiComponentStyleIxnFilter = (With<UiComponent>, With<Button>, Changed<Interaction>);
 
-pub type RaycastFilter = (With<RayCastActionable>);
-pub type RaycastIxnFilter = (With<RayCastActionable>);
+pub type RaycastFilter = (With<PickableComponent>);
+pub type RaycastIxnFilter = (With<PickableComponent>);
 
 pub type VisibleFilter<T> = (With<T>);
 pub type VisibleIxnFilter<T> = (With<T>, With<Button>, Changed<Interaction>);

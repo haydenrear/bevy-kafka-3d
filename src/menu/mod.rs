@@ -1,14 +1,14 @@
 use std::default::default;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use bevy::prelude::{Bundle, Color, Component, Display, FromReflect, Reflect};
+use bevy::prelude::{Bundle, Color, Component, Display, FromReflect, Reflect, Visibility};
 use bevy::ui::Size;
 use bevy::utils::petgraph::visit::Data;
 use serde::Deserialize;
 use crate::event::event_state::{Context, UpdateStateInPlace};
 use crate::menu::menu_resource::{MENU, VARIANCE};
 use ui_menu_event::transition_groups::PropagateVisible;
-use crate::menu::ui_menu_event::ui_state_change::ChangeVisible;
+use crate::menu::ui_menu_event::ui_state_change::{ChangeVisible, StateAdviser};
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, Network, Node};
 
@@ -135,7 +135,7 @@ pub enum MetricsConfigurationOption<T: Component + Send + Sync + Clone + Debug +
 impl<T> ChangeVisible for MetricsConfigurationOption<T>
 where
     T: Component + Send + Sync + Clone + Debug + Default + 'static {
-    fn is_visible(&self) -> bool {
+    fn make_visible(&self) -> bool {
         match self {
             Self::GraphMenu(_, d, ..) => {
                 if let DataType::Selected = d {
@@ -156,6 +156,16 @@ where
                 }
             }
             _ => false
+        }
+    }
+}
+
+impl<T: ChangeVisible + Debug> StateAdviser<Visibility> for T {
+    fn advise(&self, in_state: &Visibility) -> Visibility {
+        if self.make_visible() {
+            Visibility::Visible
+        } else {
+            Visibility::Hidden
         }
     }
 }

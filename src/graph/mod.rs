@@ -48,7 +48,6 @@ where
     T: Component
 {
     pub(crate) series_dims: HashMap<Entity, Vec<GraphDim>>,
-    pub(crate) series_type: HashMap<Entity, GraphDimType>,
     res: PhantomData<T>
 }
 
@@ -85,7 +84,12 @@ pub struct GraphDim {
     pub(crate) dim_type: Vec<GraphDimType>,
     pub(crate) name: String,
     pub(crate) grid_axis: GridAxis,
-    pub(crate) index: usize
+    pub(crate) index: usize,
+}
+
+#[derive(Component)]
+pub struct GraphDimComponent {
+    pub(crate) name: String
 }
 
 #[derive(Component, Debug)]

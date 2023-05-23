@@ -10,3 +10,5 @@ pub(crate) mod event_actions;
 pub(crate) mod event_state;
 pub(crate) mod event_propagation;
 pub(crate) mod state_transition;
+/// When a component is inserted or removed, react to it and do something.
+pub(crate) mod downstream_events;

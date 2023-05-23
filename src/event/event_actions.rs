@@ -5,13 +5,11 @@ use bevy::input::mouse::MouseWheel;
 use bevy::prelude::{Commands, Component, CursorMoved, Entity, EventReader, EventWriter, Input, Interaction, MouseButton, Query, Res, ResMut, Resource};
 use bevy::log::info;
 use bevy::math::Vec2;
-use bevy::time::Time;
 use crate::camera::raycast_select::BevyPickingState;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
-use crate::event::event_propagation::SideEffectWriter;
 use crate::event::event_state::{ClickContext, Context, InsertComponent, InsertComponentChangeFactory, StateChangeFactory, Update, UpdateStateInPlace};
 use crate::interactions::InteractionEvent;
-use crate::menu::ui_menu_event::ui_state_change::{GlobalState, StateChangeMachine, UpdateGlobalState};
+use crate::menu::ui_menu_event::ui_state_change::{GlobalState, StateAdviser, StateChangeMachine, UpdateGlobalState};
 
 pub trait EventsSystem<
     RetrieveStateT,
@@ -194,12 +192,12 @@ pub trait InsertComponentInteractionEventReader<
     EventDataT, EventArgsT, NextEventComponentT, StateAdviserComponentT,
     StateChangeFactoryT, StateUpdateI,
     Ctx: Context + Debug + Clone,
-    QF: ReadOnlyWorldQuery
+    StateAdviserQueryFilterT: ReadOnlyWorldQuery
 >
     where
         EventDataT: EventData + 'static + Debug,
         EventArgsT: EventArgs + 'static + Debug,
-        StateAdviserComponentT: Component + Send + Sync + 'static + Debug + Clone,
+        StateAdviserComponentT: StateAdviser<NextEventComponentT> + Clone,
         NextEventComponentT: Component + Send + Sync + 'static + Debug + Clone,
         StateChangeFactoryT: InsertComponentChangeFactory<EventDataT, EventArgsT, NextEventComponentT, StateAdviserComponentT, Ctx, StateUpdateI>,
         StateUpdateI: InsertComponent<NextEventComponentT, StateAdviserComponentT, Ctx>,
@@ -209,7 +207,7 @@ pub trait InsertComponentInteractionEventReader<
         mut ctx_resource: ResMut<Ctx>,
         update_state: PhantomData<StateChangeFactoryT>,
         mut read_events: EventReader<EventDescriptor<EventDataT, EventArgsT, NextEventComponentT>>,
-        mut query: Query<(Entity, &StateAdviserComponentT), QF>
+        mut query: Query<(Entity, &StateAdviserComponentT), StateAdviserQueryFilterT>
     ) {
         for event in read_events.iter() {
             info!("Reading next component insert event event: {:?}", event);

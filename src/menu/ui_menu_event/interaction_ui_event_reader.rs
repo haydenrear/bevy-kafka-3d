@@ -8,7 +8,7 @@ use crate::menu::ui_menu_event::next_action::NextUiState;
 use crate::menu::ui_menu_event::state_change_factory::StateChangeActionComponentStateFactory;
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
-use crate::menu::ui_menu_event::ui_state_change::ChangeVisible;
+use crate::menu::ui_menu_event::ui_state_change::{ChangeVisible, StateAdviser};
 
 pub struct UiEventReader;
 

@@ -8,6 +8,7 @@
 use bevy::ecs::schedule::SystemSetConfig;
 use bevy::prelude::*;
 use bevy::ui::UiPlugin;
+use bevy::utils::petgraph::Graph;
 use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_mod_picking::{DefaultPickingPlugins, SelectionEvent};
 use bevy_prototype_lyon::plugin::ShapePlugin;
@@ -21,10 +22,11 @@ use network::draw_network::{create_network, draw_network_initial, draw_node_conn
 use crate::camera::lerping_camera::camera_rotation_system;
 use crate::camera::raycast_select::BevyPickingState;
 use crate::config::ConfigurationProperties;
-use crate::cursor_adapter::{calculate_picks, event_merge_propagate};
-use crate::event::event_propagation::{component_propagation_system, SideEffectWriter};
+use crate::cursor_adapter::{calculate_picks, event_merge_propagate, PickableComponent};
+use crate::data_subscriber::data_subscriber_plugin::DataSubscriberPlugin;
 use crate::graph::draw_graph_points::draw_graph_points;
 use crate::graph::graph_plugin::GraphPlugin;
+use crate::graph::GraphDimComponent;
 use crate::graph::setup_graph::setup_graph;
 use crate::interactions::InteractionEvent;
 use crate::menu::config_menu_event::config_menu_event_plugin::ConfigMenuEventPlugin;
@@ -44,6 +46,7 @@ pub(crate) mod graph;
 pub(crate) mod data_subscriber;
 pub(crate) mod ndarray;
 pub(crate) mod cursor_adapter;
+pub(crate) mod pickable_events;
 pub(crate) mod interactions;
 pub(crate) mod render_html;
 pub(crate) mod test;
@@ -83,8 +86,7 @@ async fn main() {
         .add_system(draw_node_connections)
         .add_system(create_network)
         .add_system(draw_network_initial)
-        .add_system(component_propagation_system)
-        .add_event::<SideEffectWriter>()
+        .add_event::<InteractionEvent<(With<PickableComponent>, With<GraphDimComponent>)>>()
         .run();
 }
 

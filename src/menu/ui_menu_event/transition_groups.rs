@@ -31,6 +31,6 @@ pub struct PropagateSelect;
 impl TransitionGroup for PropagateSelect {}
 
 #[derive(Component, Default, Clone, Debug)]
-pub struct PropagateRaycast;
+pub struct PropagateCreateMenu;
 
-impl TransitionGroup for PropagateRaycast {}
+impl TransitionGroup for PropagateCreateMenu {}

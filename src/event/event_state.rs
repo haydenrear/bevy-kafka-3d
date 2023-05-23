@@ -8,7 +8,7 @@ use crate::menu::ui_menu_event::change_style::UiChangeTypes;
 use crate::menu::ui_menu_event::next_action::UiComponentState;
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
-use crate::menu::ui_menu_event::ui_state_change::{ChangeVisible, GlobalState};
+use crate::menu::ui_menu_event::ui_state_change::{ChangeVisible, GlobalState, StateAdviser};
 use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;
 
 /// From the event descriptor, create behaviors that will change the state.
@@ -32,7 +32,7 @@ pub trait InsertComponentChangeFactory<EventDataT, EventArgsT, InsertComponentCo
     where
         EventDataT: EventData,
         EventArgsT: EventArgs,
-        StateAdviserComponentT: Component + Debug + Clone,
+        StateAdviserComponentT: StateAdviser<InsertComponentComponent>,
         InsertComponentComponent: Component + Debug + Clone,
         Ctx: Context + Debug,
         InsertComponentT: InsertComponent<InsertComponentComponent, StateAdviserComponentT, Ctx>
@@ -52,12 +52,12 @@ pub trait UpdateStateInPlace<T, Ctx: Context>: Debug {
 pub trait InsertComponent<ToInsertComponentT, StateAdviserT, Ctx>: Debug
 where
     ToInsertComponentT: Clone + Component,
-    StateAdviserT: Component,
+    StateAdviserT: StateAdviser<ToInsertComponentT>,
     Ctx: Context
 {
     fn insert_update_components(
         &self, commands: &mut Commands,
-        value: ToInsertComponentT,
+        value: &ToInsertComponentT,
         ctx: &mut ResMut<Ctx>,
         entity: Entity,
         current_states: &StateAdviserT
@@ -66,6 +66,7 @@ where
         let _ = commands.get_entity(entity)
             .as_mut()
             .map(|entity_cmd| {
+                let value = current_states.advise(value);
                 entity_cmd.insert(value) ;
             });
     }
@@ -74,46 +75,8 @@ where
 
     fn entity_component(&self) -> Entity;
 
-    fn next_state(&self) -> ToInsertComponentT;
+    fn next_state(&self) -> &ToInsertComponentT;
 
-}
-
-impl<T: ChangeVisible + Debug + Clone> InsertComponent<Visibility, T, UiContext>
-for NextComponentInsert<Visibility, T, UiContext> {
-    fn insert_update_components(
-        &self, commands: &mut Commands,
-        value: Visibility,
-        ctx: &mut ResMut<UiContext>,
-        entity: Entity,
-        current_states: &T
-    ) {
-        info!("Inserting component into {:?} inside of menu visibility component.", entity);
-        if current_states.is_visible() {
-            let _ = commands.get_entity(entity)
-                .as_mut()
-                .map(|entity_cmd| {
-                    entity_cmd.insert(Visibility::Visible);
-                });
-        } else {
-            let _ = commands.get_entity(entity)
-                .as_mut()
-                .map(|entity_cmd| {
-                    entity_cmd.insert(Visibility::Hidden);
-                });
-        }
-    }
-
-    fn adviser_component(&self) -> Entity {
-        self.adviser_component_entity
-    }
-
-    fn entity_component(&self) -> Entity {
-        self.insert_component_entity
-    }
-
-    fn next_state(&self) -> Visibility {
-        self.next_state
-    }
 }
 
 /// If the UpdateStateInPlace contains a struct that converts from certain components to other
@@ -142,6 +105,27 @@ pub struct NextComponentInsert<InsertComponentT, AdviserComponentT, Ctx>
     pub(crate) next_state: InsertComponentT,
     pub(crate) phantom: PhantomData<AdviserComponentT>,
     pub(crate) phantom_ctx: PhantomData<Ctx>
+}
+
+impl <NextEventComponentT, AdviserComponentT, Ctx> InsertComponent<NextEventComponentT, AdviserComponentT, Ctx>
+for NextComponentInsert<NextEventComponentT, AdviserComponentT, Ctx>
+    where
+        NextEventComponentT: Component + Debug + Clone,
+        Ctx: Context + Debug + Clone,
+        AdviserComponentT: StateAdviser<NextEventComponentT> + Clone
+{
+
+    fn adviser_component(&self) -> Entity {
+        self.adviser_component_entity
+    }
+
+    fn entity_component(&self) -> Entity {
+        self.insert_component_entity
+    }
+
+    fn next_state(&self) -> &NextEventComponentT {
+        &self.next_state
+    }
 }
 
 /// The action of updating the component. The next state can delegate further, for instance if
@@ -189,7 +173,13 @@ impl EventData for StyleStateChangeEventData {}
 
 #[derive(Clone, Debug)]
 pub enum ComponentChangeEventData {
-    ChangeVisible{ to_change: Entity, adviser_component: Entity },
+    ChangeVisible{ to_change: Entity, adviser_component: Entity},
+    AddGraphingMenu {  }
+}
+
+
+pub trait NextComponentInsertFactory<StateAdviserComponentT: StateAdviser<ComponentChangeT> + Clone, ComponentChangeT: Component + Debug + Clone> {
+    fn next(&self, event_args: UiEventArgs) -> NextComponentInsert<ComponentChangeT, StateAdviserComponentT, UiContext>;
 }
 
 impl EventData for ComponentChangeEventData {}

@@ -1,6 +1,6 @@
 use bevy::prelude::{Commands, Component, Display, Entity, ResMut, Size, Style, Text, UiRect, Val, Visibility};
 use bevy::log::info;
-use crate::cursor_adapter::RayCastActionable;
+use crate::cursor_adapter::PickableComponent;
 use crate::event::event_state::{Update, UpdateStateInPlace};
 use crate::menu::{Menu, MetricsConfigurationOption};
 use crate::menu::ui_menu_event::ui_context::UiContext;

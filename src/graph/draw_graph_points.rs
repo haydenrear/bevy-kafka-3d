@@ -8,7 +8,7 @@ use bevy::pbr::Material;
 use bevy::prelude::{Added, Assets, BuildChildren, Changed, Children, Color, Commands, Component, Entity, info, MaterialMeshBundle, Mesh, Mut, Or, Parent, Query, ResMut, Vec3, With, Without};
 use bevy_mod_picking::PickableBundle;
 use ndarray::{Array1, s, SliceInfoElem};
-use crate::graph::{DataSeries, Graph, GraphConfigurationResource, GraphDim, GraphDimType, GraphParent, SeriesStep};
+use crate::graph::{DataSeries, Graph, GraphConfigurationResource, GraphDim, GraphDimComponent, GraphDimType, GraphParent, SeriesStep};
 use crate::graph::graph_data_event_reader::HistoricalUpdated;
 use crate::graph::radial::calculate_radial_time;
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
@@ -28,7 +28,7 @@ pub trait GraphingStrategy<T, M>
         materials: &mut ResMut<Assets<M>>,
         num_col: usize,
         key: &u64
-    ) -> Vec<Entity>;
+    );
 
 }
 
@@ -50,6 +50,7 @@ pub(crate) fn draw_graph_points<T, P, M>(
         (Entity, &Metric<T>, &mut DataSeries),
         WithDataSeriesChangedHistorical
     >,
+    mut metric_dims: Query<(Entity, &GraphDimComponent)>,
     mut dims: ResMut<GraphConfigurationResource<T>>,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<M>>,
@@ -72,8 +73,9 @@ where
             .flat_map(|(key, val)| {
                 if *key != last {
 
-                    let next_segment = P::create_update_graph(
-                        &mut commands, metric,
+                    P::create_update_graph(
+                        &mut commands,
+                        metric,
                         &mut series,
                         &mut dims.series_dims.get_mut(&metric_entity).unwrap(),
                         &mut meshes,
@@ -81,10 +83,6 @@ where
                         num_col,
                         key
                     );
-
-                    commands.get_entity(metric_entity)
-                        .as_mut()
-                        .map(|metric_parent| metric_parent.push_children(next_segment.as_slice()));
 
                     vec![*key]
 
@@ -122,7 +120,6 @@ pub(crate) fn create_data_segment(
                 material: materials.add(line_mesh.1),
                 ..default()
             },
-            PickableBundle::default(),
             SeriesStep {}
         ))
         .id()

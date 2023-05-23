@@ -3,6 +3,7 @@ use std::hash::Hash;
 use bevy::log::error;
 use tokio::runtime::{Handle, Runtime};
 use std::collections::{HashMap, HashSet};
+use bevy::prelude::Color;
 
 pub fn group_by_key<K, V>(map: Vec<(K, V)>) -> HashMap<K, HashSet<V>>
     where
@@ -23,6 +24,23 @@ pub fn group_by_key<K, V>(map: Vec<(K, V)>) -> HashMap<K, HashSet<V>>
         }
     }
     result
+}
+
+pub fn gen_color_from_list(length: f32) -> Vec<Color> {
+    let range = 0..length as usize;
+    range.map(|i| {
+            let hue = i as f32 / length as f32;
+            let saturation = 0.5;
+            let lightness = 0.5;
+            Color::Hsla {
+                hue,
+                saturation,
+                lightness,
+                alpha: 175.0,
+            }
+        })
+        .collect()
+
 }
 
 pub fn run_blocking<F: Future>(fn_to_run: F) -> F::Output {

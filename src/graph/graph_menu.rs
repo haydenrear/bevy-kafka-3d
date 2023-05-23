@@ -1,4 +1,4 @@
-use bevy::prelude::{Entity, Resource};
+use bevy::prelude::{Component, Entity, Resource};
 use crate::graph::GraphDim;
 use crate::menu::MenuData;
 
@@ -17,4 +17,9 @@ pub struct GraphBuilders {
 #[derive(Resource)]
 pub struct GraphMenuResource {
     pub(crate) data: MenuData
+}
+
+#[derive(Component)]
+pub struct GraphingPotential {
+    realized: bool
 }

@@ -215,7 +215,7 @@ fn draw_node(
             layer.layer_type.draw_node_mesh(y, meshes, materials),
             PickableBundle::default()
         ))
-        .insert((PickableBundle::default()))
+        .insert(PickableBundle::default())
         .insert((
                     SpriteBundle {
                     transform: Transform::from_xyz(0.0, y - value + LAYER_SPACING / 4.0, 1.0),
@@ -224,9 +224,6 @@ fn draw_node(
                 PickableBundle::default()
         ))
         .with_children(|child| {
-            child.spawn(MetricsConfigurationOption::Variance(PhantomData::<Node>::default(), DataType::Selected, VARIANCE))
-                // TODO: create the display component that will be made visible/invisible
-                // .insert()
-                ;
+            child.spawn(MetricsConfigurationOption::Variance(PhantomData::<Node>::default(), DataType::Selected, VARIANCE));
         });
 }

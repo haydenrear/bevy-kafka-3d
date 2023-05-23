@@ -1,7 +1,7 @@
 use std::collections::{BTreeMap, HashMap};
 use std::marker::PhantomData;
 use bevy::log::info;
-use bevy::prelude::{Commands, Component, Entity, error, Query, ResMut, Resource};
+use bevy::prelude::{Color, Commands, Component, Entity, error, Query, ResMut, Resource};
 use ndarray::{Array, Array1, Array2, ArrayBase, ArrayD, ArrayView, ArrayView1, Axis, Dim, Ix, Ix0, Ix1, Ix2, IxDyn, OwnedRepr, s, Shape, ShapeBuilder, Slice, SliceArg, SliceInfoElem, ViewRepr};
 use serde::{Deserialize, Deserializer};
 use serde::de::EnumAccess;
@@ -15,7 +15,8 @@ pub struct Metric <T>
 where T: Component {
     pub(crate) historical: HistoricalData,
     pub(crate) metric_type: MetricType<T>,
-    pub(crate) metric_indices: HashMap<MetricComponentType, Vec<String>>
+    pub(crate) metric_indices: HashMap<MetricComponentType, Vec<String>>,
+    pub(crate) metric_dim_component_children: HashMap<String, (Entity, Color)>
 }
 
 #[derive(Clone, Debug, Ord, PartialOrd, Eq, PartialEq, Hash)]
@@ -44,7 +45,8 @@ impl <T> Metric<T> where T: Component {
         Self {
             historical: HistoricalData::new(size, labels),
             metric_type,
-            metric_indices
+            metric_indices,
+            metric_dim_component_children: Default::default(),
         }
     }
 }
