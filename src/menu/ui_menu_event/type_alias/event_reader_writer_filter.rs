@@ -1,4 +1,5 @@
 use bevy::prelude::{Button, Changed, Entity, Interaction, Style, Visibility, With};
+use bevy_mod_picking::UpdatePicks;
 use crate::cursor_adapter::PickableComponent;
 use crate::event::event_descriptor::EventDescriptor;
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};
@@ -11,8 +12,8 @@ use crate::ui_components::ui_menu_component::UiIdentifiableComponent;
 pub type UiComponentStyleFilter = (With<UiComponent>, With<Style>);
 pub type UiComponentStyleIxnFilter = (With<UiComponent>, With<Button>, Changed<Interaction>);
 
-pub type PickableFilter = (With<PickableComponent>);
-pub type PickableIxnFilter = (With<PickableComponent>);
+pub type PickableFilter<ComponentT> = (With<ComponentT>);
+pub type PickableIxnFilter<ComponentT> = (Changed<Interaction>, With<ComponentT>);
 
 pub type VisibleFilter<T> = (With<T>);
 pub type VisibleIxnFilter<T> = (With<T>, With<Button>, Changed<Interaction>);
@@ -23,8 +24,11 @@ pub type DraggableUiComponentIxnFilter = (With<UiComponent>, With<Button>, With<
 pub type ScrollableUiComponentFilter = (With<UiComponent>, With<Style>, With<ScrollableComponent>);
 pub type ScrollableIxnFilterQuery = (With<UiComponent>, With<ScrollableComponent>);
 
-pub type PropagationQueryFilter<C> = (With<C>);
 pub type PropagationQuery<'a, C> = (Entity, &'a C, &'a UiIdentifiableComponent);
+pub type PropagationQueryFilter<C> = (With<C>);
+
+pub type PickingPropagationQuery<'a, C> = (Entity, &'a C);
+pub type PickingPropagationQueryFilter<C> = (With<C>);
 
 pub type StylePropagationQuery<'a> = PropagationQuery<'a, Style>;
 pub type StylePropagationQueryFilter = PropagationQueryFilter<Style>;

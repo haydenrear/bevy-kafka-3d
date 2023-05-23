@@ -3,10 +3,12 @@ use std::marker::PhantomData;
 use bevy::prelude::{Resource, Style, Visibility};
 use crate::event::event_actions::EventsSystem;
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};
-use crate::menu::ui_menu_event::transition_groups::{PropagateDisplay, PropagateDraggable, PropagateScrollable};
-use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
-use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, PickableEventRetriever, ScrollableStateChangeRetriever};
-use crate::menu::ui_menu_event::type_alias::state_transition_queries::{PropagateStateTransitionsQuery, StyleUiComponentStateTransitionsQuery, UiSelectedComponentStateTransitionsQuery, VisibleComponentStateTransitionsQuery};
+use crate::graph::Graph;
+use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphMenuPotential};
+use crate::menu::ui_menu_event::transition_groups::{PropagateCreateMenu, PropagateDisplay, PropagateDraggable, PropagateScrollable};
+use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PickableFilter, PickableIxnFilter, PickingPropagationQuery, PickingPropagationQueryFilter, PropagationQuery, PropagationQueryFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
+use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, CreateMenuPickableEventRetriever, ScrollableStateChangeRetriever};
+use crate::menu::ui_menu_event::type_alias::state_transition_queries::{PickableComponentStateTransitionsQuery, PropagateStateTransitionsQuery, StyleUiComponentStateTransitionsQuery, UiSelectedComponentStateTransitionsQuery, VisibleComponentStateTransitionsQuery};
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
 use crate::menu::ui_menu_event::ui_state_change::ChangeVisible;
@@ -104,16 +106,16 @@ impl<T: ChangeVisible + Debug> EventsSystem<
 pub struct CreateGraphingMenuSystem;
 
 impl EventsSystem<
-    PickableEventRetriever<GraphingPotential, >,
-    UiEventArgs, ComponentChangeEventData, GraphingPotential, Visibility, UiContext,
+    CreateMenuPickableEventRetriever<GraphMenuPotential, ChangeGraphingMenu>,
+    UiEventArgs, ComponentChangeEventData, GraphMenuPotential, ChangeGraphingMenu, UiContext,
     // self query
-    VisibleComponentStateTransitionsQuery<'_, GraphingPotential, Visibility>,
+    PickableComponentStateTransitionsQuery<'_, GraphMenuPotential, ChangeGraphingMenu, PropagateCreateMenu>,
     // self filter
-    VisibleFilter<T>,
+    PickableFilter<GraphMenuPotential>,
     // propagation query
-    PropagationQuery<'_, Visibility>,
+    PickingPropagationQuery<'_, ChangeGraphingMenu>,
     // propagation filter
-    PropagationQueryFilter<Visibility>,
+    PickingPropagationQueryFilter<ChangeGraphingMenu>,
     // interaction filter
-    VisibleIxnFilter<T>
+    PickableIxnFilter<GraphMenuPotential>
 > for CreateGraphingMenuSystem {}

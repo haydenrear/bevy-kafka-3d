@@ -8,7 +8,7 @@ use crate::config::ConfigurationProperties;
 use crate::cursor_adapter::PickableComponent;
 use crate::data_subscriber::metric_event::{MetricsState, NetworkMetricsServiceEvent};
 use crate::graph::{DataSeries, GraphConfigurationResource, GraphDim, GraphDimComponent, GraphingMetricsResource, GridAxis};
-use crate::menu::graphing_menu::graph_menu::GraphingPotential;
+use crate::menu::graphing_menu::graph_menu::GraphMenuPotential;
 use crate::metrics::network_metrics::{Metric, MetricType, MetricTypeMatcher};
 use crate::ndarray::get_arr_from_vec;
 use crate::util::gen_color_from_list;

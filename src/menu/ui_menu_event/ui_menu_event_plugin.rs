@@ -12,7 +12,7 @@ use crate::menu::{Menu, MetricsConfigurationOption};
 use crate::menu::config_menu_event::config_event_reader::ConfigEventReader;
 use crate::menu::ui_menu_event::interaction_ui_event_reader::UiEventReader;
 use crate::menu::ui_menu_event::ui_context::UiContext;
-use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery, UiComponentEventDescriptor, UiComponentStyleIxnFilter, VisibilityComponentChangeEventReader, VisibilityEventDescriptor};
+use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery, UiComponentEventDescriptor, UiComponentStyleIxnFilter, VisibilityComponentChangeEventReader, VisibilityEventDescriptor};
 use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, ScrollableStateChangeRetriever};
 use crate::menu::ui_menu_event::ui_state_change;
 use crate::menu::ui_menu_event::ui_state_change::{StateChangeMachine, UiClickStateChange};

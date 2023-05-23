@@ -9,7 +9,7 @@ use crate::event::event_state::Context;
 use crate::menu::ui_menu_event::next_action::Matches;
 use crate::menu::ui_menu_event::state_change_factory::StateChangeActionType;
 use crate::menu::ui_menu_event::transition_groups::TransitionGroup;
-use crate::menu::ui_menu_event::type_alias::event_reader_writer::{PropagationQuery, PropagationQueryFilter};
+use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{PropagationQuery, PropagationQueryFilter};
 use crate::menu::ui_menu_event::type_alias::state_transition_queries::StateTransitionsQuery;
 use crate::menu::ui_menu_event::ui_event_writer::action_retriever::state_change_action_retriever::StateChangeActionTypeStateRetriever;
 use crate::menu::ui_menu_event::ui_state_change::StateChangeMachine;

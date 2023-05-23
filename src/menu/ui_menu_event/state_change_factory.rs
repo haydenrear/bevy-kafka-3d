@@ -4,6 +4,8 @@ use std::marker::PhantomData;
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_propagation::Relationship;
 use crate::event::event_state::{ComponentChangeEventData, Context, InsertComponentChangeFactory, NextComponentInsert, NextStateChange, StateChangeFactory, StyleStateChangeEventData, UpdateStateInPlace};
+use crate::graph::Graph;
+use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphMenuPotential};
 use crate::menu::ui_menu_event::next_action::NextUiState;
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
@@ -79,6 +81,42 @@ for StateChangeActionComponentStateFactory
     }
 }
 
+impl InsertComponentChangeFactory<
+    ComponentChangeEventData,
+    UiEventArgs,
+    ChangeGraphingMenu,
+    GraphMenuPotential,
+    UiContext,
+    NextComponentInsert<ChangeGraphingMenu, GraphMenuPotential, UiContext>
+>
+for StateChangeActionComponentStateFactory
+{
+    fn current_state(
+        current: &EventDescriptor<ComponentChangeEventData, UiEventArgs, ChangeGraphingMenu>,
+        ctx: &mut ResMut<UiContext>
+    ) -> Vec<NextComponentInsert<ChangeGraphingMenu, GraphMenuPotential, UiContext>> {
+        if let UiEventArgs::Event(ui) = &current.event_args {
+            return match ui {
+                UiClickStateChange::ChangeGraphingMenu { entity, graph_menu_change } => {
+                    vec![
+                        NextComponentInsert {
+                            insert_component_entity: *entity,
+                            adviser_component_entity: *entity,
+                            next_state: *graph_menu_change,
+                            phantom: Default::default(),
+                            phantom_ctx: Default::default(),
+                        }
+                    ]
+                }
+                _ => {
+                    vec![]
+                }
+            };
+        }
+        vec![]
+    }
+}
+
 #[derive(Debug)]
 pub struct EntitiesStateTypes<T, StateMachine, Ctx, Args>
 where
@@ -134,8 +172,7 @@ impl <T, Ctx, C, Args> EventData for StateChangeActionType<T, C, Ctx, Args>
         Ctx: Context,
         Args: EventArgs,
         T: StateChangeMachine<C, Ctx, Args> + Send + Sync,
-        C: Send + Sync
-{}
+        C: Send + Sync {}
 
 #[derive(Clone, Debug)]
 pub enum StateChangeActionType<StateMachineT, ComponentT, Ctx, EventArgsT>

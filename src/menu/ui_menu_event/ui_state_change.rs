@@ -8,10 +8,10 @@ use bevy::input::mouse::MouseScrollUnit;
 use crate::event::event_descriptor::{EventArgs, EventData};
 use crate::event::event_state::{ComponentChangeEventData, Context, StyleStateChangeEventData, Update};
 use crate::menu::{UiComponent};
-use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphingPotential};
+use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphMenuPotential};
 use crate::menu::ui_menu_event::change_style::DoChange;
 use crate::menu::ui_menu_event::next_action::{Matches, UiComponentState, VisibilityIdentifier};
-use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PickableFilter, PickableIxnFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
+use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentFilter, DraggableUiComponentIxnFilter, PickableFilter, PickableIxnFilter, ScrollableIxnFilterQuery, ScrollableUiComponentFilter, UiComponentStyleFilter, UiComponentStyleIxnFilter, VisibleFilter, VisibleIxnFilter};
 use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, DraggableStateChangeRetriever, ScrollableStateChangeRetriever};
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
@@ -78,8 +78,8 @@ impl StateChangeMachine<Visibility, UiContext, UiEventArgs> for ComponentChangeE
     }
 }
 
-impl StateChangeMachine<GraphingPotential, UiContext, UiEventArgs> for ComponentChangeEventData {
-    fn state_machine_event(&self, starting: &GraphingPotential, style_context: &mut ResMut<UiContext>, entity: Entity) -> Option<UiEventArgs> {
+impl StateChangeMachine<GraphMenuPotential, UiContext, UiEventArgs> for ComponentChangeEventData {
+    fn state_machine_event(&self, starting: &GraphMenuPotential, style_context: &mut ResMut<UiContext>, entity: Entity) -> Option<UiEventArgs> {
         if let ComponentChangeEventData::ChangeGraphingMenu = self {
             info!("Creating change visible event with: {:?}", to_change);
             return if !starting.realized {

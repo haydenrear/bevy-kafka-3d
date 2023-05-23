@@ -4,6 +4,7 @@ use bevy::prelude::{Component, Style, Visibility, With};
 use crate::event::event_actions::{InsertComponentInteractionEventReader, InteractionEventReader};
 use crate::event::event_state::{ComponentChangeEventData, Context, NextComponentInsert, StyleStateChangeEventData};
 use crate::menu::{MetricsConfigurationOption, UiComponent};
+use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphMenuPotential};
 use crate::menu::ui_menu_event::next_action::NextUiState;
 use crate::menu::ui_menu_event::state_change_factory::StateChangeActionComponentStateFactory;
 use crate::menu::ui_menu_event::ui_context::UiContext;
@@ -37,4 +38,12 @@ impl<T: ChangeVisible + Clone + Debug> InsertComponentInteractionEventReader<
     NextComponentInsert<Visibility, T, UiContext>, UiContext,
     (With<T>)
 > for ComponentChangeEventReader<Visibility, T, UiContext>
+{}
+
+impl InsertComponentInteractionEventReader<
+    ComponentChangeEventData, UiEventArgs, ChangeGraphingMenu, GraphMenuPotential,
+    StateChangeActionComponentStateFactory,
+    NextComponentInsert<ChangeGraphingMenu, GraphMenuPotential, UiContext>, UiContext,
+    (With<GraphMenuPotential>)
+> for ComponentChangeEventReader<ChangeGraphingMenu, GraphMenuPotential, UiContext>
 {}

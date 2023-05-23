@@ -1,17 +1,28 @@
 use bevy::prelude::{Style, Visibility};
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};
 use crate::menu::{Menu, MetricsConfigurationOption};
+use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphMenuPotential};
 use crate::menu::ui_menu_event::entity_component_state_transition::{EntityComponentStateTransition, UiEntityComponentStateTransitions};
 use crate::menu::ui_menu_event::next_action::UiComponentState;
-use crate::menu::ui_menu_event::transition_groups::{PropagateDisplay, PropagateDraggable, PropagateSelect, PropagateVisible};
+use crate::menu::ui_menu_event::transition_groups::{PropagateCreateMenu, PropagateDisplay, PropagateDraggable, PropagateSelect, PropagateVisible};
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
+use crate::pickable_events::PickableComponentState;
 
 pub type UiStyleComponentStateTransitions = ComponentStateTransitions<PropagateDisplay, StyleStateChangeEventData, Style, UiComponentState, Style, UiComponentState>;
 pub type SelectOptionsStateTransitions = ComponentStateTransitions<PropagateSelect, StyleStateChangeEventData, Style, UiComponentState, Style, UiComponentState>;
 pub type DraggableStateTransitions = ComponentStateTransitions<PropagateDraggable, StyleStateChangeEventData, Style, UiComponentState, Style, UiComponentState>;
 
 pub type VisibilityStateTransitions = UiEntityComponentStateTransitions<ComponentChangeEventData, UiContext, UiEventArgs, PropagateVisible, MetricsConfigurationOption<Menu>, UiComponentState, Visibility, UiComponentState>;
+
+pub type ChangeMenuStateTransitions = ComponentStateTransitions<
+    PropagateCreateMenu,
+    ComponentChangeEventData,
+    GraphMenuPotential,
+    PickableComponentState,
+    ChangeGraphingMenu,
+    PickableComponentState
+>;
 
 pub type ComponentStateTransitions<TransitionGroupT, EventData, StateComponentT, FilterMatchesT, UpdateComponentT, UpdateMatchesT> = UiEntityComponentStateTransitions<EventData, UiContext, UiEventArgs, TransitionGroupT, StateComponentT, FilterMatchesT, UpdateComponentT, UpdateMatchesT>;
 

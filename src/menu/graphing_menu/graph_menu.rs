@@ -19,12 +19,12 @@ pub struct GraphMenuResource {
     pub(crate) data: MenuData
 }
 
-#[derive(Component)]
-pub struct GraphingPotential {
+#[derive(Component, Default)]
+pub struct GraphMenuPotential {
     pub(crate) realized: bool
 }
 
-#[derive(Component)]
+#[derive(Component, Copy)]
 pub enum ChangeGraphingMenu {
     AddGraphingMenu,
     RemoveGraphingMenu

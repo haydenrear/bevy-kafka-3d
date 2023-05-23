@@ -9,7 +9,7 @@ use bevy::prelude::{Entity, EventReader, MouseButton, Query, Res, ResMut};
 use bevy_mod_picking::{HoverEvent, PickingEvent, SelectionEvent};
 use crate::camera::ZoomableDraggableCamera;
 use crate::graph::GraphDimComponent;
-use crate::menu::ui_menu_event::type_alias::event_reader_writer::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery};
+use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentIxnFilter, ScrollableIxnFilterQuery};
 
 /// Will be used to adapt all events into a single InteractionEvent type, which is generic over
 /// the query which is used, so that events can be filtered for the different Ui systems. Ultimately,
