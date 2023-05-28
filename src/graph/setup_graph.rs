@@ -1,10 +1,11 @@
 use std::marker::PhantomData;
-use bevy::prelude::{Added, Color, Commands, Component, default, Entity, info, Mesh, Query, ResMut, Visibility};
+use bevy::prelude::{Added, Color, Commands, Component, default, Entity, info, Mesh, NextState, Query, ResMut, Visibility};
 use bevy::asset::Assets;
 use bevy::math::Vec3;
 use bevy::pbr::{MaterialMeshBundle, PbrBundle};
 use bevy::hierarchy::BuildChildren;
 use bevy::log::error;
+use crate::event::state_transition::state_transitions_plugin::TransitionsState;
 use crate::graph::{Graph, GraphingMetricsResource, GraphParent, Grid, GRID_AXES_THICKNESS, GRID_LINES_THICKNESS, GRID_SIZE, GridAxis, NUM_GRIDLINES};
 use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
 use crate::menu::config_menu_event::interaction_config_event_writer::{GraphMenuResultBuilder, NetworkMenuResultBuilder};
@@ -21,6 +22,7 @@ pub(crate) fn graph_points_generator<T>
     mut graph_config: ResMut<GraphingMetricsResource>,
     metric_added_event: Query<(Entity, &Metric<T>), (Added<Metric<T>>)>,
     graph_parent_query: Query<(Entity, &GraphParent)>,
+    mut menu_state: ResMut<NextState<TransitionsState>>,
 )
     where
         T: Component
@@ -40,6 +42,7 @@ pub(crate) fn graph_points_generator<T>
         info!("Adding metric entity as child.");
         graph.add_child(metric_entity);
     }
+    menu_state.set(TransitionsState::CheckDynamicStateTransitions);
 }
 
 fn add_indices<T>(mut graph_config: &mut ResMut<GraphingMetricsResource>, metric_entity: Entity, metric_added: &Metric<T>)

@@ -1,7 +1,8 @@
-use bevy::prelude::{Component, Entity, Resource};
+use bevy::prelude::{Bundle, Commands, Component, Entity, Resource};
 use crate::graph::GraphDim;
-use crate::menu::MenuData;
+use crate::menu::{ConfigurationOptionEnum, MenuData, MetricsConfigurationOption};
 use crate::menu::ui_menu_event::ui_state_change::StateAdviser;
+use crate::network::Node;
 
 #[derive(Resource)]
 pub struct GraphBuilder {
@@ -22,21 +23,25 @@ pub struct GraphMenuResource {
 
 #[derive(Component, Default, Debug, Clone)]
 pub struct GraphMenuPotential {
-    pub(crate) realized: bool
+    pub(crate) realized: bool,
+    pub(crate) menu_options: Vec<ConfigurationOptionEnum>
 }
 
 impl StateAdviser<ChangeGraphingMenu> for GraphMenuPotential {
-    fn advise(&self, in_state: &ChangeGraphingMenu) -> ChangeGraphingMenu {
+    fn advise(&self, mut commands: &mut Commands, in_state: &ChangeGraphingMenu) -> ChangeGraphingMenu {
         if !self.realized {
-            ChangeGraphingMenu::AddGraphingMenu
-        } else {
-            ChangeGraphingMenu::RemoveGraphingMenu
+            let menu = commands.spawn(()).id();
+            return ChangeGraphingMenu::RemoveGraphingMenu(menu);
+        } else if let ChangeGraphingMenu::RemoveGraphingMenu(entity) = in_state {
+            commands.entity(*entity)
+                .remove::<Node>();
         }
+        return ChangeGraphingMenu::AddGraphingMenu;
     }
 }
 
-#[derive(Component, Copy, Clone, Debug)]
+#[derive(Component, Clone, Debug, Copy)]
 pub enum ChangeGraphingMenu {
     AddGraphingMenu,
-    RemoveGraphingMenu
+    RemoveGraphingMenu(Entity)
 }

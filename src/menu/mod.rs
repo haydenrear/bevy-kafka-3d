@@ -1,7 +1,7 @@
 use std::default::default;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use bevy::prelude::{Bundle, Color, Component, Display, FromReflect, Reflect, Visibility};
+use bevy::prelude::{Bundle, Color, Commands, Component, Display, FromReflect, Reflect, Visibility};
 use bevy::ui::Size;
 use bevy::utils::petgraph::visit::Data;
 use serde::Deserialize;
@@ -162,7 +162,7 @@ where
 }
 
 impl<T: ChangeVisible + Debug> StateAdviser<Visibility> for T {
-    fn advise(&self, in_state: &Visibility) -> Visibility {
+    fn advise(&self, commands: &mut Commands, in_state: &Visibility) -> Visibility {
         if self.make_visible() {
             Visibility::Visible
         } else {

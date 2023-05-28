@@ -8,7 +8,8 @@ use crate::config::ConfigurationProperties;
 use crate::cursor_adapter::PickableComponent;
 use crate::data_subscriber::metric_event::{MetricsState, NetworkMetricsServiceEvent};
 use crate::graph::{DataSeries, GraphConfigurationResource, GraphDim, GraphDimComponent, GraphingMetricsResource, GridAxis};
-use crate::menu::graphing_menu::graph_menu::GraphMenuPotential;
+use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphMenuPotential};
+use crate::menu::ui_menu_event::transition_groups::PropagateCreateMenu;
 use crate::metrics::network_metrics::{Metric, MetricType, MetricTypeMatcher};
 use crate::ndarray::get_arr_from_vec;
 use crate::util::gen_color_from_list;
@@ -174,7 +175,9 @@ fn add_metric_to_world<U>(
                 },
                 PbrBundle::default(),
                 PickableBundle::default(),
-                PickableComponent::GraphDim
+                PickableComponent::GraphDim,
+                ChangeGraphingMenu::AddGraphingMenu,
+                PropagateCreateMenu::default()
             )).id();
             (grid_dim.name.to_string(),
              (spawned_grid_component_id, *colors.get(i).unwrap()))

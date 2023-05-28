@@ -3,13 +3,16 @@ use bevy::hierarchy::{Children, Parent};
 use bevy_inspector_egui::egui::PaintCallbackInfo;
 use crate::cursor_adapter::PickableComponent;
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};
-use crate::event::state_transition::parent_child_queries::{StyleUiComponentQueries, VisibilityComponentQueries};
+use crate::event::state_transition::parent_child_queries::{CreateMenuQueries, StyleUiComponentQueries, VisibilityComponentQueries};
 use crate::event::state_transition::state_transitions_system::InsertStateTransitions;
+use crate::graph::GraphingMetricsResource;
 use crate::menu::config_menu_event::interaction_config_event_writer::{GraphMenuResultBuilder, NetworkMenuResultBuilder};
 use crate::menu::ui_menu_event::next_action::UiComponentState;
-use crate::menu::ui_menu_event::transition_groups::{PropagateDisplay, PropagateSelect, PropagateVisible};
+use crate::menu::ui_menu_event::transition_groups::{PropagateCreateMenu, PropagateDisplay, PropagateSelect, PropagateVisible};
 use crate::menu::{Menu, MetricsConfigurationOption, UiComponent};
+use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphMenuPotential};
 use crate::menu::ui_menu_event::ui_state_change::ChangeVisible;
+use crate::pickable_events::PickableComponentState;
 use crate::ui_components::menu_components::BuildMenuResult;
 use crate::ui_components::menu_components::menu_options::dropdown_menu_option::DropdownMenuOptionResult;
 use crate::ui_components::menu_components::menu_types::base_menu::BuildBaseMenuResult;
@@ -130,3 +133,18 @@ pub(crate) type PickableChildFilter<TransitionGroupT, ComponentT> = ChildFilterT
 pub(crate) type PickableParentQuery<'a, TransitionGroupT, ComponentT> = ParentQueryType<'a, TransitionGroupT, ComponentT, PickableComponent>;
 pub(crate) type PickableParentFilter<TransitionGroupT, ComponentT> = ParentFilterType< TransitionGroupT, ComponentT, PickableComponent>;
 
+pub struct InsertGraphMenuStateTransitions;
+
+impl InsertStateTransitions<
+    '_,
+    PropagateCreateMenu,
+    GraphingMetricsResource,
+    GraphingMetricsResource,
+    ComponentChangeEventData,
+    CreateMenuQueries,
+    PickableComponent,
+    GraphMenuPotential,
+    PickableComponentState,
+    ChangeGraphingMenu
+>
+for InsertGraphMenuStateTransitions {}

@@ -7,6 +7,7 @@ use crate::cursor_adapter::PickableComponent;
 use crate::event::state_transition::state_transition_types::{ChildFilterType, ChildQueryType, EntityFilterType, EntityQueryType, ParentFilterType, ParentQueryType, UiEntityQuery};
 use crate::menu::ui_menu_event::transition_groups::{PropagateDisplay, PropagateCreateMenu, PropagateVisible, TransitionGroup};
 use crate::menu::{MetricsConfigurationOption, UiComponent};
+use crate::menu::graphing_menu::graph_menu::GraphMenuPotential;
 use crate::menu::ui_menu_event::ui_state_change::ChangeVisible;
 
 pub struct StyleUiComponentQueries<TransitionGroupT>
@@ -26,10 +27,10 @@ pub struct VisibilityComponentQueries<ChangeVisibleT: ChangeVisible> {
 impl <'a, ChangeVisibleT: ChangeVisible> ParentChildQueries<'a, PropagateVisible, ChangeVisibleT, UiComponent>
 for VisibilityComponentQueries<ChangeVisibleT> {}
 
-// pub struct CreateMenuQueries;
-//
-// impl <'a> ParentChildQueries<'a, PropagateCreateMenu, , PickableComponent>
-// for CreateMenuQueries {}
+pub struct CreateMenuQueries;
+
+impl <'a> ParentChildQueries<'a, PropagateCreateMenu, GraphMenuPotential, PickableComponent>
+for CreateMenuQueries {}
 
 pub trait ParentChildQueries<'a, TransitionGroupT, StateComponentT, ComponentTypeT>
 where

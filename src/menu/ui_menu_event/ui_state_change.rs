@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 use bevy::ecs::component::ComponentStorage;
-use bevy::prelude::{BackgroundColor, Button, Changed, Color, Component, Display, Entity, info, Interaction, Query, ResMut, Resource, Size, Style, Visibility, With};
+use bevy::prelude::{BackgroundColor, Button, Changed, Color, Commands, Component, Display, Entity, info, Interaction, Query, ResMut, Resource, Size, Style, Visibility, With};
 use bevy::ui::UiRect;
 use bevy::ecs::query::ReadOnlyWorldQuery;
 use bevy::math::Vec2;
@@ -201,7 +201,7 @@ pub trait ChangeVisible: Component {
 }
 
 pub trait StateAdviser<T: Clone>: Component + Debug {
-    fn advise(&self, in_state: &T) -> T;
+    fn advise(&self, commands: &mut Commands, in_state: &T) -> T;
 }
 
 impl<T: ChangeVisible> Matches<T> for UiComponentState {

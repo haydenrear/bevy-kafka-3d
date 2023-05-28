@@ -56,18 +56,19 @@ where
     Ctx: Context
 {
     fn insert_update_components(
-        &self, commands: &mut Commands,
+        &self,
+        mut commands: &mut Commands,
         value: &ToInsertComponentT,
         ctx: &mut ResMut<Ctx>,
         entity: Entity,
         current_states: &StateAdviserT
     ) {
         info!("Inserting component into {:?}.", entity);
+        let value = current_states.advise(&mut commands, value);
         let _ = commands.get_entity(entity)
             .as_mut()
             .map(|entity_cmd| {
-                let value = current_states.advise(value);
-                entity_cmd.insert(value) ;
+                entity_cmd.insert(value);
             });
     }
 
