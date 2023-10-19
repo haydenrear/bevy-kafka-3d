@@ -3,3 +3,4 @@ torch/
 torch
 assets/*
 *bfg-report*
+..bfg-report/*
