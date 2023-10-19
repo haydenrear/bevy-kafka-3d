@@ -2,3 +2,4 @@ target/
 torch/
 torch
 assets/*
+*bfg-report*
