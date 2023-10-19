@@ -1,3 +1,4 @@
 target/
 torch/
 torch
+assets/*
