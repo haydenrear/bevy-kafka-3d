@@ -1,4 +1,3 @@
-use std::default::default;
 use bevy::prelude::*;
 use crate::menu::{ConfigurationOptionEnum, MenuItemMetadata, MenuOption, SelectableType, UiComponent};
 use crate::menu::ui_menu_event::transition_groups::{PropagateDisplay, PropagateSelect, PropagateVisible};
@@ -106,13 +105,12 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
             ButtonBundle {
                 style: Style {
                     display: Display::None,
-                    size: Size::new(Val::Percent(100.0), Val::Px(30.0)),
-                    position: UiRect::new(
-                        Val::Percent(get_swing_out(self.menu_option)),
-                        Val::Percent(0.0),
-                        Val::Percent(0.0),
-                        Val::Percent(0.0)
-                    ),
+                    height: Val::Px(100.0),
+                    width: Val::Px(30.0),
+                    left: Val::Percent(get_swing_out(self.menu_option)),
+                    right: Val::Percent(0.0),
+                    top: Val::Percent(0.0),
+                    bottom: Val::Percent(0.0),
                     ..default()
                 },
                 z_index: ZIndex::Global(100),
@@ -131,8 +129,9 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
             NodeBundle {
                 style: Style {
                     display: Display::None,
-                    position: UiRect::right(Val::Percent(10.0)),
-                    size: Size::all(Val::Percent(10.0)),
+                    right: Val::Percent(10.0),
+                    height: Val::Percent(10.0),
+                    width: Val::Percent(10.0),
                     ..default()
                 },
                 background_color: BackgroundColor(Color::GREEN),
@@ -149,7 +148,8 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
             TextBundle {
                 style: Style {
                     display: Display::Flex,
-                    size: Size::new(Val::Percent(100.0), Val::Px(50.0)),
+                    height: Val::Percent(100.0),
+                    width: Val::Px(50.0),
                     ..default()
                 },
                 text: Text::from_section(self.menu_option.metadata.name.to_string(), TextStyle {
@@ -167,11 +167,13 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
     }
 
     pub(crate) fn breadcrumbs_entity(&self) -> impl Bundle {
+        let height_width = Val::Percent(self.parents.len() as f32 * 10.0);
         (
             NodeBundle {
                 style: Style {
                     display: Display::Flex,
-                    size: Size::all(Val::Percent(self.parents.len() as f32 * 10.0)),
+                    height: height_width,
+                    width: height_width,
                     ..default()
                 },
                 background_color: BackgroundColor(Color::BLUE),

@@ -1,8 +1,6 @@
-use std::default::default;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use bevy::prelude::{Bundle, Color, Commands, Component, Display, FromReflect, Reflect, Visibility};
-use bevy::ui::Size;
 use bevy::utils::petgraph::visit::Data;
 use serde::Deserialize;
 use crate::event::event_state::{Context, UpdateStateInPlace};
@@ -11,6 +9,7 @@ use ui_menu_event::transition_groups::PropagateVisible;
 use crate::menu::ui_menu_event::ui_state_change::{ChangeVisible, StateAdviser};
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, Network, Node};
+use crate::ui_components::Size;
 
 pub(crate) mod ui_menu_event;
 pub(crate) mod config_menu_event;

@@ -1,6 +1,6 @@
 use std::fmt::Debug;
 use bevy::ecs::component::ComponentStorage;
-use bevy::prelude::{BackgroundColor, Button, Changed, Color, Commands, Component, Display, Entity, info, Interaction, Query, ResMut, Resource, Size, Style, Visibility, With};
+use bevy::prelude::{BackgroundColor, Button, Changed, Color, Commands, Component, Display, Entity, info, Interaction, Query, ResMut, Resource, Style, Visibility, With};
 use bevy::ui::UiRect;
 use bevy::ecs::query::ReadOnlyWorldQuery;
 use bevy::math::Vec2;
@@ -15,6 +15,7 @@ use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{Draggab
 use crate::menu::ui_menu_event::type_alias::state_change_action_retriever::{ChangeVisibleEventRetriever, ClickEvents, ClickSelectionEventRetriever, CreateMenuPickableEventRetriever, DraggableStateChangeRetriever, ScrollableStateChangeRetriever};
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::UiEventArgs;
+use crate::ui_components::Size;
 
 /// Contains the state data needed in order to generate the UIEvents from the state change required.
 #[derive(Clone, Debug)]
@@ -106,7 +107,7 @@ pub fn hover_event(
 ) {
     for (_, mut color, interaction) in query.iter_mut() {
         match *interaction {
-            Interaction::Clicked => {
+            Interaction::Pressed => {
                 color.0 = Color::BLUE;
             }
             Interaction::Hovered => {

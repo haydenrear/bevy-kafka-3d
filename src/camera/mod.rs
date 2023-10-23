@@ -5,10 +5,11 @@ use bevy::math::Vec4Swizzles;
 use bevy::prelude::*;
 use bevy::prelude::shape::Quad;
 use bevy::render::camera::Viewport;
-use bevy::render::primitives::Plane;
 use bevy::sprite::MaterialMesh2dBundle;
 use bevy::window::{CursorGrabMode, WindowRef};
-use bevy_mod_picking::{PickingCameraBundle, PickingSystem};
+use bevy_mod_picking::DefaultPickingPlugins;
+use crate::camera::lerping_camera::{camera_control, camera_rotation_system};
+use crate::pickable_events::PickableEvent;
 
 pub(crate) mod raycast_select;
 pub(crate) mod lerping_camera;
@@ -34,6 +35,21 @@ pub struct ZoomableDraggableCamera {
     pub(crate) target_translation: Option<Vec3>
 }
 
+
+pub struct NnFeCameraPlugin;
+
+impl Plugin for NnFeCameraPlugin{
+    fn build(&self, app: &mut App) {
+        app.add_plugins(
+            DefaultPickingPlugins.build()
+        )
+            .add_startup_system(setup_camera)
+            .add_system(camera_rotation_system)
+            .add_system(camera_control)
+            .add_event::<PickableEvent>();
+    }
+}
+
 pub(crate) fn setup_camera(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
@@ -57,7 +73,6 @@ pub(crate) fn setup_camera(
             transform: initial,
             ..default()
         },
-        PickingCameraBundle::default()
     ));
 
     // commands.spawn(PointLightBundle {

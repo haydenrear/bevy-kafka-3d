@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use bevy::prelude::{Component, Entity};
+use bevy::prelude::{Component, Entity, Event};
 use std::collections::{HashMap, LinkedList};
 use std::fmt::Debug;
 use std::hash::Hash;
@@ -9,11 +9,11 @@ use bevy::utils::petgraph::visit::Walker;
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, MetricChildNodes, Network, Node};
 
-pub trait NetworkEvent: for<'a> Deserialize<'a> + Send + Sync {
+pub trait NetworkEvent: for<'a> Deserialize<'a> + Send + Sync + Event{
     fn topic_matcher() -> &'static str;
 }
 
-pub trait NetworkMetricsServiceEvent<C>: for<'a> Deserialize<'a> + Send + Sync + NetworkEvent
+pub trait NetworkMetricsServiceEvent<C>: for<'a> Deserialize<'a> + Send + Sync + NetworkEvent + Event
 where C: Component
 {
     fn metric_name(&self) -> &str;
@@ -36,7 +36,7 @@ macro_rules! network_events {
     ($($event_type:ident, $event_component:ty, $event_lit:literal),*) => {
         $(
 
-            #[derive(Serialize, Deserialize, Default, Debug)]
+            #[derive(Serialize, Deserialize, Default, Debug, Event)]
             pub struct $event_type {
                 pub(crate) shape: Vec<usize>,
                 pub(crate) data: Mutex<Option<Vec<f32>>>,

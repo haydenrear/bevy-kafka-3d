@@ -1,3 +1,4 @@
+use bevy::prelude::Event;
 use bevy::utils::HashMap;
 use serde::Deserialize;
 use crate::data_subscriber::metric_event::NetworkEvent;
@@ -11,7 +12,7 @@ pub enum LayerTypes {
     AttentionDecoder,
 }
 
-#[derive(Deserialize, Default, Clone)]
+#[derive(Deserialize, Default, Clone, Event)]
 pub struct NetworkMetadataEvent {
     name: String,
     depends_on: Vec<String>,

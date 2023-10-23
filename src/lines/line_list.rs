@@ -3,13 +3,13 @@ use bevy::pbr::{Material, MaterialPipeline, MaterialPipelineKey};
 use bevy::render::render_resource::{AsBindGroup, PolygonMode, RenderPipelineDescriptor, ShaderRef, SpecializedMeshPipelineError};
 use bevy::render::mesh::{Indices, MeshVertexBufferLayout, PrimitiveTopology, VertexAttributeValues};
 use bevy::prelude::{Color, Mesh};
-use bevy::reflect::TypeUuid;
+use bevy::reflect::{TypePath, TypeUuid};
 
 pub(crate) fn create_3d_line(line_list: LineList, line_material: LineMaterial) -> (Mesh, LineMaterial)  {
     (Mesh::from(line_list), line_material)
 }
 
-#[derive(Default, AsBindGroup, TypeUuid, Debug, Clone)]
+#[derive(Default, AsBindGroup, TypeUuid, Debug, Clone, TypePath)]
 #[uuid = "050ce6ac-080a-4d8c-b6b5-b5bab7560d8f"]
 pub struct LineMaterial {
     #[uniform(0)]

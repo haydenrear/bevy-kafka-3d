@@ -92,7 +92,8 @@ impl<'a> BaseMenu<'a> {
         (
             TextBundle {
                 style: Style {
-                    size: Size::new(Val::Percent(95.0), Val::Percent(100.0)),
+                    height: Val::Percent(95.0),
+                    width: Val::Percent(100.0),
                     padding: UiRect::top(Val::Px(10.0)),
                     ..default()
                 },
@@ -137,8 +138,12 @@ impl<'a> BaseMenu<'a> {
                     display: self.component.starting_display(),
                     flex_direction: FlexDirection::Column,
                     align_self: AlignSelf::Start,
-                    size: Size::new(Val::Percent(100.0), Val::Px(40.0)),
-                    position: pos,
+                    height: Val::Percent(100.0),
+                    width: Val::Px(40.0),
+                    left: pos.left,
+                    right: pos.right,
+                    top: pos.top,
+                    bottom: pos.bottom,
                     ..default()
                 },
                 background_color: BackgroundColor(Color::BLUE),

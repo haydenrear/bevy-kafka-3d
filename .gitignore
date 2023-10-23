@@ -1,6 +1,6 @@
 target/
 torch/
 torch
-assets/*
+#assets/*
 *bfg-report*
 ..bfg-report/*

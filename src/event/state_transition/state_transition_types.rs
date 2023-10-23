@@ -1,6 +1,5 @@
 use bevy::prelude::{Entity, Style, Visibility, With};
 use bevy::hierarchy::{Children, Parent};
-use bevy_inspector_egui::egui::PaintCallbackInfo;
 use crate::cursor_adapter::PickableComponent;
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};
 use crate::event::state_transition::parent_child_queries::{CreateMenuQueries, StyleUiComponentQueries, VisibilityComponentQueries};

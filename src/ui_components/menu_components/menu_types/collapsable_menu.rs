@@ -1,4 +1,3 @@
-use std::default::default;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::menu::{ConfigurationOptionEnum, MenuItemMetadata, MenuOption, MenuOptionType, UiComponent};
@@ -92,7 +91,8 @@ impl <'a> CollapsableMenuBuilder<'a> {
                 style: Style {
                     display: Display::Flex,
                     flex_direction: FlexDirection::Column,
-                    size: Size::new(Val::Percent(4.0), Val::Percent(100.0)),
+                    height: Val::Percent(4.0),
+                    width: Val::Percent(100.0),
                     justify_content: JustifyContent::Start,
                     ..default()
                 },
@@ -109,7 +109,8 @@ impl <'a> CollapsableMenuBuilder<'a> {
         (
             TextBundle {
                 style: Style {
-                    size: Size::new(Val::Percent(95.0), Val::Px(30.0)),
+                    height: Val::Percent(95.0),
+                    width: Val::Px(30.0),
                     ..default()
                 },
                 text: Text::from_section(self.menu_metadata.name.to_string(), TextStyle {

@@ -1,4 +1,4 @@
-use bevy::prelude::{Component};
+use bevy::prelude::{Component, Event};
 use std::marker::PhantomData;
 
 /// Event data generated from the event writer, added in order to determine next state.
@@ -9,7 +9,7 @@ pub trait EventArgs: Send + Sync {
 pub trait EventData: Send + Sync {
 }
 
-#[derive(Debug)]
+#[derive(Debug, Event)]
 /// The description of the event, propagated as the event. Contains type data about which component
 /// the event will be used to update, the original data passed in, and the arguments added by the
 /// event writer.

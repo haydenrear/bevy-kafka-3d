@@ -1,4 +1,3 @@
-use std::default::default;
 use std::marker::PhantomData;
 use bevy::prelude::*;
 use crate::event::event_state::StyleStateChangeEventData::ChangeComponentStyle;
@@ -83,7 +82,8 @@ impl <'a> SliderMenuOptionBuilder<'a> {
             TextBundle {
                 style: Style {
                     display: Display::Flex,
-                    size: Size::new(Val::Percent(100.0), Val::Px(50.0)),
+                    height: Val::Percent(100.0),
+                    width: Val::Px(50.0),
                     ..default()
                 },
                 text: Text::from_section(self.metadata.initial_value.clone(), TextStyle {
@@ -104,8 +104,9 @@ impl <'a> SliderMenuOptionBuilder<'a> {
             ButtonBundle {
                 style: Style {
                     display: Display::Flex,
-                    position: UiRect::left(Val::Px(30.0)),
-                    size: Size::new(Val::Px(30.0), Val::Px(30.0)),
+                    left: Val::Px(30.0),
+                    height: Val::Px(30.0),
+                    width: Val::Px(30.0),
                     ..default()
                 },
                 background_color: BackgroundColor(Color::ORANGE),

@@ -1,7 +1,6 @@
 use approx::assert_abs_diff_eq;
 use bevy::prelude::system_adapter::new;
 use bevy_inspector_egui::restricted_world_view::Error::NoTypeData;
-use bevy_prototype_lyon::shapes::Line;
 use ndarray::{array, Array, Array1, ArrayView, Axis, Ix1, OwnedRepr, s};
 use ndarray_stats::{EntropyExt, QuantileExt, SummaryStatisticsExt};
 use statrs::distribution::{Continuous, ContinuousCDF, Gamma, Weibull};

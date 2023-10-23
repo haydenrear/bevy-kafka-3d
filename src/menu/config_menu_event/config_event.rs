@@ -1,14 +1,14 @@
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::marker::PhantomData;
-use bevy::prelude::{Commands, Component, Entity, info, ResMut, Resource};
+use bevy::prelude::{Commands, Component, Entity, Event, info, ResMut, Resource};
 use crate::event::event_descriptor::{EventArgs, EventData, EventDescriptor};
 use crate::event::event_state::{Context, NextStateChange, StateChangeFactory, UpdateStateInPlace};
 use crate::menu::{MetricsConfigurationOption, DataType, Menu};
 use crate::menu::config_menu_event::interaction_config_event_writer::NetworkMenuResultBuilder;
 use crate::menu::ui_menu_event::ui_state_change::ChangeVisible;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Event)]
 pub enum ConfigurationOptionEventArgs<T>
 where T: Component + Send + Sync + Clone + Default + Debug + 'static
 {

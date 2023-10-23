@@ -1,4 +1,4 @@
-use bevy::prelude::{Commands, Component, Display, Entity, ResMut, Size, Style, Text, UiRect, Val, Visibility};
+use bevy::prelude::{Commands, Component, Display, Entity, ResMut, Style, Text, UiRect, Val, Visibility};
 use bevy::log::info;
 use crate::cursor_adapter::PickableComponent;
 use crate::event::event_state::{Update, UpdateStateInPlace};
@@ -6,6 +6,7 @@ use crate::menu::{Menu, MetricsConfigurationOption};
 use crate::menu::graphing_menu::graph_menu::{ChangeGraphingMenu, GraphMenuPotential};
 use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::pickable_events::PickableComponentState;
+use crate::ui_components::{Position, Size};
 
 #[derive(Debug)]
 pub enum NextUiState {
@@ -18,9 +19,10 @@ pub enum NextUiState {
 impl UpdateStateInPlace<Style, UiContext> for NextUiState {
     fn update_state(&self, commands: &mut Commands,  value: &mut Style, style_context: &mut ResMut<UiContext>) {
         match &self {
-            NextUiState::ReplaceSize(update) => update.update_state(commands, &mut value.size, style_context),
+            NextUiState::ReplaceSize(update) => update.update_state(commands, &mut Size::new(value.height, value.width), style_context),
             NextUiState::ReplaceDisplay(display) => display.update_state(commands, &mut value.display, style_context),
-            NextUiState::UpdatePosition(update) => update.update_state(commands, &mut value.position ,style_context),
+            NextUiState::UpdatePosition(update) => update.update_state(commands, &mut UiRect::new(value.left, value.right, value.top, value.bottom),
+                                                                       style_context),
             _ => {}
         }
     }
@@ -49,7 +51,7 @@ impl Matches<Style> for UiComponentState {
     fn matches(&self, style: &Style) -> bool {
         match self {
             UiComponentState::StateDisplay(display) => display.matches(&style.display),
-            UiComponentState::StateSize(state) => state.matches(&style.size),
+            UiComponentState::StateSize(state) => state.matches(&Size::new(style.height, style.width)),
             UiComponentState::Any => true,
             other => {
                 info!("Did not match: {:?}", other);

@@ -1,13 +1,14 @@
 use std::marker::PhantomData;
 use bevy::ecs::component::TableStorage;
 use bevy::prelude::{Component, Resource};
-use bevy::ui::{Size, Val};
+use bevy::ui::{Val};
 use bevy::utils::default;
 use crate::graph::GraphParent;
 use crate::graph::graph_plugin::GraphPlugin;
 use crate::menu::{MetricsConfigurationOption, DataType, MenuData, MenuOption, MenuInputType, MenuItemMetadata, MenuOptionType, Position, ConfigurationOptionEnum, Menu, MenuType, SliderData, MenuOptionInputType, SelectableType};
 use crate::metrics::network_metrics::Metric;
 use crate::network::{Layer, Network, Node};
+use crate::ui_components::Size;
 
 #[derive(Resource)]
 pub struct MenuResource {

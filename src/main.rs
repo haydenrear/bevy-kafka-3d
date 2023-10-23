@@ -1,5 +1,4 @@
 #![feature(core_intrinsics)]
-#![feature(default_free_fn)]
 #![feature(async_closure)]
 #![feature(let_chains)]
 #![feature(associated_type_defaults)]
@@ -9,12 +8,12 @@ use bevy::ecs::schedule::SystemSetConfig;
 use bevy::prelude::*;
 use bevy::ui::UiPlugin;
 use bevy::utils::petgraph::Graph;
-use bevy_inspector_egui::quick::WorldInspectorPlugin;
-use bevy_mod_picking::{DefaultPickingPlugins, SelectionEvent};
-use bevy_prototype_lyon::plugin::ShapePlugin;
+// use bevy_inspector_egui::quick::WorldInspectorPlugin;
+use bevy_mod_picking::{DefaultPickingPlugins};
+// use bevy_prototype_lyon::plugin::ShapePlugin;
 use camera::lerping_camera::camera_control;
 use graph::setup_graph;
-use crate::camera::{setup_camera, ZoomableDraggableCamera};
+use crate::camera::{NnFeCameraPlugin, setup_camera, ZoomableDraggableCamera};
 use menu::ui_menu_event::ui_menu_event_plugin::UiEventPlugin;
 use lines::line_list::LineMaterial;
 use menu::ui_menu_event::ui_state_change::GlobalState;
@@ -70,20 +69,17 @@ async fn main() {
         .insert_resource(GlobalState::default())
         .insert_resource(GraphingMetricsResource::default())
         .add_plugins(DefaultPlugins)
-        .add_plugins(DefaultPickingPlugins)
-        .add_plugin(ShapePlugin)
+        // .add_plugin(ShapePlugin)
         // .add_plugin(WorldInspectorPlugin::new())
         .add_plugin(UiEventPlugin)
         .add_plugin(GraphPlugin)
         // .add_plugin(DataSubscriberPlugin)
         .add_plugin(ConfigMenuEventPlugin)
         .add_plugin(MaterialPlugin::<LineMaterial>::default())
-        .add_startup_system(setup_camera)
+        .add_plugin(NnFeCameraPlugin)
         .add_startup_system(test::test_plugin::add_node_entities)
         .add_system(calculate_picks)
-        .add_system(camera_rotation_system)
         .add_system(update_network)
-        .add_system(camera_control)
         .add_system(draw_node_connections)
         .add_system(create_network)
         .add_system(draw_network_initial)

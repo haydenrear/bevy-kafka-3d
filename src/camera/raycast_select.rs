@@ -1,7 +1,6 @@
 use bevy::input::Input;
 use bevy::log::info;
 use bevy::prelude::{Entity, EventReader, MouseButton, Query, Res, ResMut, Resource};
-use bevy_mod_picking::{HoverEvent, PickingEvent, PickingRaycastSet, RaycastSource, SelectionEvent};
 use crate::camera::ZoomableDraggableCamera;
 
 /// # Purpose

@@ -1,5 +1,4 @@
 use bevy::prelude::{Button, Changed, Entity, Interaction, Style, Visibility, With};
-use bevy_mod_picking::UpdatePicks;
 use crate::cursor_adapter::PickableComponent;
 use crate::event::event_descriptor::EventDescriptor;
 use crate::event::event_state::{ComponentChangeEventData, StyleStateChangeEventData};

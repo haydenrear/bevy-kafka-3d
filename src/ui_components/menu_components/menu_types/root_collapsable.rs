@@ -1,4 +1,3 @@
-use std::default::default;
 use bevy::prelude::*;
 use bevy::utils::HashMap;
 use crate::menu::{ConfigurationOptionEnum, MenuItemMetadata, MenuOption, MenuOptionType, UiComponent};
@@ -34,7 +33,8 @@ impl  RootNodeBuilder {
         (
             NodeBundle {
                 style: Style {
-                    size: Size::new(Val::Percent(100.0), Val::Percent(100.0)),
+                    height: Val::Percent(100.0),
+                    width: Val::Percent(100.0),
                     display: Display::Flex,
                     flex_direction: FlexDirection::Column,
                     ..default()

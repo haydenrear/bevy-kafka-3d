@@ -2,7 +2,7 @@ use std::fmt::{Debug, Formatter};
 use std::sync::Arc;
 use bevy::log::{error, info};
 use bevy::utils::HashMap;
-use bevy::prelude::{BackgroundColor, Component, Display, Entity, ResMut, Size, Style, Val, Vec2};
+use bevy::prelude::{BackgroundColor, Component, Display, Entity, ResMut, Style, Val, Vec2};
 use bevy::text::Text;
 use bevy::ui::UiRect;
 use crate::event::event_state::Update;
@@ -11,6 +11,7 @@ use crate::menu::ui_menu_event::ui_context::UiContext;
 use crate::menu::ui_menu_event::ui_state_change::UiClickStateChange;
 use crate::menu::ui_menu_event::ui_menu_event_plugin::{UiEventArgs};
 use crate::Node;
+use crate::ui_components::Size;
 
 
 #[derive(Clone, Debug)]
@@ -141,10 +142,9 @@ fn do_change_visible(value: (), starting_state: &Style, entity: Entity, style_co
 }
 
 fn create_update_size_value(value: (f32, f32), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
-    let size = Size::new(Val::Percent(value.1), Val::Percent(value.0));
     let created = do_create_updates(
         starting_state,
-        &|style| Some(size),
+        &|style| Some(Size::new(Val::Percent(value.0), Val::Percent(value.1))),
     );
     if created.is_none() {
         return None;
@@ -161,13 +161,12 @@ fn create_drag_x(value: (), starting_state: &Style, entity: Entity, style_contex
         return None;
     }
     let mut style = starting_state.clone();
-    let updated_drag = match &style.position.left {
+    let updated_drag = match &style.left {
         Val::Px(mut px) => {
             let prev = px;
             px += style_context.delta.unwrap().x;
             style_context.delta = None;
-            let mut pos = style.position.clone();
-            pos.left = Val::Px(px);
+            let pos = UiRect::new(Val::Px(px), style.right, style.top, style.bottom);
             Some(pos)
         }
         Val::Percent(mut percent) => {
@@ -191,10 +190,9 @@ fn create_drag_x(value: (), starting_state: &Style, entity: Entity, style_contex
 }
 
 fn create_update_size(starting_state: &Style, entity: Entity, width_1: f32, height_1: f32) -> Option<UiEventArgs> {
-    let size = Size::new(Val::Percent(width_1), Val::Percent(height_1));
     let created = do_create_updates(
         starting_state,
-        &|style| Some(size),
+        &|style| Some(Size::new(Val::Percent(height_1), Val::Percent(width_1))),
     );
     if created.is_none() {
         return None;
@@ -215,11 +213,12 @@ fn create_change_size(starting_state: &Style, entity: Entity, width_1: f32, widt
 
 pub(crate) fn size(height_1: f32, height_2: f32, width_1: f32, width_2: f32, starting_state: &Style) -> Option<Size> {
     let mut size = None;
-    info!("{:?} is starting and height_1: {}, height_2: {}, width_1: {}, width_2: {}", starting_state.size, height_1, height_2, width_1, width_2);
-    if let Val::Percent(height) = starting_state.size.height {
+    info!("{:?} is starting width and {:?} is starting height, \
+    and height_1: {}, height_2: {}, width_1: {}, width_2: {}", &starting_state.width, &starting_state.height, height_1, height_2, width_1, width_2);
+    if let Val::Percent(height) = starting_state.height {
         info!("{} is height and {} is height_1", height, height_1);
         if height == height_1 {
-            if let Val::Percent(width) = starting_state.size.width {
+            if let Val::Percent(width) = starting_state.width {
                 info!("{} is width and {} is width_1", width, width_1);
                 if width == width_1 {
                     return Some(Size::new(Val::Percent(width_2), Val::Percent(height_2)));
@@ -230,7 +229,7 @@ pub(crate) fn size(height_1: f32, height_2: f32, width_1: f32, width_2: f32, sta
                 }
             }
         } else if height == height_2 {
-            if let Val::Percent(width) = starting_state.size.width {
+            if let Val::Percent(width) = starting_state.width {
                 if width == width_2 {
                     return Some(Size::new(Val::Percent(width_1), Val::Percent(height_1)));
                 } else if height_1 == height_2 {

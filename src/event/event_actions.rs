@@ -47,7 +47,7 @@ pub trait EventsSystem<
         let _ = interaction_events
             .iter()
             .for_each(|interaction| {
-                if let InteractionEvent::UiComponentInteraction { event: Interaction::Clicked, entity} = interaction {
+                if let InteractionEvent::UiComponentInteraction { event: Interaction::Pressed, entity} = interaction {
                     info!("Found click event with {:?}", entity);
                     context.clicked(*entity);
                     RetrieveStateT::update_hover_ui(&mut global_state, Some(*entity));

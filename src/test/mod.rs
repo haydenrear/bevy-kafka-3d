@@ -2,7 +2,6 @@ use std::marker::PhantomData;
 use bevy::ecs::system::CommandQueue;
 use bevy::prelude::{Commands, Component, Entity, ResMut, World};
 use bevy::ui::{Display, Style};
-use bevy_inspector_egui::egui::CursorIcon::ResizeNorth;
 use crate::event::event_state::{Update, UpdateStateInPlace};
 use crate::menu::{DataType, MetricsConfigurationOption};
 use crate::menu::menu_resource::{CONCAVITY, METRICS};

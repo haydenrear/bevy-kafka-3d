@@ -1,7 +1,6 @@
-use std::default::{default, Default};
+use std::default::{Default};
 use bevy::prelude::{BuildChildren, Children, Commands, Component, Entity, info, Query, Res, ResMut, Resource};
 use bevy::utils::HashMap;
-use bevy_prototype_lyon::prelude::tess::geom::Transform;
 use crate::network::Node;
 
 /// Provide metrics for nodes and layers

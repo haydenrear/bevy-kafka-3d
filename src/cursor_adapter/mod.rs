@@ -2,15 +2,15 @@ use bevy::ecs::query::{QueryEntityError, ReadOnlyWorldQuery};
 use bevy::prelude::*;
 use bevy::window::CursorMoved;
 use crate::camera::raycast_select::BevyPickingState;
-use crate::interactions::InteractionEvent;
+use crate::interactions::{HoverEvent, InteractionEvent, SelectionEvent};
 use bevy::input::Input;
 use bevy::input::mouse::MouseWheel;
 use bevy::prelude::{Entity, EventReader, MouseButton, Query, Res, ResMut};
-use bevy_mod_picking::{HoverEvent, PickingEvent, SelectionEvent};
 use crate::camera::ZoomableDraggableCamera;
 use crate::graph::GraphDimComponent;
 use crate::menu::graphing_menu::graph_menu::GraphMenuPotential;
 use crate::menu::ui_menu_event::type_alias::event_reader_writer_filter::{DraggableUiComponentIxnFilter, PickableIxnFilter, ScrollableIxnFilterQuery};
+use crate::pickable_events::PickableEvent;
 
 /// Will be used to adapt all events into a single InteractionEvent type, which is generic over
 /// the query which is used, so that events can be filtered for the different Ui systems. Ultimately,
@@ -54,11 +54,11 @@ pub(crate) fn propagate_drag_events(
 }
 
 pub trait MatchesPickingEvent {
-    fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &PickableComponent), QueryEntityError>) -> bool;
+    fn matches(picking_event: &PickableEvent, raycast_actionable: Result<(Entity, &PickableComponent), QueryEntityError>) -> bool;
 }
 
 impl MatchesPickingEvent for InteractionEvent<PickableIxnFilter<GraphMenuPotential>> {
-    fn matches(picking_event: &PickingEvent, raycast_actionable: Result<(Entity, &PickableComponent), QueryEntityError>) -> bool {
+    fn matches(picking_event: &PickableEvent, raycast_actionable: Result<(Entity, &PickableComponent), QueryEntityError>) -> bool {
         raycast_actionable
             .map(|(entity, r)| {
                 info!("Had interaction with pickable component.");
@@ -81,9 +81,9 @@ pub enum PickableComponent {
     Metric
 }
 
-fn get_entity(picking_event: &PickingEvent) -> Entity {
+fn get_entity(picking_event: &PickableEvent) -> Entity {
     match picking_event {
-        PickingEvent::Selection(selected) => {
+        PickableEvent::Selection(selected) => {
             match selected {
                 SelectionEvent::JustSelected(e) => {
                     *e
@@ -93,7 +93,7 @@ fn get_entity(picking_event: &PickingEvent) -> Entity {
                 }
             }
         }
-        PickingEvent::Hover(hover) => {
+        PickableEvent::Hover(hover) => {
             match hover {
                 HoverEvent::JustEntered(e) => {
                     *e
@@ -103,12 +103,13 @@ fn get_entity(picking_event: &PickingEvent) -> Entity {
                 }
             }
         }
-        PickingEvent::Clicked(clicked) => {
+        PickableEvent::Clicked(clicked) => {
             *clicked
         }
     }
 }
 
+use crate::interactions::PickingEvent;
 
 macro_rules! ray_cast_events_system {
     () => {
@@ -120,24 +121,24 @@ macro_rules! ray_cast_events_system {
             mouse_button_input: Res<Input<MouseButton>>,
         ) {
             for i in raycast_source.into_iter() {
-                if let PickingEvent::Selection(SelectionEvent::JustSelected(e)) = i {
+                if let PickableEvent::Selection(SelectionEvent::JustSelected(e)) = i {
                     /// in the event when a component is already being dragged, the actions should continue even if
                     /// the mouse is dragged over some other component, so only update if mouse button is not pressed.
                     if !mouse_button_input.pressed(MouseButton::Left) {
                         intersected.picked_ui_flag = true;
                     }
                 }
-                if let PickingEvent::Selection(SelectionEvent::JustDeselected(e)) = i {
+                if let PickableEvent::Selection(SelectionEvent::JustDeselected(e)) = i {
                     intersected.picked_ui_flag = false;
                 }
-                if let PickingEvent::Hover(HoverEvent::JustEntered(e)) = i {
+                if let PickableEvent::Hover(HoverEvent::JustEntered(e)) = i {
                     /// in the event when a component is already being dragged, the actions should continue even if
                     /// the mouse is dragged over some other component, so only update if mouse button is not pressed.
                     if !mouse_button_input.pressed(MouseButton::Left) {
                         intersected.picked_ui_flag = true;
                     }
                 }
-                 else if let PickingEvent::Clicked(e) = i {
+                 else if let PickableEvent::Clicked(e) = i {
                     intersected.picked_ui_flag = true;
                 }
 
@@ -152,27 +153,27 @@ macro_rules! ray_cast_events_system {
                 mut $event_writer_ident: EventWriter<InteractionEvent<$event_writer_type>>,
                 $event_query_ident: Query<(Entity, &PickableComponent), $event_writer_type>,
             ),*
-            mut raycast_source: EventReader<PickingEvent>,
+            mut raycast_source: EventReader<PickableEvent>,
             mut intersected: ResMut<BevyPickingState>,
             cam: Res<ZoomableDraggableCamera>,
             mouse_button_input: Res<Input<MouseButton>>,
         ) {
             for i in raycast_source.into_iter() {
 
-                if let PickingEvent::Selection(SelectionEvent::JustSelected(e)) = i {
+                if let PickableEvent::Selection(SelectionEvent::JustSelected(e)) = i {
                     if !mouse_button_input.pressed(MouseButton::Left) {
                         intersected.picked_ui_flag = true;
                     }
                 }
-                if let PickingEvent::Selection(SelectionEvent::JustDeselected(e)) = i {
+                if let PickableEvent::Selection(SelectionEvent::JustDeselected(e)) = i {
                     intersected.picked_ui_flag = false;
                 }
-                if let PickingEvent::Hover(HoverEvent::JustEntered(e)) = i {
+                if let PickableEvent::Hover(HoverEvent::JustEntered(e)) = i {
                     if !mouse_button_input.pressed(MouseButton::Left) {
                         intersected.picked_ui_flag = true;
                     }
                 }
-                 else if let PickingEvent::Clicked(e) = i {
+                 else if let PickableEvent::Clicked(e) = i {
                     intersected.picked_ui_flag = true;
                 }
 

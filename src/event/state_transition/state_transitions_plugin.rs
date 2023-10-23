@@ -1,4 +1,4 @@
-use bevy::prelude::{App, IntoSystemAppConfig, OnEnter, Plugin};
+use bevy::prelude::{App, OnEnter, Plugin};
 use bevy::prelude::*;
 use std::fmt::Debug;
 use crate::event::state_transition::get_state_transitions::GetStateTransitions;
@@ -23,30 +23,38 @@ impl Plugin for InsertStateTransitionsPlugin {
         app
             .add_state::<TransitionsState>()
             .add_startup_system(create_menu)
-            .add_system(populate_options_builder
-                .in_schedule(OnEnter(TransitionsState::PopulateOptionsBuilder))
+            .add_systems(
+                OnEnter(TransitionsState::PopulateOptionsBuilder),
+                populate_options_builder
             )
-            .add_system(InsertCollapsableDisplayTransitions::insert_state_transitions
-                .in_schedule(OnEnter(TransitionsState::InsertStateTransitions))
+            .add_systems(
+                OnEnter(TransitionsState::InsertStateTransitions),
+                InsertCollapsableDisplayTransitions::insert_state_transitions
             )
-            .add_system(InsertSelectStateTransitions::insert_state_transitions
-                .in_schedule(OnEnter(TransitionsState::InsertStateTransitions))
+            .add_systems(
+                OnEnter(TransitionsState::InsertStateTransitions),
+                InsertSelectStateTransitions::insert_state_transitions
             )
-            .add_system(InsertDropdownDisplayTransitions::insert_state_transitions
-                .in_schedule(OnEnter(TransitionsState::InsertStateTransitions))
+            .add_systems(
+                OnEnter(TransitionsState::InsertStateTransitions),
+                InsertDropdownDisplayTransitions::insert_state_transitions
             )
-            .add_system(InsertBaseMenuDisplayTransitions::insert_state_transitions
-                .in_schedule(OnEnter(TransitionsState::InsertStateTransitions))
+            .add_systems(
+                OnEnter(TransitionsState::InsertStateTransitions),
+                InsertBaseMenuDisplayTransitions::insert_state_transitions
             )
-            .add_system(InsertVisibleGraphStateTransitions::insert_state_transitions
-                .in_schedule(OnEnter(TransitionsState::InsertStateTransitions))
+            .add_systems(
+                OnEnter(TransitionsState::InsertStateTransitions),
+                InsertVisibleGraphStateTransitions::insert_state_transitions
             )
-            .add_system(InsertVisibleNetworkStateTransitions::insert_state_transitions
-                .in_schedule(OnEnter(TransitionsState::InsertStateTransitions))
+            .add_systems(
+                OnEnter(TransitionsState::InsertStateTransitions),
+                InsertVisibleNetworkStateTransitions::insert_state_transitions
             )
             // dynamic state transitions
-            .add_system(InsertGraphMenuStateTransitions::insert_state_transitions
-                .in_schedule(OnEnter(TransitionsState::CheckDynamicStateTransitions))
+            .add_systems(
+                OnEnter(TransitionsState::CheckDynamicStateTransitions),
+                InsertGraphMenuStateTransitions::insert_state_transitions
             )
         ;
     }

@@ -2,11 +2,14 @@ use std::io::Cursor;
 use std::marker::PhantomData;
 use bevy::ecs::query::ReadOnlyWorldQuery;
 use bevy::input::mouse::MouseWheel;
-use bevy::prelude::{Entity, Interaction};
+use bevy::prelude::{Entity, Event, Interaction};
 use bevy::window::CursorMoved;
 use ndarray::s;
+use crate::pickable_events::PickableEvent;
+
 
 /// Convert all interactions to these events so that ui and 3d are comparable.
+#[derive(Event)]
 pub enum InteractionEvent<QueryFilterT: ReadOnlyWorldQuery> {
     UiComponentInteraction { event: Interaction, entity: Entity },
     RayCastInteraction { event: PickingEvent<QueryFilterT> },
@@ -36,30 +39,30 @@ pub enum PickingEvent<QueryFilterT: ReadOnlyWorldQuery> {
     Clicked(Entity, PhantomData<QueryFilterT>),
 }
 
-impl<QueryFilterT: ReadOnlyWorldQuery> From<&bevy_mod_picking::PickingEvent> for PickingEvent<QueryFilterT> {
-    fn from(value: &bevy_mod_picking::PickingEvent) -> Self {
+impl<QueryFilterT: ReadOnlyWorldQuery> From<&PickableEvent> for PickingEvent<QueryFilterT> {
+    fn from(value: &PickableEvent) -> Self {
         match value {
-            bevy_mod_picking::PickingEvent::Selection(selected) => {
+            PickableEvent::Selection(selected) => {
                 match selected {
-                    bevy_mod_picking::SelectionEvent::JustSelected(selected) => {
+                    SelectionEvent::JustSelected(selected) => {
                         PickingEvent::Selection(SelectionEvent::JustSelected(*selected), PhantomData::default())
                     }
-                    bevy_mod_picking::SelectionEvent::JustDeselected(deselected) => {
+                    SelectionEvent::JustDeselected(deselected) => {
                         PickingEvent::Selection(SelectionEvent::JustDeselected(*deselected), PhantomData::default())
                     }
                 }
             }
-            bevy_mod_picking::PickingEvent::Hover(hover) => {
+            PickableEvent::Hover(hover) => {
                 match hover {
-                    bevy_mod_picking::HoverEvent::JustEntered(entered) => {
+                    HoverEvent::JustEntered(entered) => {
                         PickingEvent::Hover(HoverEvent::JustEntered(*entered), PhantomData::default())
                     }
-                    bevy_mod_picking::HoverEvent::JustLeft(left) => {
+                    HoverEvent::JustLeft(left) => {
                         PickingEvent::Hover(HoverEvent::JustLeft(*left), PhantomData::default())
                     }
                 }
             }
-            bevy_mod_picking::PickingEvent::Clicked(clicked) => {
+            PickableEvent::Clicked(clicked) => {
                 return PickingEvent::Clicked(*clicked, PhantomData::default());
             }
         }

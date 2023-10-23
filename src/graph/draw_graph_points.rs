@@ -1,11 +1,10 @@
 use std::collections::HashMap;
-use std::default::default;
 use std::f32::consts::PI;
 use std::fmt::Debug;
 use std::marker::PhantomData;
 use bevy::log::error;
 use bevy::pbr::Material;
-use bevy::prelude::{Added, Assets, BuildChildren, Changed, Children, Color, Commands, Component, Entity, info, MaterialMeshBundle, Mesh, Mut, Or, Parent, Query, ResMut, Vec3, With, Without};
+use bevy::prelude::{Added, Assets, BuildChildren, Changed, Children, Color, Commands, Component, default, Entity, info, MaterialMeshBundle, Mesh, Mut, Or, Parent, Query, ResMut, Vec3, With, Without};
 use bevy_mod_picking::PickableBundle;
 use ndarray::{Array1, s, SliceInfoElem};
 use crate::graph::{DataSeries, Graph, GraphConfigurationResource, GraphDim, GraphDimComponent, GraphDimType, GraphParent, SeriesStep};

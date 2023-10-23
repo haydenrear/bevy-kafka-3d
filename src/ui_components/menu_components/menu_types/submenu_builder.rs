@@ -32,41 +32,45 @@ impl <'a> SubmenuBuilder<'a> {
         mut meshes: &mut ResMut<Assets<Mesh>>,
         mut asset_server: &mut Res<AssetServer>,
     ) -> Option<DrawSubmenuResult> {
-        match self.sub_menu {
-            MenuInputType::Dropdown { options, metadata: menu_metadata, option } => {
-                self.parent_menus.push(menu_metadata.clone());
-                let base_menu = BaseMenu {
-                    menu_metadata,
-                    config_option: option,
-                    parent_menus: self.parent_menus.clone(),
-                    component: dropdown_component(options),
-                    parent: self.parent.unwrap(),
-                };
-                let mut dropdown_menu_builder = DropdownMenuBuilder {
-                    menu_metadata,
-                    config_option: option,
-                    parent_menus: self.parent_menus.clone(),
-                    base_menu,
-                    menu_option_builders: menu_options(options, &self.parent_menus),
-                };
+        if self.parent.is_some() {
+            match self.sub_menu {
+                MenuInputType::Dropdown { options, metadata: menu_metadata, option } => {
+                    self.parent_menus.push(menu_metadata.clone());
+                    let base_menu = BaseMenu {
+                        menu_metadata,
+                        config_option: option,
+                        parent_menus: self.parent_menus.clone(),
+                        component: dropdown_component(options),
+                        parent: self.parent.unwrap(),
+                    };
+                    let mut dropdown_menu_builder = DropdownMenuBuilder {
+                        menu_metadata,
+                        config_option: option,
+                        parent_menus: self.parent_menus.clone(),
+                        base_menu,
+                        menu_option_builders: menu_options(options, &self.parent_menus),
+                    };
 
 
 
-                let result = dropdown_menu_builder
-                    .build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
+                    let result = dropdown_menu_builder
+                        .build(&mut commands, &mut materials, &mut meshes, &mut asset_server);
 
-                self.parent_menus.push(menu_metadata.clone());
+                    self.parent_menus.push(menu_metadata.clone());
 
 
 
-                Some(DrawSubmenuResult {
-                    dropdown_menu_result: result,
-                    with_submenu_added: self.parent_menus.clone(),
-                })
+                    Some(DrawSubmenuResult {
+                        dropdown_menu_result: result,
+                        with_submenu_added: self.parent_menus.clone(),
+                    })
+                }
+                _ => {
+                    None
+                }
             }
-            _ => {
-                None
-            }
+        } else {
+            None
         }
     }
 }

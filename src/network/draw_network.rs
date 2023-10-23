@@ -190,10 +190,12 @@ fn draw_layers_and_nodes<'a>(
 
 
     for node in layer_tuple.0.nodes.iter() {
-        let node_entity = node.entity.clone();
-        node_entity.map(|node_entity| draw_node(commands, materials, meshes, node, node_entity, layer));
-        commands.entity(layer_entity)
-            .add_child(node_entity.clone().unwrap());
+        if node.entity.is_some() {
+            let node_entity = node.entity.clone();
+            node_entity.map(|node_entity| draw_node(commands, materials, meshes, node, node_entity, layer));
+            commands.entity(layer_entity)
+                .add_child(node_entity.clone().unwrap());
+        }
     }
 
 }
