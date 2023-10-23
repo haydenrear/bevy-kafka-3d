@@ -105,7 +105,7 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
             ButtonBundle {
                 style: Style {
                     display: Display::None,
-                    height: Val::Px(100.0),
+                    height: Val::Percent(100.0),
                     width: Val::Px(30.0),
                     left: Val::Percent(get_swing_out(self.menu_option)),
                     right: Val::Percent(0.0),
