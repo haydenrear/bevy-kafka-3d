@@ -105,8 +105,8 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
             ButtonBundle {
                 style: Style {
                     display: Display::None,
-                    height: Val::Percent(100.0),
-                    width: Val::Px(30.0),
+                    width: Val::Percent(100.0),
+                    height: Val::Px(30.0),
                     left: Val::Percent(get_swing_out(self.menu_option)),
                     right: Val::Percent(0.0),
                     top: Val::Percent(0.0),
@@ -148,8 +148,8 @@ impl <'a> DropdownMenuOptionBuilder<'a> {
             TextBundle {
                 style: Style {
                     display: Display::Flex,
-                    height: Val::Percent(100.0),
-                    width: Val::Px(50.0),
+                    width: Val::Percent(100.0),
+                    height: Val::Px(50.0),
                     ..default()
                 },
                 text: Text::from_section(self.menu_option.metadata.name.to_string(), TextStyle {

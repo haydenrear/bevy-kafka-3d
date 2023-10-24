@@ -81,16 +81,15 @@ fn add_data_to_current_metric<T, U>(
         T: NetworkMetricsServiceEvent<U> + 'static + Debug,
         U: Component
 {
-    let _ = metrics_lookup.entities
+    let (entity, timestep) = metrics_lookup.entities
         .get(metric_name)
-        .map(|(entity, timestep)| {
-            let _ = component_query.get_mut(*entity)
-                .as_mut()
-                .map(|(entity, metric)| extend_historical(&mut commands, event, timestep, entity, metric))
-                .or_else(|e| {
-                    error!("Could not extend metric: {:?}.", e);
-                    Err(e)
-                });
+        .unwrap();
+    let _ = component_query.get_mut(*entity)
+        .as_mut()
+        .map(|(entity, metric)| extend_historical(&mut commands, event, timestep, entity, metric))
+        .or_else(|e| {
+            error!("Could not extend metric: {:?}.", e);
+            Err(e)
         });
 }
 

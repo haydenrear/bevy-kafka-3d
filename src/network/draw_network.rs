@@ -146,7 +146,7 @@ pub(crate) fn draw_node_connections(
 
                     let relative_pos = Transform::from_matrix(relative_pos);
 
-                    let mesh = create_3d_line(LineList {
+                    let (line_mesh, line_strip_mesh, line_material) = create_3d_line(LineList {
                         lines: vec![(
                             Vec3::new(0.0, layer.2.translation.y, 1.0),
                             Vec3::new(relative_pos.translation.x, connection_to_make.2.translation.y, 1.0)
@@ -157,8 +157,8 @@ pub(crate) fn draw_node_connections(
                     let line = commands.
                         spawn((
                             MaterialMeshBundle {
-                                mesh: meshes.add(mesh.0),
-                                material: materials.add(mesh.1),
+                                mesh: meshes.add(line_strip_mesh),
+                                material: materials.add(line_material),
                                 ..default()
                             }
                         ));

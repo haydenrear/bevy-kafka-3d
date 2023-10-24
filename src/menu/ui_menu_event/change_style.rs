@@ -144,7 +144,7 @@ fn do_change_visible(value: (), starting_state: &Style, entity: Entity, style_co
 fn create_update_size_value(value: (f32, f32), starting_state: &Style, entity: Entity, style_context: &mut ResMut<UiContext>) -> Option<UiEventArgs> {
     let created = do_create_updates(
         starting_state,
-        &|style| Some(Size::new(Val::Percent(value.0), Val::Percent(value.1))),
+        &|style| Some(Size::new(Val::Percent(value.1), Val::Percent(value.0))),
     );
     if created.is_none() {
         return None;
@@ -192,7 +192,7 @@ fn create_drag_x(value: (), starting_state: &Style, entity: Entity, style_contex
 fn create_update_size(starting_state: &Style, entity: Entity, width_1: f32, height_1: f32) -> Option<UiEventArgs> {
     let created = do_create_updates(
         starting_state,
-        &|style| Some(Size::new(Val::Percent(height_1), Val::Percent(width_1))),
+        &|style| Some(Size::new(Val::Percent(width_1), Val::Percent(height_1))),
     );
     if created.is_none() {
         return None;

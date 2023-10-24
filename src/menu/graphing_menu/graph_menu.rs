@@ -1,3 +1,4 @@
+use bevy::log::info;
 use bevy::prelude::{Bundle, Commands, Component, Entity, Resource};
 use crate::graph::GraphDim;
 use crate::menu::{ConfigurationOptionEnum, MenuData, MetricsConfigurationOption};
@@ -30,12 +31,15 @@ pub struct GraphMenuPotential {
 impl StateAdviser<ChangeGraphingMenu> for GraphMenuPotential {
     fn advise(&self, mut commands: &mut Commands, in_state: &ChangeGraphingMenu) -> ChangeGraphingMenu {
         if !self.realized {
+            info!("Advising to remove graphing menu.");
             let menu = commands.spawn(()).id();
             return ChangeGraphingMenu::RemoveGraphingMenu(menu);
         } else if let ChangeGraphingMenu::RemoveGraphingMenu(entity) = in_state {
+            info!("Removing graphing menu.");
             commands.entity(*entity)
                 .remove::<Node>();
         }
+        info!("Returning to add graphing menu.");
         return ChangeGraphingMenu::AddGraphingMenu;
     }
 }

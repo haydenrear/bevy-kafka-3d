@@ -183,7 +183,7 @@ fn create_axes(
     size: f32
 ) -> Grid {
     let axes_material = LineMaterial {
-        color: Color::BLACK,
+        color: Color::GREEN,
     };
 
     let x_axis = create_grid_line(commands, Vec3::new(-size, 0.0, 0.0), Vec3::new(size, 0.0, 0.0), mesh, materials, axes_material.clone(), GRID_AXES_THICKNESS, GridAxis::X);
@@ -209,15 +209,15 @@ fn create_grid_line(
     parent: GridAxis
 ) -> Entity {
 
-    let line_mesh = create_3d_line(LineList {
+    let (line_mesh, line_strip_mesh, line_material) = create_3d_line(LineList {
         lines: vec![(start, end)],
         thickness,
     }, material);
 
     commands.spawn((
             MaterialMeshBundle {
-                mesh: meshes.add(line_mesh.0),
-                material: materials.add(line_mesh.1),
+                mesh: meshes.add(line_mesh),
+                material: materials.add(line_material),
                 ..default()
             }
         ))

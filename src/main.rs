@@ -10,7 +10,7 @@ use bevy::ui::UiPlugin;
 use bevy::utils::petgraph::Graph;
 // use bevy_inspector_egui::quick::WorldInspectorPlugin;
 use bevy_mod_picking::{DefaultPickingPlugins};
-// use bevy_prototype_lyon::plugin::ShapePlugin;
+use bevy_prototype_lyon::plugin::ShapePlugin;
 use camera::lerping_camera::camera_control;
 use graph::setup_graph;
 use crate::camera::{NnFeCameraPlugin, setup_camera, ZoomableDraggableCamera};
@@ -69,7 +69,7 @@ async fn main() {
         .insert_resource(GlobalState::default())
         .insert_resource(GraphingMetricsResource::default())
         .add_plugins(DefaultPlugins)
-        // .add_plugin(ShapePlugin)
+        .add_plugin(ShapePlugin)
         // .add_plugin(WorldInspectorPlugin::new())
         .add_plugin(UiEventPlugin)
         .add_plugin(GraphPlugin)

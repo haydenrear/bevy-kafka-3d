@@ -91,8 +91,8 @@ impl <'a> CollapsableMenuBuilder<'a> {
                 style: Style {
                     display: Display::Flex,
                     flex_direction: FlexDirection::Column,
-                    height: Val::Percent(4.0),
-                    width: Val::Percent(100.0),
+                    width: Val::Percent(4.0),
+                    height: Val::Percent(100.0),
                     justify_content: JustifyContent::Start,
                     ..default()
                 },
@@ -109,8 +109,8 @@ impl <'a> CollapsableMenuBuilder<'a> {
         (
             TextBundle {
                 style: Style {
-                    height: Val::Percent(95.0),
-                    width: Val::Px(30.0),
+                    width: Val::Percent(95.0),
+                    height: Val::Px(30.0),
                     ..default()
                 },
                 text: Text::from_section(self.menu_metadata.name.to_string(), TextStyle {

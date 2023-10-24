@@ -82,8 +82,8 @@ impl <'a> SliderMenuOptionBuilder<'a> {
             TextBundle {
                 style: Style {
                     display: Display::Flex,
-                    height: Val::Percent(100.0),
-                    width: Val::Px(50.0),
+                    width: Val::Percent(100.0),
+                    height: Val::Px(50.0),
                     ..default()
                 },
                 text: Text::from_section(self.metadata.initial_value.clone(), TextStyle {

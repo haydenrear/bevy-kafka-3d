@@ -27,7 +27,7 @@ impl Position {
 }
 
 impl Size {
-    pub(crate) fn new(height: Val, width: Val) -> Self {
+    pub(crate) fn new(width: Val, height: Val) -> Self {
         Self {
             height, width
         }

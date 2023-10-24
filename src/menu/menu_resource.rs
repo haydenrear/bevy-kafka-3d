@@ -123,7 +123,7 @@ impl Default for MenuResource {
                                                     id: 2.0,
                                                     icon: "".to_string(),
                                                     name: "Layer Metrics".to_string(),
-                                                    size: Some(Size::new(Val::Px(30.0), Val::Percent(100.0))),
+                                                    size: Some(Size::new(Val::Percent(100.0), Val::Px(30.0))),
                                                     icon_pos: Position::Left,
                                                     color: Default::default(),
                                                     description: "Options for metrics for layers.".to_string(),

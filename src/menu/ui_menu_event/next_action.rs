@@ -19,7 +19,7 @@ pub enum NextUiState {
 impl UpdateStateInPlace<Style, UiContext> for NextUiState {
     fn update_state(&self, commands: &mut Commands,  value: &mut Style, style_context: &mut ResMut<UiContext>) {
         match &self {
-            NextUiState::ReplaceSize(update) => update.update_state(commands, &mut Size::new(value.height, value.width), style_context),
+            NextUiState::ReplaceSize(update) => update.update_state(commands, &mut Size::new(value.width, value.height), style_context),
             NextUiState::ReplaceDisplay(display) => display.update_state(commands, &mut value.display, style_context),
             NextUiState::UpdatePosition(update) => update.update_state(commands, &mut UiRect::new(value.left, value.right, value.top, value.bottom),
                                                                        style_context),
@@ -51,7 +51,7 @@ impl Matches<Style> for UiComponentState {
     fn matches(&self, style: &Style) -> bool {
         match self {
             UiComponentState::StateDisplay(display) => display.matches(&style.display),
-            UiComponentState::StateSize(state) => state.matches(&Size::new(style.height, style.width)),
+            UiComponentState::StateSize(state) => state.matches(&Size::new(style.width, style.height)),
             UiComponentState::Any => true,
             other => {
                 info!("Did not match: {:?}", other);

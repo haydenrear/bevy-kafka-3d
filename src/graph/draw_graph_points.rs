@@ -107,7 +107,7 @@ pub(crate) fn create_data_segment(
     thickness: f32
 ) -> Entity {
 
-    let line_mesh = create_3d_line(LineList {
+    let (line_mesh, line_strip_mesh, line_material) = create_3d_line(LineList {
         lines: vec![(start, end)],
         thickness,
     }, material);
@@ -115,8 +115,8 @@ pub(crate) fn create_data_segment(
     commands
         .spawn((
             MaterialMeshBundle {
-                mesh: meshes.add(line_mesh.0),
-                material: materials.add(line_mesh.1),
+                mesh: meshes.add(line_mesh),
+                material: materials.add(line_material),
                 ..default()
             },
             SeriesStep {}

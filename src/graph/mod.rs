@@ -23,7 +23,7 @@ pub(crate) mod graph_data_event_reader;
 
 pub const GRID_SIZE: f32 = 100.0;
 pub const GRID_LINES_THICKNESS: f32 = 0.1;
-pub const GRID_AXES_THICKNESS: f32 = 0.5;
+pub const GRID_AXES_THICKNESS: f32 = 100.0;
 pub const GRID_COUNT: usize = 100;
 pub const NUM_GRIDLINES: usize = 100;
 
