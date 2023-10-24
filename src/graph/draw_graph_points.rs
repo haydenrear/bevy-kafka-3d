@@ -6,17 +6,17 @@ use bevy::log::error;
 use bevy::pbr::Material;
 use bevy::prelude::{Added, Assets, BuildChildren, Changed, Children, Color, Commands, Component, default, Entity, info, MaterialMeshBundle, Mesh, Mut, Or, Parent, Query, ResMut, Vec3, With, Without};
 use bevy_mod_picking::PickableBundle;
+use bevy_polyline::prelude::{Polyline, PolylineMaterial};
 use ndarray::{Array1, s, SliceInfoElem};
 use crate::graph::{DataSeries, Graph, GraphConfigurationResource, GraphDim, GraphDimComponent, GraphDimType, GraphParent, SeriesStep};
 use crate::graph::graph_data_event_reader::HistoricalUpdated;
 use crate::graph::radial::calculate_radial_time;
-use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
+use crate::lines::line_list::{create_3d_line, LineList};
 use crate::metrics::network_metrics::{HistoricalData, Metric};
 
-pub trait GraphingStrategy<T, M>
+pub trait GraphingStrategy<T>
     where
         T: Component + Send + Sync + 'static,
-        M: Material
 {
     fn create_update_graph(
         commands: &mut Commands,
@@ -24,7 +24,8 @@ pub trait GraphingStrategy<T, M>
         series: &mut Mut<DataSeries>,
         columns: &mut Vec<GraphDim>,
         meshes: &mut ResMut<Assets<Mesh>>,
-        materials: &mut ResMut<Assets<M>>,
+        polylines: &mut ResMut<Assets<Polyline>>,
+        materials: &mut ResMut<Assets<PolylineMaterial>>,
         num_col: usize,
         key: &u64
     );
@@ -43,7 +44,7 @@ type WithDataSeriesChangedHistorical = (With<DataSeries>, Or<(Changed<Historical
 /// TODO: The layer should be wide, and then the node losses should be set inside of them. So the
 ///     layer will be from radians a to b, and the width of the line will be the size of this, and
 ///     then each node will take some n fraction. where ((a - b) - epsilon_edge) / n = size_fraction
-pub(crate) fn draw_graph_points<T, P, M>(
+pub(crate) fn draw_graph_points<T, P>(
     mut commands: Commands,
     mut metrics: Query<
         (Entity, &Metric<T>, &mut DataSeries),
@@ -52,12 +53,12 @@ pub(crate) fn draw_graph_points<T, P, M>(
     mut metric_dims: Query<(Entity, &GraphDimComponent)>,
     mut dims: ResMut<GraphConfigurationResource<T>>,
     mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<M>>,
+    mut polylines: ResMut<Assets<Polyline>>,
+    mut materials: ResMut<Assets<PolylineMaterial>>,
 )
 where
     T: Component + Send + Sync + 'static + Debug,
-    P: GraphingStrategy<T, M>,
-    M: Material
+    P: GraphingStrategy<T>,
 {
 
     for (metric_entity, metric, mut series) in metrics.iter_mut() {
@@ -78,6 +79,7 @@ where
                         &mut series,
                         &mut dims.series_dims.get_mut(&metric_entity).unwrap(),
                         &mut meshes,
+                        &mut polylines,
                         &mut materials,
                         num_col,
                         key
@@ -102,23 +104,20 @@ pub(crate) fn create_data_segment(
     start: Vec3,
     end: Vec3,
     mut meshes: &mut ResMut<Assets<Mesh>>,
-    mut materials: &mut ResMut<Assets<LineMaterial>>,
-    material: LineMaterial,
+    mut polylines: &mut ResMut<Assets<Polyline>>,
+    mut polyline_materials: &mut ResMut<Assets<PolylineMaterial>>,
     thickness: f32
 ) -> Entity {
 
-    let (line_mesh, line_strip_mesh, line_material) = create_3d_line(LineList {
+    let line_bundler = create_3d_line(LineList {
+        color: Color::GREEN,
         lines: vec![(start, end)],
         thickness,
-    }, material);
+    }, polylines, polyline_materials);
 
     commands
         .spawn((
-            MaterialMeshBundle {
-                mesh: meshes.add(line_mesh),
-                material: materials.add(line_material),
-                ..default()
-            },
+            line_bundler,
             SeriesStep {}
         ))
         .id()

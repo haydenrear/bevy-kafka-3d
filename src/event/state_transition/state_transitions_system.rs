@@ -8,6 +8,11 @@ use crate::event::state_transition::state_transition_types::{ChildFilterType, Ch
 use crate::menu::ui_menu_event::next_action::Matches;
 use crate::menu::ui_menu_event::transition_groups::TransitionGroup;
 
+/// When the program starts the possible transitions are added. These transition components are
+/// inserted into the context to be queried by the events system in event_actions.rs, and then
+/// downstream events are written (also event_actions.rs) based on the type of transition required,
+/// which is based on the current state of the component (StateComponentT) and perhaps the next
+/// component UpdateComponentT.
 pub trait InsertStateTransitions<
     'a,
     TransitionGroupT,

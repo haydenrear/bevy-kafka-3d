@@ -1,7 +1,9 @@
 use bevy::prelude::Component;
 
 /// In some cases, some events should and should not be propagated to all children. So this determines
-/// who to include when building out the tree of events.
+/// who to include when building out the tree of events. The TransitionGroup is one of the
+/// things that the RetrieveState uses to retrieve the events propagated by the type of
+/// EventRetriever.
 pub trait TransitionGroup: Component {
 }
 

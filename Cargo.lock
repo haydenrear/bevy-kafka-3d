@@ -827,6 +827,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "bevy_polyline"
+version = "0.7.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8b82c222b756d1d41ca808595934fc02edc5b05604151930bc7d00bb4fd8d1bd"
+dependencies = [
+ "bevy",
+ "bitflags 2.4.1",
+ "naga",
+]
+
+[[package]]
 name = "bevy_prototype_lyon"
 version = "0.9.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2738,6 +2749,7 @@ dependencies = [
  "bevy_picking_selection",
  "bevy_picking_sprite",
  "bevy_picking_ui",
+ "bevy_polyline",
  "bevy_prototype_lyon",
  "bevy_transform",
  "bevy_ui",

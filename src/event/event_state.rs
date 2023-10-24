@@ -94,7 +94,8 @@ pub struct NextStateChange<T: UpdateStateInPlace<U, Ctx>, U: Component + Send + 
     pub(crate) phantom_ctx: PhantomData<Ctx>
 }
 
-#[derive(Debug)]/// Modularizes the state change.
+/// Modularize the state change.
+#[derive(Debug)]
 pub struct NextComponentInsert<InsertComponentT, AdviserComponentT, Ctx>
     where
         InsertComponentT: Component + Send + Sync + 'static + Clone + Debug,

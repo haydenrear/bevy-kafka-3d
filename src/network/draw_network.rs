@@ -1,5 +1,5 @@
 use std::collections::HashSet;
-use bevy::prelude::{Changed, ClearColor, Commands, default, Entity, Mesh, Query, Res, ResMut, SpriteBundle, Visibility};
+use bevy::prelude::{Changed, ClearColor, Color, Commands, default, Entity, Mesh, Query, Res, ResMut, SpriteBundle, Visibility};
 use bevy::asset::Assets;
 use bevy::pbr::{MaterialMeshBundle, PbrBundle, StandardMaterial};
 use bevy_transform::components::{GlobalTransform, Transform};
@@ -8,7 +8,8 @@ use bevy_mod_picking::PickableBundle;
 use std::marker::PhantomData;
 use bevy::hierarchy::{BuildChildren, Parent};
 use bevy::math::Vec3;
-use crate::lines::line_list::{create_3d_line, LineList, LineMaterial};
+use bevy_polyline::prelude::{Polyline, PolylineMaterial};
+use crate::lines::line_list::{create_3d_line, LineList};
 use crate::menu::{DataType, MetricsConfigurationOption};
 use crate::menu::config_menu_event::interaction_config_event_writer::NetworkMenuResultBuilder;
 use crate::menu::menu_resource::VARIANCE;
@@ -118,7 +119,8 @@ pub(crate) fn update_network(
 pub(crate) fn draw_node_connections(
     mut commands: Commands,
     mut layer_query: Query<(Entity, &Parent, &mut Transform, &mut Node), Changed<Node>>,
-    mut materials: ResMut<Assets<LineMaterial>>,
+    mut polylines: ResMut<Assets<Polyline>>,
+    mut polyline_materials: ResMut<Assets<PolylineMaterial>>,
     mut meshes: ResMut<Assets<Mesh>>,
     global_transform_query: Query<&GlobalTransform>
 ) {
@@ -146,22 +148,17 @@ pub(crate) fn draw_node_connections(
 
                     let relative_pos = Transform::from_matrix(relative_pos);
 
-                    let (line_mesh, line_strip_mesh, line_material) = create_3d_line(LineList {
+                    let polyline_bundler = create_3d_line(LineList {
+                        color: Color::BLUE,
                         lines: vec![(
                             Vec3::new(0.0, layer.2.translation.y, 1.0),
                             Vec3::new(relative_pos.translation.x, connection_to_make.2.translation.y, 1.0)
                         )],
                         thickness: 0.5,
-                    }, LineMaterial::default());
+                    }, &mut polylines, &mut polyline_materials);
 
                     let line = commands.
-                        spawn((
-                            MaterialMeshBundle {
-                                mesh: meshes.add(line_strip_mesh),
-                                material: materials.add(line_material),
-                                ..default()
-                            }
-                        ));
+                        spawn(polyline_bundler);
 
                     line.id()
                 })

@@ -40,9 +40,15 @@ pub struct NnFeCameraPlugin;
 
 impl Plugin for NnFeCameraPlugin{
     fn build(&self, app: &mut App) {
-        app.add_plugins(
-            DefaultPickingPlugins.build()
-        )
+        app.insert_resource(ZoomableDraggableCamera {
+                min_distance: -5000.0,
+                max_distance: 1000.0,
+                current_distance: -1000.0,
+                zoom_sensitivity: 10.0,
+                initialized: false,
+                ..default()
+            })
+            .add_plugins(DefaultPickingPlugins.build())
             .add_startup_system(setup_camera)
             .add_system(camera_rotation_system)
             .add_system(camera_control)

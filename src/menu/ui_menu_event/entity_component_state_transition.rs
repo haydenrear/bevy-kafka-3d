@@ -35,7 +35,10 @@ pub struct EntityComponentStateTransition<
     pub(crate) state_component: PhantomData<StateComponentT>,
 }
 
-/// Paricular types of state transitions, that are associated with a particular state machine, component, and transition group.
+/// Particular types of state transitions, that are associated with a particular state machine, component, and transition group.
+/// StateComponentT: The typ of the current state of the component that is propagated. The current state will determine the next state.
+///   This can be any arbitrary component or an aggregate of multiple components.
+/// UpdateComponentT: The type of the component to be updated.
 #[derive(Component, Debug)]
 pub struct UiEntityComponentStateTransitions<
     StateMachineT,
@@ -67,3 +70,4 @@ where
     >>,
     pub(crate) state_component: PhantomData<StateComponentT>,
 }
+

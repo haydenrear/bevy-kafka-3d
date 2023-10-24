@@ -3,18 +3,18 @@ use bevy::math::Vec3;
 use std::f32::consts::PI;
 use std::collections::HashMap;
 use bevy::pbr::Material;
+use bevy_polyline::prelude::{Polyline, PolylineMaterial};
 use ndarray::{Array, Array1, Array2, ArrayBase, Axis, Ix1, OwnedRepr, s};
 use ndarray_stats::{CorrelationExt, SummaryStatisticsExt};
 use statrs::distribution::{ContinuousCDF, Normal};
 use crate::graph;
 use crate::graph::{DataSeries, GraphConfigurationResource, GraphDim, GraphDimType};
 use crate::graph::draw_graph_points::{create_data_segment, GraphingStrategy};
-use crate::lines::line_list::LineMaterial;
 use crate::metrics::network_metrics::Metric;
 
 pub struct RadialGraphPoints;
 
-impl<T> GraphingStrategy<T, LineMaterial> for RadialGraphPoints
+impl<T> GraphingStrategy<T> for RadialGraphPoints
     where
         T: Component + Send + Sync + 'static
 {
@@ -24,7 +24,8 @@ impl<T> GraphingStrategy<T, LineMaterial> for RadialGraphPoints
         series: &mut Mut<DataSeries>,
         columns: &mut Vec<GraphDim>,
         mut meshes: &mut ResMut<Assets<Mesh>>,
-        mut materials: &mut ResMut<Assets<LineMaterial>>,
+        mut polylines: &mut ResMut<Assets<Polyline>>,
+        mut polyline_materials: &mut ResMut<Assets<PolylineMaterial>>,
         num_col: usize,
         key: &u64,
     ) {
@@ -122,8 +123,8 @@ impl<T> GraphingStrategy<T, LineMaterial> for RadialGraphPoints
                     start,
                     end,
                     &mut meshes,
-                    &mut materials,
-                    LineMaterial { color: graph_dim_component.1 },
+                    &mut polylines,
+                    &mut polyline_materials,
                     1.0,
                 );
                 commands.get_entity(graph_dim_component.0)

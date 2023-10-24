@@ -11,6 +11,9 @@ use crate::event::event_state::{ClickContext, Context, InsertComponent, InsertCo
 use crate::interactions::InteractionEvent;
 use crate::menu::ui_menu_event::ui_state_change::{GlobalState, StateAdviser, StateChangeMachine, UpdateGlobalState};
 
+/// Reads the interaction events, such as click, mouse wheel, etc, and writes to the EventWriter.
+/// Then, there are various types of downstream EventWriters that perform different types of actions
+/// to the component, such as inserting/removing component, updating component, etc.
 pub trait EventsSystem<
     RetrieveStateT,
     EventArgsT: EventArgs + 'static + Debug,
